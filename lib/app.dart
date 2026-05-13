@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'core/theme/app_colors.dart';
-import 'core/theme/app_routes.dart';
+import 'package:synapse_frontend/core/router/app_router.dart';
+import 'package:synapse_frontend/core/theme/app_theme.dart';
 
 class SynapseApp extends StatelessWidget {
   const SynapseApp({super.key});
@@ -11,11 +11,7 @@ class SynapseApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'Synapse',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(AppColors.primaryAmber),
-        fontFamily: 'Pretendard',
-      ),
+      theme: AppTheme.light(),
       routerConfig: appRouter,
     );
   }

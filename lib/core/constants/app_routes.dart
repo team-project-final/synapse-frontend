@@ -1,0 +1,65 @@
+abstract final class AppRoutes {
+  static const dashboard = '/';
+
+  static const login = '/login';
+  static const signup = '/signup';
+  static const mfa = '/mfa';
+  static const passwordReset = '/password-reset';
+  static const oauthConsent = '/oauth-consent';
+
+  static const notes = '/notes';
+  static const noteDetail = '/notes/:noteId';
+  static const noteEditor = '/notes/:noteId/edit';
+  static const noteVersions = '/notes/:noteId/versions';
+  static const tags = '/tags';
+
+  static const decks = '/decks';
+  static const deckCards = '/decks/:deckId/cards';
+  static const cardNew = '/cards/new';
+  static const aiCards = '/ai/cards';
+  static const review = '/review';
+  static const reviewResult = '/review/result';
+
+  static const graph = '/graph';
+  static const graphNote = '/graph/notes/:noteId';
+  static const graphClusters = '/graph/clusters';
+
+  static const search = '/search';
+  static const qa = '/qa';
+
+  static const billingPlans = '/billing/plans';
+  static const billingUsage = '/billing/usage';
+  static const billingHistory = '/billing/history';
+
+  static const settingsProfile = '/settings/profile';
+  static const settingsSecurity = '/settings/security';
+  static const settingsNotifications = '/settings/notifications';
+  static const settingsData = '/settings/data';
+  static const settingsTenant = '/settings/tenant';
+
+  static const admin = '/admin';
+
+  static const communityGroups = '/community/groups';
+  static const communityGroupDetail = '/community/groups/:groupId';
+  static const communityGroupNew = '/community/groups/new';
+  static const communitySharedDecks = '/community/shared-decks';
+  static const communitySharedDeckDetail = '/community/shared-decks/:deckId';
+  static const communitySharedNotes = '/community/shared-notes';
+
+  static const gamificationProfile = '/gamification/profile';
+  static const gamificationBadges = '/gamification/badges';
+  static const gamificationLeaderboard = '/gamification/leaderboard';
+
+  static const notifications = '/notifications';
+  static const notificationSettings = '/notifications/settings';
+
+  static String noteDetailPath(String noteId) => '/notes/$noteId';
+  static String noteEditorPath(String noteId) => '/notes/$noteId/edit';
+  static String noteVersionsPath(String noteId) => '/notes/$noteId/versions';
+  static String deckCardsPath(String deckId) => '/decks/$deckId/cards';
+  static String graphNotePath(String noteId) => '/graph/notes/$noteId';
+  static String communityGroupDetailPath(String groupId) =>
+      '/community/groups/$groupId';
+  static String communitySharedDeckDetailPath(String deckId) =>
+      '/community/shared-decks/$deckId';
+}

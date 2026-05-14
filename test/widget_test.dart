@@ -1,30 +1,55 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:synapse_frontend/main.dart';
+import 'package:synapse_frontend/app.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/core/router/app_router.dart';
+import 'package:synapse_frontend/core/services/service_boundary.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('should display dashboard when app starts', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: SynapseApp()));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(find.text('Synapse'), findsOneWidget);
+    expect(find.text('SCR-W-DASH-001'), findsOneWidget);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('should register representative domain routes', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final appRouter = container.read(appRouterProvider);
+
+    const paths = [
+      AppRoutes.login,
+      AppRoutes.notes,
+      AppRoutes.decks,
+      AppRoutes.graph,
+      AppRoutes.communityGroups,
+      AppRoutes.notifications,
+    ];
+
+    for (final path in paths) {
+      final matches = appRouter.configuration.findMatch(Uri.parse(path));
+      expect(matches.isError, isFalse, reason: path);
+      expect(matches.matches, isNotEmpty, reason: path);
+    }
+  });
+
+  test('should group domains by four backend service boundaries', () {
+    expect(ServiceBoundary.values, hasLength(4));
+    expect(
+      ServiceBoundary.platform.domains,
+      containsAll(['auth', 'billing', 'notifications']),
+    );
+    expect(
+      ServiceBoundary.engagement.domains,
+      containsAll(['community', 'gamification']),
+    );
+    expect(
+      ServiceBoundary.knowledge.domains,
+      containsAll(['notes', 'graph', 'search']),
+    );
+    expect(ServiceBoundary.learning.domains, contains('cards'));
   });
 }

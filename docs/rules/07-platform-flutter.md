@@ -6,7 +6,7 @@
 
 ## 7.3.1 상태 관리 [MUST]
 
-Riverpod 3 + `@riverpod` 코드 생성만 써. `setState()`, `ChangeNotifier`, `ValueNotifier` 전부 금지.
+Riverpod 3 Provider를 직접 선언해. annotation 기반 코드 생성, `setState()`, `ChangeNotifier`, `ValueNotifier` 전부 금지.
 모든 비동기 상태는 `AsyncValue`로 표현하고 `.when()`으로 분기해.
 
 | 상황 | Provider 타입 |
@@ -19,15 +19,17 @@ Riverpod 3 + `@riverpod` 코드 생성만 써. `setState()`, `ChangeNotifier`, `
 | 화면 이탈 시 해제 | `autoDispose` |
 
 ```dart
-// ✅ Good — @riverpod 코드 생성
-@riverpod
-Future<List<Note>> noteList(NoteListRef ref) async {
+// ✅ Good — Provider 직접 선언
+final noteListProvider = FutureProvider<List<Note>>((ref) async {
   final repository = ref.watch(noteRepositoryProvider);
   return repository.fetchNotes();
-}
+});
 
-@riverpod
-class NoteEditor extends _$NoteEditor {
+final noteEditorProvider = NotifierProvider.family<NoteEditor, NoteEditorState, String>(
+  NoteEditor.new,
+);
+
+class NoteEditor extends FamilyNotifier<NoteEditorState, String> {
   @override
   NoteEditorState build(String noteId) => NoteEditorState.loading();
 
@@ -288,14 +290,13 @@ class AuthInterceptor extends Interceptor {
 
 ```dart
 // ❌ Bad — Provider에서 Dio 직접 + 토큰 수동 삽입
-@riverpod
-Future<List<Note>> noteList(NoteListRef ref) async {
+final noteListProvider = FutureProvider<List<Note>>((ref) async {
   final dio = ref.read(dioProvider);
   final token = ref.read(authStateProvider).accessToken;
   final response = await dio.get('/api/v1/notes',
     options: Options(headers: {'Authorization': 'Bearer $token'}));  // 매번 수동!
   return (response.data['data'] as List).map((j) => Note.fromJson(j)).toList();
-}
+});
 ```
 
 > **이유**: Interceptor로 인증 헤더 + 401 갱신 중앙화. `baseUrl` 환경 분리는 프로덕션 실수 호출 방지.
@@ -348,7 +349,7 @@ testWidgets('test notes', (tester) async { /* 생성+수정+삭제 한꺼번에 
 
 | # | 규칙 | 레벨 | 핵심 |
 |---|------|------|------|
-| 7.3.1 | 상태 관리 | [MUST] | Riverpod 3 + @riverpod only. setState 금지 |
+| 7.3.1 | 상태 관리 | [MUST] | Riverpod 3 Provider 직접 선언. annotation/setState 금지 |
 | 7.3.2 | 라우팅 | [SHOULD] | GoRouter 14 + AppRoutes 상수. Navigator 금지 |
 | 7.3.3 | 디렉토리 | [MUST] | Feature-first. 횡단 import 금지 |
 | 7.3.4 | 디자인 토큰 | [MUST] | AppColors/AppSpacing만. 하드코딩 금지 |

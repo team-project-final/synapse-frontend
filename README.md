@@ -59,7 +59,7 @@ feature/
 |---|---|
 | Framework | Flutter 3.x |
 | Language | Dart 3.x |
-| State management | Riverpod 3 + `riverpod_annotation` |
+| State management | Riverpod 3 manual providers |
 | Routing | GoRouter |
 | HTTP client | Dio |
 | Local storage | Hive Flutter |

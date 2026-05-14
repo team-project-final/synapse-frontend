@@ -9,10 +9,12 @@ linter:
     prefer_const_constructors: true
     prefer_const_declarations: true
     prefer_final_locals: true
+    require_trailing_commas: true
     sort_constructors_first: true
     unawaited_futures: true
 
     # Safety
+    always_declare_return_types: true
     avoid_dynamic_calls: true
     cancel_subscriptions: true
     close_sinks: true
@@ -22,6 +24,10 @@ linter:
     public_member_api_docs: false
 
 analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
   errors:
     missing_return: error
     dead_code: warning

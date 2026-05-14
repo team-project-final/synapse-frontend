@@ -56,9 +56,9 @@ class DashboardScreen extends ConsumerWidget {
             sliver: SliverToBoxAdapter(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: const Color(AppColors.stone100),
+                  color: AppColors.stone100,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(AppColors.stone200)),
+                  border: Border.all(color: AppColors.stone200),
                 ),
                 child: const Padding(
                   padding: EdgeInsets.all(AppSpacing.lg),

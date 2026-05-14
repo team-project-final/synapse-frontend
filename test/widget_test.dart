@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/app.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/services/service_boundary.dart';
 
@@ -15,13 +16,17 @@ void main() {
   });
 
   test('should register representative domain routes', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final appRouter = container.read(appRouterProvider);
+
     const paths = [
-      '/login',
-      '/notes',
-      '/decks',
-      '/graph',
-      '/community/groups',
-      '/notifications',
+      AppRoutes.login,
+      AppRoutes.notes,
+      AppRoutes.decks,
+      AppRoutes.graph,
+      AppRoutes.communityGroups,
+      AppRoutes.notifications,
     ];
 
     for (final path in paths) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/auth/auth_notifier.dart';
@@ -175,6 +176,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.admin,
+            redirect: (context, state) => kIsWeb ? null : AppRoutes.dashboard,
             builder: (context, state) => const AdminHomeScreen(),
           ),
           GoRoute(

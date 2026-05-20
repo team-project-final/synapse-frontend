@@ -62,7 +62,7 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
-                Icon(Icons.description_outlined,
+                const Icon(Icons.description_outlined,
                     size: 48, color: AppColors.stone300),
                 const SizedBox(height: AppSpacing.md),
                 Text('아직 노트가 없습니다',
@@ -88,7 +88,7 @@ class DashboardScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
-                Icon(Icons.bar_chart, size: 48, color: AppColors.stone300),
+                const Icon(Icons.bar_chart, size: 48, color: AppColors.stone300),
                 const SizedBox(height: AppSpacing.md),
                 Text('학습 데이터가 쌓이면 통계가 표시됩니다',
                     style: textTheme.bodyMedium

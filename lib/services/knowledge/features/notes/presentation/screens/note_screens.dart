@@ -93,7 +93,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         Container(
           padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             border:
                 Border(bottom: BorderSide(color: AppColors.stone200)),
           ),
@@ -169,7 +169,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
             ),
           ),
         ),
-        VerticalDivider(width: 1, color: AppColors.stone200),
+        const VerticalDivider(width: 1, color: AppColors.stone200),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),

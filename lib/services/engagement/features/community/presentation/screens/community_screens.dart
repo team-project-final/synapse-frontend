@@ -60,7 +60,7 @@ class _EmptyGroupList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.groups_outlined, size: 64, color: AppColors.stone300),
+          const Icon(Icons.groups_outlined, size: 64, color: AppColors.stone300),
           const SizedBox(height: AppSpacing.md),
           Text(message,
               style: textTheme.bodyLarge
@@ -117,7 +117,7 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.person_outline,
+                      const Icon(Icons.person_outline,
                           size: 48, color: AppColors.stone300),
                       const SizedBox(height: AppSpacing.md),
                       Text('멤버가 없습니다',
@@ -130,7 +130,7 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.folder_outlined,
+                      const Icon(Icons.folder_outlined,
                           size: 48, color: AppColors.stone300),
                       const SizedBox(height: AppSpacing.md),
                       Text('공유된 콘텐츠가 없습니다',

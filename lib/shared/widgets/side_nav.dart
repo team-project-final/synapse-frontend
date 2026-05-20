@@ -73,7 +73,7 @@ class SideNav extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        border: Border(right: BorderSide(color: AppColors.stone200)),
+        border: const Border(right: BorderSide(color: AppColors.stone200)),
       ),
       child: Column(
         children: [

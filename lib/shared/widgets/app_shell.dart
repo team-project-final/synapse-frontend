@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/bottom_nav.dart';
 import 'package:synapse_frontend/shared/widgets/side_nav.dart';
@@ -26,10 +27,7 @@ class AppShell extends ConsumerWidget {
     final isExpanded = ref.watch(sideNavExpandedProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < 600;
-    final isTablet = screenWidth >= 600 && screenWidth <= 1024;
     final currentRoute = GoRouterState.of(context).matchedLocation;
-
-    final effectiveExpanded = isTablet ? false : isExpanded;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,9 +52,13 @@ class AppShell extends ConsumerWidget {
             tooltip: '알림',
           ),
           const SizedBox(width: AppSpacing.sm),
-          const CircleAvatar(
-            radius: 16,
-            child: Icon(Icons.person, size: 20),
+          InkWell(
+            onTap: () => context.go(AppRoutes.settingsProfile),
+            customBorder: const CircleBorder(),
+            child: const CircleAvatar(
+              radius: 16,
+              child: Icon(Icons.person, size: 20),
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
         ],
@@ -82,7 +84,7 @@ class AppShell extends ConsumerWidget {
               children: [
                 SideNav(
                   currentRoute: currentRoute,
-                  isExpanded: effectiveExpanded,
+                  isExpanded: isExpanded,
                   onToggle: () => ref
                       .read(sideNavExpandedProvider.notifier)
                       .toggle(),

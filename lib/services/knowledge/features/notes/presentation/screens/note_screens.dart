@@ -489,8 +489,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               // 등록/저장 버튼
               FilledButton(
                 onPressed: () {
-                  // TODO: 팀원 구현 — knowledge-svc POST/PUT /notes API 호출 후 목록으로 이동
-                  context.go(AppRoutes.notes);
+                  if (widget.noteId == 'new') {
+                    // TODO: 팀원 구현 — knowledge-svc POST /notes API 호출 후 생성된 noteId 상세로 이동
+                    context.go(AppRoutes.notes);
+                  } else {
+                    // TODO: 팀원 구현 — knowledge-svc PUT /notes/:noteId API 호출
+                    context.go(AppRoutes.noteDetailPath(widget.noteId));
+                  }
                 },
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(

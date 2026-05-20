@@ -71,6 +71,7 @@ class SideNav extends StatelessWidget {
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       width: width,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: colorScheme.surface,
         border: const Border(right: BorderSide(color: AppColors.stone200)),
@@ -138,39 +139,48 @@ class SideNav extends StatelessWidget {
           onTap: () => onItemTap(item.route),
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isExpanded ? AppSpacing.md : AppSpacing.sm,
+              horizontal: isExpanded ? AppSpacing.md : 0,
               vertical: AppSpacing.sm,
             ),
-            child: Row(
-              children: [
-                Icon(
-                  item.icon,
-                  size: 24,
-                  color:
-                      active ? colorScheme.primary : AppColors.stone500,
-                ),
-                if (isExpanded) ...[
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(
-                            color: active
-                                ? colorScheme.primary
-                                : AppColors.stone700,
-                            fontWeight: active
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                      overflow: TextOverflow.ellipsis,
+            child: isExpanded
+                ? Row(
+                    children: [
+                      Icon(
+                        item.icon,
+                        size: 24,
+                        color: active
+                            ? colorScheme.primary
+                            : AppColors.stone500,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          item.label,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: active
+                                    ? colorScheme.primary
+                                    : AppColors.stone700,
+                                fontWeight: active
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  )
+                : Center(
+                    child: Icon(
+                      item.icon,
+                      size: 24,
+                      color: active
+                          ? colorScheme.primary
+                          : AppColors.stone500,
                     ),
                   ),
-                ],
-              ],
-            ),
           ),
         ),
       ),

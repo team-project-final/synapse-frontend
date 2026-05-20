@@ -11,21 +11,21 @@
 
 | Step | 내용 | 상태 | 시작일 | 완료일 | 비고 |
 |------|------|------|--------|--------|------|
-| Step 1 | Flutter 앱 쉘 + GoRouter | Not Started | — | — | |
-| Step 2 | 인증 화면 | Not Started | — | — | |
-| Step 3 | 대시보드 + 사이드바 | Not Started | — | — | |
+| Step 1 | Flutter 앱 쉘 + GoRouter | Done | 2026-05-12 | 2026-05-16 | main에 머지됨 |
+| Step 2 | 인증 화면 | In Progress | 2026-05-20 | — | 폼 UI 뼈대 완료, OAuth 연동은 팀원 잔여 |
+| Step 3 | 대시보드 + 사이드바 | In Progress | 2026-05-20 | — | ShellRoute + SideNav + BottomNav 뼈대 완료, API 연동은 팀원 잔여 |
 
-**W1 진행률**: 0/3 Steps 완료
+**W1 진행률**: 1/3 Steps 완료 (Step 2·3 뼈대 완료, 비즈니스 로직 잔여)
 
 ### W2 (2026-05-19 ~ 05-23)
 
 | Step | 내용 | 상태 | 시작일 | 완료일 | 비고 |
 |------|------|------|--------|--------|------|
-| Step 4 | 노트 에디터 화면 | Not Started | — | — | |
-| Step 5 | 복습 화면 | Not Started | — | — | |
-| Step 6 | 그룹 화면 | Not Started | — | — | |
+| Step 4 | 노트 에디터 화면 | In Progress | 2026-05-20 | — | 분할 뷰 + 마크다운 미리보기 뼈대 완료, API 연동은 팀원 잔여 |
+| Step 5 | 복습 화면 | In Progress | 2026-05-20 | — | FlipCard + 난이도 버튼 뼈대 완료, SM-2 연동은 팀원 잔여 |
+| Step 6 | 그룹 화면 | In Progress | 2026-05-20 | — | 목록/상세 탭 레이아웃 뼈대 완료, API 연동은 팀원 잔여 |
 
-**W2 진행률**: 0/3 Steps 완료
+**W2 진행률**: 0/3 Steps 완료 (Step 4·5·6 뼈대 완료, 비즈니스 로직 잔여)
 
 ### W3 (2026-05-26 ~ 05-30)
 
@@ -92,10 +92,10 @@
 - **다음**:
 
 #### 2026-05-20 (화)
-- **완료**:
-- **진행 중**:
-- **이슈**:
-- **다음**:
+- **완료**: ShellRoute 구조 전환, SideNav/BottomNav 위젯, AuthState/AuthNotifier 뼈대, 로그인/회원가입 폼 UI, 대시보드 카드 레이아웃, 노트 에디터 분할 뷰, SRS 복습 FlipCard UI, 커뮤니티 그룹 목록/상세 탭 레이아웃
+- **진행 중**: W2 화면 뼈대 (flutter_markdown 연동)
+- **이슈**: 없음
+- **다음**: 각 팀원 비즈니스 로직 연동 (OAuth, API, SM-2)
 
 #### 2026-05-21 (수)
 - **완료**:

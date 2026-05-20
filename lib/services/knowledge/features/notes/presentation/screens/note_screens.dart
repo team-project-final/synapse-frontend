@@ -473,6 +473,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   tooltip: 'Code',
                   onTap: () => _insertMarkdown('`코드`')),
               const Spacer(),
+              // 자동저장 인디케이터
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -483,6 +484,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                           ?.copyWith(color: AppColors.stone400)),
                   // TODO: 팀원 구현 — 자동저장 상태 연동
                 ],
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // 등록/저장 버튼
+              FilledButton(
+                onPressed: () {
+                  // TODO: 팀원 구현 — knowledge-svc POST/PUT /notes API 호출 후 목록으로 이동
+                  context.go(AppRoutes.notes);
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(widget.noteId == 'new' ? '등록' : '저장'),
               ),
             ],
           ),

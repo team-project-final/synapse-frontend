@@ -14,6 +14,7 @@ dependencies:
   dio: ^5.9.2
   google_fonts: ^8.1.0
   hive_flutter: ^1.1.0
+  flutter_markdown: ^0.7.6
 
 dev_dependencies:
   flutter_test:

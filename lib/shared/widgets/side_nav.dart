@@ -127,6 +127,11 @@ class SideNav extends StatelessWidget {
   Widget _buildItem(
       BuildContext context, SideNavItem item, ColorScheme colorScheme) {
     final active = _isActive(item.route);
+    final iconWidget = Icon(
+      item.icon,
+      size: 24,
+      color: active ? colorScheme.primary : AppColors.stone500,
+    );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -137,21 +142,21 @@ class SideNav extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () => onItemTap(item.route),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isExpanded ? AppSpacing.md : 0,
-              vertical: AppSpacing.sm,
-            ),
-            child: isExpanded
-                ? Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Use actual width to decide layout, not the boolean,
+              // so we stay safe during AnimatedContainer transitions.
+              final showLabel = constraints.maxWidth > 100;
+
+              if (showLabel) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
                     children: [
-                      Icon(
-                        item.icon,
-                        size: 24,
-                        color: active
-                            ? colorScheme.primary
-                            : AppColors.stone500,
-                      ),
+                      iconWidget,
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
@@ -171,16 +176,16 @@ class SideNav extends StatelessWidget {
                         ),
                       ),
                     ],
-                  )
-                : Center(
-                    child: Icon(
-                      item.icon,
-                      size: 24,
-                      color: active
-                          ? colorScheme.primary
-                          : AppColors.stone500,
-                    ),
                   ),
+                );
+              }
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.sm),
+                child: Center(child: iconWidget),
+              );
+            },
           ),
         ),
       ),

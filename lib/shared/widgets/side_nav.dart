@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
@@ -99,6 +100,16 @@ class SideNav extends StatelessWidget {
             ),
             child: Column(
               children: [
+                if (kIsWeb)
+                  _buildItem(
+                    context,
+                    const SideNavItem(
+                      icon: Icons.admin_panel_settings,
+                      label: '관리자',
+                      route: '/admin',
+                    ),
+                    colorScheme,
+                  ),
                 for (final item in _bottomItems)
                   _buildItem(context, item, colorScheme),
               ],

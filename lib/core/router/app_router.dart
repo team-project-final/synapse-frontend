@@ -73,6 +73,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DashboardScreen(),
           ),
           GoRoute(
+            path: AppRoutes.dashboardHeatmap,
+            builder: (context, state) => const DashboardHeatmapScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.dashboardStats,
+            builder: (context, state) => const DashboardStatsScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.notes,
             builder: (context, state) => const NoteListScreen(),
           ),

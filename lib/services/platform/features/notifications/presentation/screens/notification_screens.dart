@@ -81,6 +81,17 @@ class _NotificationCenterScreenState
       ),
     ];
 
+    const thisWeekNotifs = [
+      _Notification(
+        icon: Icons.download_outlined,
+        title: '데이터 내보내기 완료',
+        time: '3일 전',
+        isRead: true,
+        actionLabel: null,
+        iconColor: AppColors.stone500,
+      ),
+    ];
+
     final content = ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
@@ -97,6 +108,13 @@ class _NotificationCenterScreenState
                 ?.copyWith(color: AppColors.stone400)),
         const SizedBox(height: AppSpacing.sm),
         ...yesterdayNotifs.map((n) => _NotificationItem(notif: n)),
+        const SizedBox(height: AppSpacing.md),
+        // This week section
+        Text('이번 주',
+            style: textTheme.labelMedium
+                ?.copyWith(color: AppColors.stone400)),
+        const SizedBox(height: AppSpacing.sm),
+        ...thisWeekNotifs.map((n) => _NotificationItem(notif: n)),
       ],
     );
 
@@ -254,10 +272,50 @@ class NotificationPreferenceScreen extends ConsumerStatefulWidget {
 
 class _NotificationPreferenceScreenState
     extends ConsumerState<NotificationPreferenceScreen> {
-  bool _reviewReminder = true;
-  bool _communityNotif = true;
-  bool _achievementNotif = true;
-  bool _emailNotif = false;
+  // Category × channel grid state
+  // Rows: 복습 리마인더, 커뮤니티 활동, 성취/배지, 시스템 알림
+  // Columns: Push, Email, InApp
+  final List<List<bool>> _notifGrid = [
+    [true, false, true], // 복습 리마인더
+    [true, true, true], // 커뮤니티 활동
+    [true, false, true], // 성취/배지
+    [false, true, true], // 시스템 알림
+  ];
+
+  static const _categoryLabels = [
+    '복습 리마인더',
+    '커뮤니티 활동',
+    '성취/배지',
+    '시스템 알림',
+  ];
+
+  static const _channelLabels = ['Push', 'Email', 'InApp'];
+
+  TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0);
+  TimeOfDay _quietEnd = const TimeOfDay(hour: 8, minute: 0);
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Future<void> _pickTime({required bool isStart}) async {
+    final initial = isStart ? _quietStart : _quietEnd;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _quietStart = picked;
+        } else {
+          _quietEnd = picked;
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -269,42 +327,102 @@ class _NotificationPreferenceScreenState
       children: [
         Text('알림 설정', style: textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.lg),
-        Text('알림 설정', style: textTheme.titleMedium),
-        const SizedBox(height: AppSpacing.sm),
-        SwitchListTile(
-          title: const Text('복습 리마인더'),
-          subtitle: const Text('매일 복습 시간에 알림을 받습니다'),
-          value: _reviewReminder,
-          onChanged: (v) => setState(() => _reviewReminder = v),
+        Text('카테고리별 알림 설정', style: textTheme.titleMedium),
+        const SizedBox(height: AppSpacing.md),
+
+        // Category × channel grid table
+        Table(
+          columnWidths: const {
+            0: FlexColumnWidth(2),
+            1: FlexColumnWidth(1),
+            2: FlexColumnWidth(1),
+            3: FlexColumnWidth(1),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            // Header row
+            TableRow(
+              decoration: BoxDecoration(
+                color: AppColors.stone100,
+                borderRadius: BorderRadius.circular(AppSpacing.xs),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.sm),
+                  child: Text('카테고리',
+                      style: textTheme.labelMedium
+                          ?.copyWith(fontWeight: FontWeight.bold)),
+                ),
+                ...List.generate(
+                  3,
+                  (i) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Text(_channelLabels[i],
+                          style: textTheme.labelMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            // Data rows
+            ...List.generate(4, (row) {
+              return TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                    child: Text(_categoryLabels[row],
+                        style: textTheme.bodyMedium),
+                  ),
+                  ...List.generate(
+                    3,
+                    (col) => Center(
+                      child: Switch(
+                        value: _notifGrid[row][col],
+                        onChanged: (v) =>
+                            setState(() => _notifGrid[row][col] = v),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ],
         ),
-        SwitchListTile(
-          title: const Text('커뮤니티 알림'),
-          subtitle: const Text('그룹 활동 및 새 콘텐츠 알림'),
-          value: _communityNotif,
-          onChanged: (v) => setState(() => _communityNotif = v),
-        ),
-        SwitchListTile(
-          title: const Text('성취/배지 알림'),
-          subtitle: const Text('레벨업 및 배지 획득 알림'),
-          value: _achievementNotif,
-          onChanged: (v) => setState(() => _achievementNotif = v),
-        ),
-        SwitchListTile(
-          title: const Text('이메일 알림'),
-          subtitle: const Text('이메일로 주요 알림을 받습니다'),
-          value: _emailNotif,
-          onChanged: (v) => setState(() => _emailNotif = v),
-        ),
+
+        const SizedBox(height: AppSpacing.lg),
         const Divider(),
-        ListTile(
-          title: const Text('방해금지 시간'),
-          subtitle: const Text('22:00 ~ 08:00'),
-          trailing: OutlinedButton(
-            onPressed: () {
-              // TODO: 팀원 구현 — 방해금지 시간 설정 다이얼로그
-            },
-            child: const Text('설정'),
-          ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Quiet hours with time pickers
+        Text('방해금지 시간', style: textTheme.titleMedium),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '이 시간 동안 Push 알림이 비활성화됩니다.',
+          style:
+              textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _pickTime(isStart: true),
+                child: Text('시작: ${_formatTime(_quietStart)}'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text('~', style: textTheme.bodyMedium),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () => _pickTime(isStart: false),
+                child: Text('종료: ${_formatTime(_quietEnd)}'),
+              ),
+            ),
+          ],
         ),
       ],
     );

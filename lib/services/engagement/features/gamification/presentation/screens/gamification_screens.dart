@@ -16,14 +16,14 @@ class GamificationProfileScreen extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     // TODO: 팀원 구현 — engagement-svc 게이미피케이션 프로필 API 연동
-    const acquiredBadgeIcons = [
-      Icons.star,
-      Icons.military_tech,
-      Icons.emoji_events,
-      Icons.local_fire_department,
-      Icons.school,
-      Icons.lightbulb,
-      Icons.workspace_premium,
+    const acquiredBadgeData = [
+      _BadgeInfo(icon: Icons.star, name: '노트 마스터', condition: '노트 50개 작성', date: '2026-04-10'),
+      _BadgeInfo(icon: Icons.military_tech, name: '7일 연속', condition: '7일 연속 학습', date: '2026-05-01'),
+      _BadgeInfo(icon: Icons.emoji_events, name: '첫 복습', condition: '첫 번째 복습 완료', date: '2026-03-15'),
+      _BadgeInfo(icon: Icons.local_fire_department, name: '불꽃 학습', condition: '하루 50장 복습', date: '2026-05-10'),
+      _BadgeInfo(icon: Icons.school, name: '지식 탐험가', condition: '레벨 7 달성', date: '2026-05-15'),
+      _BadgeInfo(icon: Icons.lightbulb, name: 'AI 활용', condition: 'AI 카드 생성 10회', date: '2026-04-20'),
+      _BadgeInfo(icon: Icons.workspace_premium, name: '프리미엄', condition: 'Pro 플랜 가입', date: '2026-03-01'),
     ];
 
     return ListView(
@@ -117,6 +117,38 @@ class GamificationProfileScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
 
+        // Weekly stats row
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('이번 주 통계', style: textTheme.titleSmall),
+                const SizedBox(height: AppSpacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _WeeklyStat(
+                        icon: Icons.style_outlined,
+                        label: '복습',
+                        value: '78장'),
+                    _WeeklyStat(
+                        icon: Icons.article_outlined,
+                        label: '노트',
+                        value: '12개'),
+                    _WeeklyStat(
+                        icon: Icons.bolt,
+                        label: 'XP',
+                        value: '450'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
         // Badge section
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -132,17 +164,22 @@ class GamificationProfileScreen extends ConsumerWidget {
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          children: acquiredBadgeIcons
-              .map((icon) => Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.stone100,
-                      borderRadius: BorderRadius.circular(AppSpacing.sm),
-                      border: Border.all(color: AppColors.stone200),
+          children: acquiredBadgeData
+              .map((badge) => GestureDetector(
+                    onTap: () => _showBadgeDetail(context, badge),
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppColors.stone100,
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.sm),
+                        border:
+                            Border.all(color: AppColors.stone200),
+                      ),
+                      child: Icon(badge.icon,
+                          color: AppColors.primaryAmber, size: 24),
                     ),
-                    child: Icon(icon,
-                        color: AppColors.primaryAmber, size: 24),
                   ))
               .toList(),
         ),
@@ -182,6 +219,81 @@ class GamificationProfileScreen extends ConsumerWidget {
       ],
     );
   }
+
+  void _showBadgeDetail(BuildContext context, _BadgeInfo badge) {
+    final textTheme = Theme.of(context).textTheme;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(badge.icon,
+                  size: 48, color: AppColors.primaryAmber),
+              const SizedBox(height: AppSpacing.md),
+              Text(badge.name, style: textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '조건: ${badge.condition}',
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.stone500),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '획득일: ${badge.date}',
+                style: textTheme.bodySmall
+                    ?.copyWith(color: AppColors.stone400),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BadgeInfo {
+  const _BadgeInfo({
+    required this.icon,
+    required this.name,
+    required this.condition,
+    required this.date,
+  });
+  final IconData icon;
+  final String name;
+  final String condition;
+  final String date;
+}
+
+class _WeeklyStat extends StatelessWidget {
+  const _WeeklyStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      children: [
+        Icon(icon, color: AppColors.primaryAmber, size: 24),
+        const SizedBox(height: AppSpacing.xs),
+        Text(value,
+            style: textTheme.titleSmall
+                ?.copyWith(color: AppColors.primaryAmber)),
+        Text(label,
+            style: textTheme.bodySmall
+                ?.copyWith(color: AppColors.stone500)),
+      ],
+    );
+  }
 }
 
 class _ProfileStat extends StatelessWidget {
@@ -215,33 +327,49 @@ class _VerticalDivider extends StatelessWidget {
 
 // ── BadgeGalleryScreen (SCR-W-GAME-002) ──
 
-class BadgeGalleryScreen extends ConsumerWidget {
+class BadgeGalleryScreen extends ConsumerStatefulWidget {
   const BadgeGalleryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BadgeGalleryScreen> createState() =>
+      _BadgeGalleryScreenState();
+}
+
+class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
+  String _filterSelection = '전체';
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     // TODO: 팀원 구현 — engagement-svc 배지 갤러리 API 연동
     final acquiredBadges = [
-      _Badge(name: '첫 노트', icon: Icons.article_outlined, acquired: true),
-      _Badge(name: '첫 복습', icon: Icons.refresh, acquired: true),
-      _Badge(name: '7일 연속', icon: Icons.local_fire_department, acquired: true),
-      _Badge(name: '노트 마스터', icon: Icons.star, acquired: true),
-      _Badge(name: '지식 탐험가', icon: Icons.explore, acquired: true),
-      _Badge(name: 'AI 활용', icon: Icons.auto_awesome, acquired: true),
+      _Badge(name: '첫 노트', icon: Icons.article_outlined, acquired: true, condition: '첫 번째 노트 작성', progress: 1.0),
+      _Badge(name: '첫 복습', icon: Icons.refresh, acquired: true, condition: '첫 번째 복습 완료', progress: 1.0),
+      _Badge(name: '7일 연속', icon: Icons.local_fire_department, acquired: true, condition: '7일 연속 학습', progress: 1.0),
+      _Badge(name: '노트 마스터', icon: Icons.star, acquired: true, condition: '노트 50개 작성', progress: 1.0),
+      _Badge(name: '지식 탐험가', icon: Icons.explore, acquired: true, condition: '레벨 7 달성', progress: 1.0),
+      _Badge(name: 'AI 활용', icon: Icons.auto_awesome, acquired: true, condition: 'AI 카드 생성 10회', progress: 1.0),
     ];
     final lockedBadges = [
-      _Badge(name: '30일 연속', icon: Icons.military_tech, acquired: false),
-      _Badge(name: '카드 100장', icon: Icons.style, acquired: false),
-      _Badge(name: '그룹 참여', icon: Icons.groups, acquired: false),
-      _Badge(name: '공유 왕', icon: Icons.share, acquired: false),
-      _Badge(name: '레벨 10', icon: Icons.emoji_events, acquired: false),
-      _Badge(name: '1000 XP', icon: Icons.workspace_premium, acquired: false),
+      _Badge(name: '30일 연속', icon: Icons.military_tech, acquired: false, condition: '30일 연속 학습', progress: 0.47),
+      _Badge(name: '카드 100장', icon: Icons.style, acquired: false, condition: '카드 100장 생성', progress: 0.72),
+      _Badge(name: '그룹 참여', icon: Icons.groups, acquired: false, condition: '그룹 3개 참여', progress: 0.33),
+      _Badge(name: '공유 왕', icon: Icons.share, acquired: false, condition: '덱 5개 공유', progress: 0.2),
+      _Badge(name: '레벨 10', icon: Icons.emoji_events, acquired: false, condition: '레벨 10 달성', progress: 0.7),
+      _Badge(name: '1000 XP', icon: Icons.workspace_premium, acquired: false, condition: '1000 XP 달성', progress: 0.65),
     ];
 
-    final allBadges = [...acquiredBadges, ...lockedBadges];
+    List<_Badge> filteredBadges;
+    switch (_filterSelection) {
+      case '획득':
+        filteredBadges = acquiredBadges;
+      case '미획득':
+        filteredBadges = lockedBadges;
+      default:
+        filteredBadges = [...acquiredBadges, ...lockedBadges];
+    }
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -255,7 +383,23 @@ class BadgeGalleryScreen extends ConsumerWidget {
                     ?.copyWith(color: AppColors.stone400)),
           ],
         ),
+        const SizedBox(height: AppSpacing.sm),
+
+        // ChoiceChip filter row
+        Wrap(
+          spacing: AppSpacing.sm,
+          children: ['전체', '획득', '미획득'].map((label) {
+            final selected = _filterSelection == label;
+            return ChoiceChip(
+              label: Text(label),
+              selected: selected,
+              onSelected: (_) =>
+                  setState(() => _filterSelection = label),
+            );
+          }).toList(),
+        ),
         const SizedBox(height: AppSpacing.md),
+
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -265,10 +409,72 @@ class BadgeGalleryScreen extends ConsumerWidget {
             mainAxisSpacing: AppSpacing.sm,
             childAspectRatio: 0.85,
           ),
-          itemCount: allBadges.length,
-          itemBuilder: (context, i) => _BadgeTile(badge: allBadges[i]),
+          itemCount: filteredBadges.length,
+          itemBuilder: (context, i) => _BadgeTile(
+            badge: filteredBadges[i],
+            onTap: () =>
+                _showBadgeBottomSheet(context, filteredBadges[i]),
+          ),
         ),
       ],
+    );
+  }
+
+  void _showBadgeBottomSheet(BuildContext context, _Badge badge) {
+    final textTheme = Theme.of(context).textTheme;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(badge.icon,
+                  size: 48,
+                  color: badge.acquired
+                      ? AppColors.primaryAmber
+                      : AppColors.stone300),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                badge.acquired ? badge.name : '잠김',
+                style: textTheme.titleLarge,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '조건: ${badge.condition}',
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: AppColors.stone500),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Progress indicator
+              Row(
+                children: [
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: badge.progress,
+                      backgroundColor: AppColors.stone200,
+                      color: badge.acquired
+                          ? AppColors.success
+                          : AppColors.primaryAmber,
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.xs),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    '${(badge.progress * 100).toInt()}%',
+                    style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.stone500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -278,56 +484,65 @@ class _Badge {
     required this.name,
     required this.icon,
     required this.acquired,
+    required this.condition,
+    required this.progress,
   });
   final String name;
   final IconData icon;
   final bool acquired;
+  final String condition;
+  final double progress;
 }
 
 class _BadgeTile extends StatelessWidget {
-  const _BadgeTile({required this.badge});
+  const _BadgeTile({required this.badge, this.onTap});
   final _Badge badge;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Opacity(
-      opacity: badge.acquired ? 1.0 : 0.4,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: badge.acquired ? AppColors.stone100 : AppColors.stone50,
-              borderRadius: BorderRadius.circular(AppSpacing.md),
-              border: Border.all(
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: badge.acquired ? 1.0 : 0.4,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color:
+                    badge.acquired ? AppColors.stone100 : AppColors.stone50,
+                borderRadius: BorderRadius.circular(AppSpacing.md),
+                border: Border.all(
+                  color: badge.acquired
+                      ? AppColors.primaryAmber.withValues(alpha: 0.3)
+                      : AppColors.stone200,
+                ),
+              ),
+              child: Icon(
+                badge.icon,
+                size: 32,
                 color: badge.acquired
-                    ? AppColors.primaryAmber.withValues(alpha: 0.3)
-                    : AppColors.stone200,
+                    ? AppColors.primaryAmber
+                    : AppColors.stone300,
               ),
             ),
-            child: Icon(
-              badge.icon,
-              size: 32,
-              color: badge.acquired
-                  ? AppColors.primaryAmber
-                  : AppColors.stone300,
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              badge.acquired ? badge.name : '잠김',
+              style: textTheme.bodySmall?.copyWith(
+                color: badge.acquired ? null : AppColors.stone400,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            badge.acquired ? badge.name : '잠김',
-            style: textTheme.bodySmall?.copyWith(
-              color: badge.acquired ? null : AppColors.stone400,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

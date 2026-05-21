@@ -59,6 +59,7 @@ class NoteListScreen extends ConsumerStatefulWidget {
 class _NoteListScreenState extends ConsumerState<NoteListScreen> {
   final _searchController = TextEditingController();
   String _selectedFilter = '전체';
+  String _sortOrder = '최근 수정';
 
   @override
   void dispose() {
@@ -118,6 +119,28 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
                   );
                 }).toList(),
               ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            // Sort order dropdown
+            Row(
+              children: [
+                Text('정렬:', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+                const SizedBox(width: AppSpacing.xs),
+                DropdownButton<String>(
+                  value: _sortOrder,
+                  underline: const SizedBox.shrink(),
+                  isDense: true,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.stone600),
+                  items: const [
+                    DropdownMenuItem(value: '최근 수정', child: Text('최근 수정')),
+                    DropdownMenuItem(value: '제목순', child: Text('제목순')),
+                    DropdownMenuItem(value: '생성일', child: Text('생성일')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => _sortOrder = v);
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.md),
             // Note list
@@ -310,6 +333,22 @@ class NoteDetailScreen extends ConsumerWidget {
             title: 'Ridge vs Lasso 비교',
             snippet: '...L2 정규화([[정규화 기법]])는 Ridge 회귀에 해당합니다...',
             onTap: () => context.go(AppRoutes.noteDetailPath('3')),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          // 참조 노트 section
+          Text('참조 노트 (2)',
+              style: textTheme.titleMedium
+                  ?.copyWith(color: AppColors.stone600)),
+          const Divider(height: AppSpacing.md),
+          _BacklinkItem(
+            title: '드롭아웃 (Dropout)',
+            snippet: '과적합 방지를 위해 학습 시 뉴런을 랜덤하게 비활성화하는 기법입니다.',
+            onTap: () => context.go(AppRoutes.noteDetailPath('4')),
+          ),
+          _BacklinkItem(
+            title: '배치 정규화 (Batch Normalization)',
+            snippet: '미니배치 단위로 입력을 정규화하여 학습 속도를 향상시키는 기법입니다.',
+            onTap: () => context.go(AppRoutes.noteDetailPath('5')),
           ),
         ],
       ),
@@ -625,35 +664,53 @@ class _ToolbarButton extends StatelessWidget {
 
 // ── NoteVersionsScreen (SCR-W-NOTE-004) ──
 
-class NoteVersionsScreen extends ConsumerWidget {
+class NoteVersionsScreen extends ConsumerStatefulWidget {
   const NoteVersionsScreen({required this.noteId, super.key});
 
   final String noteId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
+  ConsumerState<NoteVersionsScreen> createState() =>
+      _NoteVersionsScreenState();
+}
 
-    // TODO: 팀원 구현 — knowledge-svc 버전 이력 API 연동 (noteId: $noteId)
-    final mockVersions = [
-      {'version': 'v3', 'date': '2026-05-20 14:32', 'desc': 'L2 정규화 설명 추가'},
-      {'version': 'v2', 'date': '2026-05-19 09:15', 'desc': '예시 코드 수정'},
-      {'version': 'v1', 'date': '2026-05-18 20:00', 'desc': '최초 작성'},
-    ];
+class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
+  String? _selectedVersion;
+
+  // TODO: 팀원 구현 — knowledge-svc 버전 이력 API 연동
+  final _mockVersions = [
+    {'version': 'v3', 'date': '2026-05-20 14:32', 'desc': 'L2 정규화 설명 추가'},
+    {'version': 'v2', 'date': '2026-05-19 09:15', 'desc': '예시 코드 수정'},
+    {'version': 'v1', 'date': '2026-05-18 20:00', 'desc': '최초 작성'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
         Text('버전 이력', style: textTheme.titleLarge),
         const SizedBox(height: AppSpacing.xs),
-        Text('노트 ID: $noteId',
+        Text('노트 ID: ${widget.noteId}',
             style: textTheme.bodySmall?.copyWith(color: AppColors.stone400)),
         const SizedBox(height: AppSpacing.md),
-        ...mockVersions.map((v) => _VersionItem(
+        ..._mockVersions.map((v) => _VersionItem(
               version: v['version']!,
               date: v['date']!,
               description: v['desc']!,
+              isSelected: _selectedVersion == v['version'],
+              onTap: () =>
+                  setState(() => _selectedVersion = v['version']),
             )),
+        if (_selectedVersion != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text('변경 사항 ($_selectedVersion)',
+              style: textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.sm),
+          const _DiffView(),
+        ],
       ],
     );
   }
@@ -664,55 +721,176 @@ class _VersionItem extends StatelessWidget {
     required this.version,
     required this.date,
     required this.description,
+    this.isSelected = false,
+    this.onTap,
   });
   final String version;
   final String date;
   final String description;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-              decoration: BoxDecoration(
-                color: AppColors.stone100,
-                borderRadius: BorderRadius.circular(AppSpacing.xs),
+      color: isSelected ? AppColors.stone100 : null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primaryAmber.withValues(alpha: 0.15) : AppColors.stone100,
+                  borderRadius: BorderRadius.circular(AppSpacing.xs),
+                ),
+                child: Text(version,
+                    style: textTheme.labelMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
               ),
-              child: Text(version,
-                  style: textTheme.labelMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(description, style: textTheme.bodyMedium),
-                  const SizedBox(height: AppSpacing.xxs),
-                  Text(date,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
-                ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(description, style: textTheme.bodyMedium),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(date,
+                        style: textTheme.bodySmall
+                            ?.copyWith(color: AppColors.stone400)),
+                  ],
+                ),
               ),
-            ),
-            OutlinedButton(
-              onPressed: () {
-                // TODO: 팀원 구현 — 버전 복원 API 연동
-              },
-              child: const Text('복원'),
-            ),
-          ],
+              OutlinedButton(
+                onPressed: () {
+                  // TODO: 팀원 구현 — 버전 복원 API 연동
+                },
+                child: const Text('복원'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _DiffView extends StatelessWidget {
+  const _DiffView();
+
+  static const _oldLines = [
+    _DiffLine('### L1 정규화 (Lasso)', false),
+    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
+    _DiffLine('- 특성 선택 효과가 있음', true),
+    _DiffLine('', false),
+    _DiffLine('### L2 정규화 (Ridge)', false),
+    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
+  ];
+
+  static const _newLines = [
+    _DiffLine('### L1 정규화 (Lasso)', false),
+    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
+    _DiffLine('- 일부 가중치를 0으로 만들어 희소성 유도', true),
+    _DiffLine('', false),
+    _DiffLine('### L2 정규화 (Ridge)', false),
+    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
+    _DiffLine('- 가중치를 작게 유지하되 0으로 만들지 않음', true),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final monoStyle =
+        textTheme.bodySmall?.copyWith(fontFamily: 'monospace') ??
+            const TextStyle(fontFamily: 'monospace', fontSize: 12);
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.stone200),
+        borderRadius: BorderRadius.circular(AppSpacing.sm),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Old (left)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                  color: AppColors.stone100,
+                  child: Text('이전', style: textTheme.labelSmall?.copyWith(color: AppColors.stone500)),
+                ),
+                ..._oldLines.map((line) => Container(
+                      width: double.infinity,
+                      color: line.changed
+                          ? const Color(0x20DC2626)
+                          : null,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+                      child: RichText(
+                        text: TextSpan(
+                          text: line.changed ? '- ${line.text}' : '  ${line.text}',
+                          style: monoStyle.copyWith(
+                            color: line.changed ? AppColors.error : null,
+                          ),
+                        ),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+          Container(width: 1, color: AppColors.stone200),
+          // New (right)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                  color: AppColors.stone100,
+                  child: Text('현재', style: textTheme.labelSmall?.copyWith(color: AppColors.stone500)),
+                ),
+                ..._newLines.map((line) => Container(
+                      width: double.infinity,
+                      color: line.changed
+                          ? const Color(0x2016A34A)
+                          : null,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+                      child: RichText(
+                        text: TextSpan(
+                          text: line.changed ? '+ ${line.text}' : '  ${line.text}',
+                          style: monoStyle.copyWith(
+                            color: line.changed ? AppColors.success : null,
+                          ),
+                        ),
+                      ),
+                    )),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiffLine {
+  const _DiffLine(this.text, this.changed);
+  final String text;
+  final bool changed;
 }
 
 // ── TagManagementScreen (SCR-W-NOTE-005) ──
@@ -727,6 +905,18 @@ class TagManagementScreen extends ConsumerStatefulWidget {
 
 class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   final _searchController = TextEditingController();
+  int _selectedColorIndex = 0;
+
+  static const _presetColors = [
+    Color(0xFFDC2626), // red
+    Color(0xFFEA580C), // orange
+    Color(0xFFD97706), // amber
+    Color(0xFF16A34A), // green
+    Color(0xFF2563EB), // blue
+    Color(0xFF7C3AED), // violet
+    Color(0xFFDB2777), // pink
+    Color(0xFF78716C), // stone
+  ];
 
   // TODO: 팀원 구현 — knowledge-svc 태그 목록 API 연동
   final _mockTags = [
@@ -741,6 +931,61 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showTagMergeDialog(BuildContext context) {
+    final tagNames = _mockTags.map((t) => t['name'].toString()).toList();
+    String? sourceTag = tagNames.first;
+    String? targetTag = tagNames.length > 1 ? tagNames[1] : tagNames.first;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('태그 병합'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('원본 태그 (병합할 태그)'),
+              const SizedBox(height: AppSpacing.xs),
+              DropdownButton<String>(
+                value: sourceTag,
+                isExpanded: true,
+                items: tagNames
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => sourceTag = v),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const Text('대상 태그 (병합 대상)'),
+              const SizedBox(height: AppSpacing.xs),
+              DropdownButton<String>(
+                value: targetTag,
+                isExpanded: true,
+                items: tagNames
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) => setDialogState(() => targetTag = v),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () {
+                // TODO: 팀원 구현 — 태그 병합 API 연동
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('병합'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -765,6 +1010,41 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
                 fillColor: AppColors.stone50,
               ),
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // Color picker
+            Text('태그 색상', style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: AppSpacing.xs),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: List.generate(_presetColors.length, (i) {
+                final isSelected = _selectedColorIndex == i;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedColorIndex = i),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _presetColors[i],
+                      shape: BoxShape.circle,
+                      border: isSelected
+                          ? Border.all(color: AppColors.stone800, width: 2.5)
+                          : Border.all(color: AppColors.stone200),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, size: 16, color: Colors.white)
+                        : null,
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            // Tag merge button
+            OutlinedButton.icon(
+              onPressed: () => _showTagMergeDialog(context),
+              icon: const Icon(Icons.merge_type),
+              label: const Text('태그 병합'),
             ),
             const SizedBox(height: AppSpacing.md),
             ..._mockTags

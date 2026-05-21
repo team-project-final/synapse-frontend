@@ -16,6 +16,7 @@ import 'package:synapse_frontend/services/platform/features/billing/presentation
 import 'package:synapse_frontend/services/platform/features/notifications/presentation/screens/notification_screens.dart';
 import 'package:synapse_frontend/services/platform/features/settings/presentation/screens/settings_screens.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:synapse_frontend/shared/widgets/admin_shell.dart';
 import 'package:synapse_frontend/shared/widgets/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -71,6 +72,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.dashboard,
             builder: (context, state) => const DashboardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.dashboardHeatmap,
+            builder: (context, state) => const DashboardHeatmapScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.dashboardStats,
+            builder: (context, state) => const DashboardStatsScreen(),
           ),
           GoRoute(
             path: AppRoutes.notes,
@@ -175,11 +184,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TenantSettingsScreen(),
           ),
           GoRoute(
-            path: AppRoutes.admin,
-            redirect: (context, state) => kIsWeb ? null : AppRoutes.dashboard,
-            builder: (context, state) => const AdminHomeScreen(),
-          ),
-          GoRoute(
             path: AppRoutes.communityGroups,
             builder: (context, state) => const CommunityGroupsScreen(),
           ),
@@ -229,6 +233,58 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.notificationSettings,
             builder: (context, state) =>
                 const NotificationPreferenceScreen(),
+          ),
+        ],
+      ),
+
+      // ── Admin routes (with AdminShell) ── Web only
+      ShellRoute(
+        builder: (context, state, child) => AdminShell(child: child),
+        routes: [
+          GoRoute(
+            path: AppRoutes.admin,
+            redirect: (context, state) =>
+                kIsWeb ? null : AppRoutes.dashboard,
+            builder: (context, state) => const AdminDashboardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminTenants,
+            builder: (context, state) => const AdminTenantScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminUsers,
+            builder: (context, state) => const AdminUserScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminAuditLogs,
+            builder: (context, state) => const AdminAuditLogScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminSettings,
+            builder: (context, state) =>
+                const AdminSystemSettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminReports,
+            builder: (context, state) => const AdminReportScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminContent,
+            builder: (context, state) => const AdminContentScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminGroups,
+            builder: (context, state) => const AdminGroupScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminGamification,
+            builder: (context, state) =>
+                const AdminGamificationScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.adminDataRequests,
+            builder: (context, state) =>
+                const AdminDataRequestScreen(),
           ),
         ],
       ),

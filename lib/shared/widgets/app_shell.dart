@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/bottom_nav.dart';
+import 'package:synapse_frontend/shared/widgets/command_palette.dart';
 import 'package:synapse_frontend/shared/widgets/side_nav.dart';
 
 final sideNavExpandedProvider =
@@ -29,7 +31,53 @@ class AppShell extends ConsumerWidget {
     final isMobile = screenWidth < 600;
     final currentRoute = GoRouterState.of(context).matchedLocation;
 
-    return Scaffold(
+    // ── Command palette items ──
+    const paletteItems = [
+      CommandPaletteItem(
+          icon: Icons.dashboard_outlined, label: '대시보드', route: '/'),
+      CommandPaletteItem(
+          icon: Icons.description_outlined, label: '노트', route: '/notes'),
+      CommandPaletteItem(
+          icon: Icons.add, label: '새 노트', route: '/notes/new/edit'),
+      CommandPaletteItem(
+          icon: Icons.style_outlined, label: '덱', route: '/decks'),
+      CommandPaletteItem(
+          icon: Icons.refresh, label: '복습 시작', route: '/review'),
+      CommandPaletteItem(
+          icon: Icons.hub_outlined, label: '그래프', route: '/graph'),
+      CommandPaletteItem(icon: Icons.search, label: '검색', route: '/search'),
+      CommandPaletteItem(
+          icon: Icons.smart_toy_outlined, label: 'AI Q&A', route: '/qa'),
+      CommandPaletteItem(
+          icon: Icons.groups_outlined,
+          label: '커뮤니티',
+          route: '/community/groups'),
+      CommandPaletteItem(
+          icon: Icons.settings_outlined,
+          label: '설정',
+          route: '/settings/profile'),
+    ];
+
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): () {
+          CommandPalette.show(
+            context,
+            items: paletteItems,
+            onSelect: (item) => context.go(item.route),
+          );
+        },
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): () {
+          CommandPalette.show(
+            context,
+            items: paletteItems,
+            onSelect: (item) => context.go(item.route),
+          );
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
       appBar: AppBar(
         leading: isMobile
             ? Builder(
@@ -105,6 +153,8 @@ class AppShell extends ConsumerWidget {
               },
             )
           : null,
+    ),
+      ),
     );
   }
 }

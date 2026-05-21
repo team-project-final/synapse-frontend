@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,10 +16,20 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen>
+    with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
-  String _selectedFilter = '노트';
   bool _hasQuery = false;
+  late final TabController _tabController;
+
+  static const _categoryTabs = ['전체', '노트', '카드', '커뮤니티'];
+  static const _categoryCounts = [3, 2, 1, 0];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: _categoryTabs.length, vsync: this);
+  }
 
   // TODO: 팀원 구현 — knowledge-svc / learning-svc 통합 검색 API 연동
   final _mockResults = [
@@ -47,14 +59,41 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  List<TextSpan> _highlightText(String text, String query, TextStyle? baseStyle) {
+    if (query.isEmpty) return [TextSpan(text: text, style: baseStyle)];
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final spans = <TextSpan>[];
+    int start = 0;
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        spans.add(TextSpan(text: text.substring(start), style: baseStyle));
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index), style: baseStyle));
+      }
+      spans.add(TextSpan(
+        text: text.substring(index, index + query.length),
+        style: baseStyle?.copyWith(
+          backgroundColor: AppColors.primaryAmber.withValues(alpha: 0.25),
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+      start = index + query.length;
+    }
+    return spans;
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final filters = ['노트', '카드', '태그', 'AI 검색'];
 
     return Column(
       children: [
@@ -85,27 +124,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             onChanged: (v) => setState(() => _hasQuery = v.isNotEmpty),
           ),
         ),
-        // Filter chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Row(
-            children: filters.map((f) {
-              final selected = _selectedFilter == f;
-              return Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.xs),
-                child: FilterChip(
-                  label: Text(f),
-                  selected: selected,
-                  selectedColor: colorScheme.primaryContainer,
-                  onSelected: (_) =>
-                      setState(() => _selectedFilter = f),
-                ),
-              );
-            }).toList(),
-          ),
+        // Category tabs with badges
+        TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: List.generate(_categoryTabs.length, (i) {
+            final count = _categoryCounts[i];
+            return Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_categoryTabs[i]),
+                  if (_hasQuery && count > 0) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    Badge(
+                      label: Text('$count'),
+                      backgroundColor: colorScheme.primary,
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.sm),
         // Results or empty state
         Expanded(
           child: _hasQuery
@@ -134,9 +177,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                        result['title'] as String,
-                                        style: textTheme.titleSmall),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        children: _highlightText(
+                                          result['title'] as String,
+                                          _searchController.text,
+                                          textTheme.titleSmall,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                   Text(result['time'] as String,
                                       style: textTheme.bodySmall
@@ -145,11 +194,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 ],
                               ),
                               const SizedBox(height: AppSpacing.xs),
-                              Text(result['snippet'] as String,
-                                  style: textTheme.bodySmall?.copyWith(
-                                      color: AppColors.stone500),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis),
+                              RichText(
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  children: _highlightText(
+                                    result['snippet'] as String,
+                                    _searchController.text,
+                                    textTheme.bodySmall?.copyWith(
+                                        color: AppColors.stone500),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: AppSpacing.xs),
                               Wrap(
                                 spacing: AppSpacing.xs,
@@ -215,12 +271,12 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
 
   // TODO: 팀원 구현 — RAG Q&A API 연동 (스트리밍)
   final List<_ChatMessage> _messages = [
-    _ChatMessage(
+    const _ChatMessage(
       isUser: true,
       text: '정규화 기법에 대해 설명해줘',
       time: '14:30',
     ),
-    _ChatMessage(
+    const _ChatMessage(
       isUser: false,
       text: 'L1/L2 정규화는 과적합(Overfitting)을 방지하기 위한 기법입니다.\n\n'
           '**L1 정규화 (Lasso)**\n'
@@ -231,6 +287,7 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
           '- 가중치를 작게 유지하되 완전히 0으로 만들지 않습니다\n\n'
           '관련 노트: [[정규화 기법]], [[과적합 방지]]',
       time: '14:30',
+      sources: ['정규화 기법', '과적합 방지'],
     ),
   ];
 
@@ -337,10 +394,12 @@ class _ChatMessage {
     required this.isUser,
     required this.text,
     required this.time,
+    this.sources = const [],
   });
   final bool isUser;
   final String text;
   final String time;
+  final List<String> sources;
 }
 
 class _ChatBubble extends StatelessWidget {
@@ -413,17 +472,122 @@ class _ChatBubble extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(message.text, style: textTheme.bodyMedium),
-            const SizedBox(height: AppSpacing.xxs),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(message.time,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone400)),
+            _AnimatedTypingText(text: message.text, style: textTheme.bodyMedium),
+            if (message.sources.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  Text('인용 소스:',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: AppColors.stone500)),
+                  ...message.sources.map((src) => ActionChip(
+                        label: Text(src,
+                            style: textTheme.bodySmall?.copyWith(fontSize: 11)),
+                        avatar: const Icon(Icons.description_outlined, size: 14),
+                        onPressed: () {
+                          // TODO: 팀원 구현 — 소스 노트로 이동
+                        },
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      )),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            // Feedback buttons + time
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.thumb_up_outlined, size: 16),
+                  onPressed: () {
+                    // TODO: 팀원 구현 — 피드백 API 연동
+                  },
+                  visualDensity: VisualDensity.compact,
+                  color: AppColors.stone400,
+                  tooltip: '좋아요',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                IconButton(
+                  icon: const Icon(Icons.thumb_down_outlined, size: 16),
+                  onPressed: () {
+                    // TODO: 팀원 구현 — 피드백 API 연동
+                  },
+                  visualDensity: VisualDensity.compact,
+                  color: AppColors.stone400,
+                  tooltip: '싫어요',
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                ),
+                const Spacer(),
+                Text(message.time,
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.stone400)),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AnimatedTypingText extends StatefulWidget {
+  const _AnimatedTypingText({
+    required this.text,
+    this.style,
+  });
+  final String text;
+  final TextStyle? style;
+
+  @override
+  State<_AnimatedTypingText> createState() => _AnimatedTypingTextState();
+}
+
+class _AnimatedTypingTextState extends State<_AnimatedTypingText> {
+  int _charCount = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTyping();
+  }
+
+  @override
+  void didUpdateWidget(_AnimatedTypingText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _timer?.cancel();
+      _charCount = 0;
+      _startTyping();
+    }
+  }
+
+  void _startTyping() {
+    _timer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+      if (_charCount >= widget.text.length) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _charCount++);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      widget.text.substring(0, _charCount),
+      style: widget.style,
     );
   }
 }

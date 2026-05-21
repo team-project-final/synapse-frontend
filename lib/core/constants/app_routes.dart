@@ -38,6 +38,18 @@ abstract final class AppRoutes {
   static const settingsTenant = '/settings/tenant';
 
   static const admin = '/admin';
+  static const adminTenants = '/admin/tenants';
+  static const adminUsers = '/admin/users';
+  static const adminAuditLogs = '/admin/audit-logs';
+  static const adminSettings = '/admin/settings';
+  static const adminReports = '/admin/reports';
+  static const adminContent = '/admin/content';
+  static const adminGroups = '/admin/groups';
+  static const adminGamification = '/admin/gamification';
+  static const adminDataRequests = '/admin/data-requests';
+
+  static const dashboardHeatmap = '/dashboard/heatmap';
+  static const dashboardStats = '/dashboard/stats';
 
   static const communityGroups = '/community/groups';
   static const communityGroupDetail = '/community/groups/:groupId';

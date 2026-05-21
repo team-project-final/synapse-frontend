@@ -352,23 +352,64 @@ class _UsageCard extends StatelessWidget {
 
 // ── BillingHistoryScreen (SCR-W-BILLING-003) ──
 
-class BillingHistoryScreen extends ConsumerWidget {
+class BillingHistoryScreen extends ConsumerStatefulWidget {
   const BillingHistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
+  ConsumerState<BillingHistoryScreen> createState() =>
+      _BillingHistoryScreenState();
+}
 
-    // TODO: 팀원 구현 — platform-svc 결제 이력 API 연동
-    // 현재는 Free 플랜이므로 빈 상태 표시
-    const mockInvoices = <Map<String, String>>[];
+class _BillingHistoryScreenState
+    extends ConsumerState<BillingHistoryScreen> {
+  // Toggle to show paid plan data vs free plan empty state
+  bool _isFreePlan = true;
+
+  // TODO: 팀원 구현 — platform-svc 결제 이력 API 연동
+  static const _mockInvoices = [
+    {
+      'date': '2026-05-01',
+      'description': 'Pro 플랜 — 5월',
+      'amount': '₩9,900',
+      'status': '완료',
+    },
+    {
+      'date': '2026-04-01',
+      'description': 'Pro 플랜 — 4월',
+      'amount': '₩9,900',
+      'status': '완료',
+    },
+    {
+      'date': '2026-03-01',
+      'description': 'Pro 플랜 — 3월',
+      'amount': '₩9,900',
+      'status': '완료',
+    },
+    {
+      'date': '2026-02-01',
+      'description': 'Pro 플랜 — 2월',
+      'amount': '₩9,900',
+      'status': '완료',
+    },
+    {
+      'date': '2026-01-15',
+      'description': 'Pro 플랜 업그레이드 (일할 계산)',
+      'amount': '₩4,950',
+      'status': '대기',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         Text('결제 이력', style: textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.xl),
-        if (mockInvoices.isEmpty)
+        if (_isFreePlan)
+          // Free plan empty state
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -377,7 +418,7 @@ class BillingHistoryScreen extends ConsumerWidget {
                 const Icon(Icons.receipt_long_outlined,
                     size: 64, color: AppColors.stone300),
                 const SizedBox(height: AppSpacing.md),
-                Text('결제 이력이 없습니다',
+                Text('Free 플랜은 결제 이력이 없습니다',
                     style: textTheme.bodyLarge
                         ?.copyWith(color: AppColors.stone400)),
                 const SizedBox(height: AppSpacing.xs),
@@ -386,32 +427,67 @@ class BillingHistoryScreen extends ConsumerWidget {
                   style: textTheme.bodySmall
                       ?.copyWith(color: AppColors.stone300),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                FilledButton(
+                  onPressed: () {
+                    // TODO: 팀원 구현 — 업그레이드 페이지로 이동
+                    setState(() => _isFreePlan = false);
+                  },
+                  child: const Text('업그레이드'),
+                ),
               ],
             ),
           )
         else
-          // Invoice list (shown when there are paid invoices)
-          Column(
-            children: mockInvoices.map((invoice) {
-              return ListTile(
-                leading: const Icon(Icons.receipt_outlined),
-                title: Text(invoice['plan'] ?? ''),
-                subtitle: Text(invoice['date'] ?? ''),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(invoice['amount'] ?? ''),
-                    const SizedBox(width: AppSpacing.sm),
-                    IconButton(
-                      icon: const Icon(Icons.download_outlined),
-                      onPressed: () {
-                        // TODO: 팀원 구현 — 영수증 다운로드
-                      },
+          // Invoice DataTable
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text('날짜')),
+                DataColumn(label: Text('설명')),
+                DataColumn(label: Text('금액')),
+                DataColumn(label: Text('상태')),
+                DataColumn(label: Text('PDF')),
+              ],
+              rows: _mockInvoices.map((invoice) {
+                final isCompleted = invoice['status'] == '완료';
+                return DataRow(
+                  cells: [
+                    DataCell(Text(invoice['date']!)),
+                    DataCell(Text(invoice['description']!)),
+                    DataCell(Text(invoice['amount']!)),
+                    DataCell(
+                      Chip(
+                        label: Text(
+                          invoice['status']!,
+                          style: textTheme.labelSmall?.copyWith(
+                            color:
+                                isCompleted ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        backgroundColor:
+                            isCompleted ? AppColors.success : AppColors.warning,
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    DataCell(
+                      IconButton(
+                        icon: const Icon(Icons.picture_as_pdf,
+                            color: AppColors.error),
+                        onPressed: () {
+                          // TODO: 팀원 구현 — PDF 영수증 다운로드
+                        },
+                        tooltip: 'PDF 다운로드',
+                      ),
                     ),
                   ],
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
       ],
     );

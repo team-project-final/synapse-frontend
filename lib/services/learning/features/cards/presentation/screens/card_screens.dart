@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/ai_generate_loading.dart';
 import 'package:synapse_frontend/shared/widgets/flip_card.dart';
 
 // ── Mock data ──
@@ -91,7 +94,34 @@ class _DeckCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(deck.name, style: textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(deck.name, style: textTheme.titleMedium),
+                ),
+                // Mastery circular indicator
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      CircularProgressIndicator(
+                        value: deck.progress,
+                        strokeWidth: 4,
+                        backgroundColor: AppColors.stone200,
+                        color: colorScheme.primary,
+                      ),
+                      Text(
+                        '${(deck.progress * 100).toInt()}%',
+                        style: textTheme.labelSmall
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
@@ -137,6 +167,25 @@ class _DeckCard extends StatelessWidget {
                         context.go(AppRoutes.deckCardsPath(deck.id)),
                     child: const Text('카드 보기'),
                   ),
+                ),
+              ],
+            ),
+            // Sub-decks
+            ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: Text('하위 덱', style: textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+              children: [
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.folder_outlined, size: 18, color: AppColors.stone400),
+                  title: Text('${deck.name} - 기본', style: textTheme.bodySmall),
+                  trailing: Text('${deck.cardCount ~/ 2}장', style: textTheme.bodySmall?.copyWith(color: AppColors.stone400)),
+                ),
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.folder_outlined, size: 18, color: AppColors.stone400),
+                  title: Text('${deck.name} - 심화', style: textTheme.bodySmall),
+                  trailing: Text('${deck.cardCount - deck.cardCount ~/ 2}장', style: textTheme.bodySmall?.copyWith(color: AppColors.stone400)),
                 ),
               ],
             ),
@@ -186,6 +235,8 @@ class CardListScreen extends ConsumerStatefulWidget {
 class _CardListScreenState extends ConsumerState<CardListScreen> {
   final _searchController = TextEditingController();
   String _selectedSort = '최신순';
+  String _selectedType = '전체';
+  final Set<int> _checkedCards = {};
 
   @override
   void dispose() {
@@ -255,13 +306,58 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
             }).toList(),
           ),
         ),
+        const SizedBox(height: AppSpacing.sm),
+        // Card type filter
+        Row(
+          children: ['전체', 'Basic', 'Cloze'].map((type) {
+            final selected = _selectedType == type;
+            return Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.xs),
+              child: FilterChip(
+                label: Text(type),
+                selected: selected,
+                selectedColor: colorScheme.primaryContainer,
+                onSelected: (_) => setState(() => _selectedType = type),
+              ),
+            );
+          }).toList(),
+        ),
+        if (_checkedCards.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          FilledButton.icon(
+            onPressed: () {
+              // TODO: 팀원 구현 — 선택 카드 삭제 API 연동
+              setState(() => _checkedCards.clear());
+            },
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text('선택 삭제 (${_checkedCards.length})'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
-        ...mockCards.map((card) => Card(
+        ...mockCards.asMap().entries.map((entry) {
+          final i = entry.key;
+          final card = entry.value;
+          return Card(
               margin: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
                   children: [
+                    Checkbox(
+                      value: _checkedCards.contains(i),
+                      onChanged: (v) {
+                        setState(() {
+                          if (v == true) {
+                            _checkedCards.add(i);
+                          } else {
+                            _checkedCards.remove(i);
+                          }
+                        });
+                      },
+                    ),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,7 +383,8 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                   ],
                 ),
               ),
-            )),
+            );
+        }),
       ],
     );
   }
@@ -393,6 +490,31 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
                   ))
               .toList(),
         ),
+        const SizedBox(height: AppSpacing.md),
+        // Image add area
+        Text('이미지', style: textTheme.bodyMedium),
+        const SizedBox(height: AppSpacing.xs),
+        Container(
+          height: 120,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSpacing.sm),
+            border: Border.all(color: AppColors.stone300),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.camera_alt_outlined,
+                    size: 32, color: AppColors.stone400),
+                const SizedBox(height: AppSpacing.xs),
+                Text('이미지 추가',
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.stone400)),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: AppSpacing.lg),
         // Save button
         FilledButton(
@@ -421,12 +543,24 @@ class _AiCardGenerationScreenState
     extends ConsumerState<AiCardGenerationScreen> {
   String? _selectedNote;
   int _cardCount = 10;
+  bool _isGenerating = false;
+  bool _hasResults = false;
+  final Set<int> _selectedResults = {};
 
   // TODO: 팀원 구현 — knowledge-svc 노트 목록 API 연동
   final _mockNotes = [
     {'id': '1', 'title': '정규화 기법 (Regularization)'},
     {'id': '2', 'title': '동적 프로그래밍 기초'},
     {'id': '3', 'title': 'AWS S3 버킷 정책'},
+  ];
+
+  static const _mockGeneratedCards = [
+    {'front': 'L1 정규화의 다른 이름은?', 'back': 'Lasso'},
+    {'front': 'L2 정규화의 다른 이름은?', 'back': 'Ridge'},
+    {'front': '정규화의 주요 목적은?', 'back': '과적합 방지'},
+    {'front': 'L1 정규화가 유도하는 성질은?', 'back': '희소성(Sparsity)'},
+    {'front': 'Dropout이란?', 'back': '뉴런을 랜덤하게 비활성화'},
+    {'front': 'Batch Normalization의 역할은?', 'back': '학습 안정성 향상'},
   ];
 
   @override
@@ -481,48 +615,150 @@ class _AiCardGenerationScreenState
         const SizedBox(height: AppSpacing.lg),
         // Generate button
         FilledButton.icon(
-          onPressed: _selectedNote != null
+          onPressed: _selectedNote != null && !_isGenerating
               ? () {
-                  // TODO: 팀원 구현 — AI 카드 생성 API 연동
+                  setState(() {
+                    _isGenerating = true;
+                    _hasResults = false;
+                    _selectedResults.clear();
+                  });
+                  // Simulate generation delay
+                  Future.delayed(const Duration(seconds: 2), () {
+                    if (mounted) {
+                      setState(() {
+                        _isGenerating = false;
+                        _hasResults = true;
+                      });
+                    }
+                  });
                 }
               : null,
           icon: const Icon(Icons.auto_awesome),
           label: const Text('AI 카드 생성'),
         ),
         const SizedBox(height: AppSpacing.lg),
-        // Preview section (disabled state)
+        // Preview section
         Text('생성 결과', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
-        Container(
-          height: 200,
-          decoration: BoxDecoration(
-            color: AppColors.stone100,
-            borderRadius: BorderRadius.circular(AppSpacing.sm),
-            border: Border.all(color: AppColors.stone200),
+        if (_isGenerating)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            child: AIGenerateLoading(),
+          )
+        else if (_hasResults) ...[
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: AppSpacing.sm,
+              crossAxisSpacing: AppSpacing.sm,
+              childAspectRatio: 1.4,
+            ),
+            itemCount: _mockGeneratedCards.length,
+            itemBuilder: (context, i) {
+              final card = _mockGeneratedCards[i];
+              final isChecked = _selectedResults.contains(i);
+              return Card(
+                color: isChecked ? colorScheme.primaryContainer : null,
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (isChecked) {
+                        _selectedResults.remove(i);
+                      } else {
+                        _selectedResults.add(i);
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(AppSpacing.sm),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Spacer(),
+                            SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Checkbox(
+                                value: isChecked,
+                                onChanged: (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selectedResults.add(i);
+                                    } else {
+                                      _selectedResults.remove(i);
+                                    }
+                                  });
+                                },
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(card['front']!,
+                            style: textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(card['back']!,
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: AppColors.stone500),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.auto_awesome_outlined,
-                    size: 48, color: AppColors.stone300),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  '생성 결과가 여기에 표시됩니다',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.stone400),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'AI 카드 생성 버튼을 눌러 시작하세요',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone300),
-                ),
-                // TODO: 팀원 구현 — AI 생성 스트리밍 연동
-              ],
+          if (_selectedResults.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            FilledButton.icon(
+              onPressed: () {
+                // TODO: 팀원 구현 — 선택 카드 저장 API 연동
+                context.go(AppRoutes.decks);
+              },
+              icon: const Icon(Icons.save),
+              label: Text('선택 저장 (${_selectedResults.length})'),
+            ),
+          ],
+        ] else
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: AppColors.stone100,
+              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              border: Border.all(color: AppColors.stone200),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.auto_awesome_outlined,
+                      size: 48, color: AppColors.stone300),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    '생성 결과가 여기에 표시됩니다',
+                    style: textTheme.bodyMedium
+                        ?.copyWith(color: AppColors.stone400),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'AI 카드 생성 버튼을 눌러 시작하세요',
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.stone300),
+                  ),
+                  // TODO: 팀원 구현 — AI 생성 스트리밍 연동
+                ],
+              ),
             ),
           ),
-        ),
       ],
     );
   }
@@ -749,6 +985,40 @@ class ReviewResultScreen extends ConsumerWidget {
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+        // Accuracy donut chart
+        Center(
+          child: SizedBox(
+            width: 120,
+            height: 120,
+            child: CustomPaint(
+              painter: _DonutChartPainter(
+                correctRatio: 0.78,
+                correctColor: AppColors.primaryAmber,
+                incorrectColor: AppColors.stone200,
+              ),
+              child: Center(
+                child: Text('78%',
+                    style: textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        // Next review schedule
+        Text('다음 복습 예정', style: textTheme.titleMedium),
+        const SizedBox(height: AppSpacing.sm),
+        ...[
+          {'title': 'L1 정규화란?', 'date': '2026-05-22'},
+          {'title': '동적 프로그래밍 정의', 'date': '2026-05-23'},
+          {'title': 'AWS S3 버킷 정책 차이', 'date': '2026-05-25'},
+        ].map((item) => ListTile(
+              dense: true,
+              leading: const Icon(Icons.schedule, size: 18, color: AppColors.stone400),
+              title: Text(item['title']!, style: textTheme.bodyMedium),
+              trailing: Text(item['date']!, style: textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+            )),
         const SizedBox(height: AppSpacing.xl),
         // Buttons
         FilledButton(
@@ -795,4 +1065,44 @@ class _StatDivider extends StatelessWidget {
       color: AppColors.stone200,
     );
   }
+}
+
+class _DonutChartPainter extends CustomPainter {
+  _DonutChartPainter({
+    required this.correctRatio,
+    required this.correctColor,
+    required this.incorrectColor,
+  });
+
+  final double correctRatio;
+  final Color correctColor;
+  final Color incorrectColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    const strokeWidth = 14.0;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    // Background arc (incorrect)
+    paint.color = incorrectColor;
+    canvas.drawArc(rect.deflate(strokeWidth / 2), 0, 2 * math.pi, false, paint);
+
+    // Correct arc
+    paint.color = correctColor;
+    canvas.drawArc(
+      rect.deflate(strokeWidth / 2),
+      -math.pi / 2,
+      2 * math.pi * correctRatio,
+      false,
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) =>
+      oldDelegate.correctRatio != correctRatio;
 }

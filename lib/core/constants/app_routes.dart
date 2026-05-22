@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const mfa = '/mfa';
   static const passwordReset = '/password-reset';
   static const oauthConsent = '/oauth-consent';
+  static const authCallback = '/auth/callback';
 
   static const notes = '/notes';
   static const noteDetail = '/notes/:noteId';
@@ -30,6 +31,8 @@ abstract final class AppRoutes {
   static const billingPlans = '/billing/plans';
   static const billingUsage = '/billing/usage';
   static const billingHistory = '/billing/history';
+  static const billingSuccess = '/billing/success';
+  static const billingCancel = '/billing/cancel';
 
   static const settingsProfile = '/settings/profile';
   static const settingsSecurity = '/settings/security';

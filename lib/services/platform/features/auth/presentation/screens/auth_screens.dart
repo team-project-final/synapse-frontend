@@ -6,6 +6,7 @@ import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/oauth_redirect.dart';
 import 'dart:async';
 
 // ── Login ──
@@ -35,6 +36,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref
         .read(authNotifierProvider.notifier)
         .login(_emailController.text, _passwordController.text);
+  }
+
+  void _loginWithOAuth(String provider) {
+    ref.read(oauthRedirectServiceProvider).redirectToProvider(provider);
   }
 
   @override
@@ -81,11 +86,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock_outlined),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
                         onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                     obscureText: _obscurePassword,
@@ -106,8 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('로그인'),
                     ),
@@ -118,10 +125,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const Expanded(child: Divider()),
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md),
-                        child: Text('또는',
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.stone400)),
+                          horizontal: AppSpacing.md,
+                        ),
+                        child: Text(
+                          '또는',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.stone400,
+                          ),
+                        ),
                       ),
                       const Expanded(child: Divider()),
                     ],
@@ -133,9 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: OutlinedButton.icon(
                       onPressed: isLoading
                           ? null
-                          : () => ref
-                              .read(authNotifierProvider.notifier)
-                              .loginWithOAuth('google'),
+                          : () => _loginWithOAuth('google'),
                       icon: const Icon(Icons.g_mobiledata, size: 24),
                       label: const Text('Google로 로그인'),
                     ),
@@ -147,11 +156,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: OutlinedButton.icon(
                       onPressed: isLoading
                           ? null
-                          : () => ref
-                              .read(authNotifierProvider.notifier)
-                              .loginWithOAuth('github'),
+                          : () => _loginWithOAuth('github'),
                       icon: const Icon(Icons.code, size: 20),
                       label: const Text('GitHub로 로그인'),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () => _loginWithOAuth('apple'),
+                      icon: const Icon(Icons.apple, size: 20),
+                      label: const Text('Apple로 로그인'),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -164,8 +183,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const Text('·'),
                       TextButton(
-                        onPressed: () =>
-                            context.go(AppRoutes.passwordReset),
+                        onPressed: () => context.go(AppRoutes.passwordReset),
                         child: const Text('비밀번호 찾기'),
                       ),
                     ],
@@ -255,11 +273,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       prefixIcon: const Icon(Icons.lock_outlined),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
                         onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                       ),
                     ),
                     obscureText: _obscurePassword,
@@ -296,8 +317,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('가입하기'),
                     ),
@@ -330,10 +350,14 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
   static const int _codeLength = 6;
   static const int _timerDuration = 30;
 
-  final List<TextEditingController> _controllers =
-      List.generate(_codeLength, (_) => TextEditingController());
-  final List<FocusNode> _focusNodes =
-      List.generate(_codeLength, (_) => FocusNode());
+  final List<TextEditingController> _controllers = List.generate(
+    _codeLength,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(
+    _codeLength,
+    (_) => FocusNode(),
+  );
 
   int _secondsRemaining = _timerDuration;
   Timer? _timer;
@@ -419,8 +443,9 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   '인증 앱에 표시된 6자리 코드를 입력해주세요.',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(color: AppColors.stone500),
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColors.stone500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -577,16 +602,12 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                         children: [
                           FilledButton(
                             onPressed: details.onStepContinue,
-                            child: Text(
-                              _currentStep == 2 ? '비밀번호 변경' : '다음',
-                            ),
+                            child: Text(_currentStep == 2 ? '비밀번호 변경' : '다음'),
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           TextButton(
                             onPressed: details.onStepCancel,
-                            child: Text(
-                              _currentStep == 0 ? '취소' : '이전',
-                            ),
+                            child: Text(_currentStep == 0 ? '취소' : '이전'),
                           ),
                         ],
                       ),
@@ -660,8 +681,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                               controller: _newPasswordController,
                               decoration: InputDecoration(
                                 labelText: '새 비밀번호',
-                                prefixIcon:
-                                    const Icon(Icons.lock_outlined),
+                                prefixIcon: const Icon(Icons.lock_outlined),
                                 border: const OutlineInputBorder(),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -669,9 +689,10 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                                         ? Icons.visibility_off
                                         : Icons.visibility,
                                   ),
-                                  onPressed: () => setState(() =>
-                                      _obscureNewPassword =
-                                          !_obscureNewPassword),
+                                  onPressed: () => setState(
+                                    () => _obscureNewPassword =
+                                        !_obscureNewPassword,
+                                  ),
                                 ),
                               ),
                               obscureText: _obscureNewPassword,
@@ -719,15 +740,13 @@ class OAuthConsentScreen extends ConsumerStatefulWidget {
   const OAuthConsentScreen({super.key});
 
   @override
-  ConsumerState<OAuthConsentScreen> createState() =>
-      _OAuthConsentScreenState();
+  ConsumerState<OAuthConsentScreen> createState() => _OAuthConsentScreenState();
 }
 
 class _OAuthConsentScreenState extends ConsumerState<OAuthConsentScreen> {
   // Mock data for OAuth client app
   static const String _appName = 'Example App';
-  static const String _appDescription =
-      '이 앱은 사용자의 Synapse 계정 정보에 접근을 요청합니다.';
+  static const String _appDescription = '이 앱은 사용자의 Synapse 계정 정보에 접근을 요청합니다.';
 
   final List<_PermissionItem> _permissions = [
     const _PermissionItem(label: '프로필 정보 (이름, 이메일)', granted: true),
@@ -780,10 +799,7 @@ class _OAuthConsentScreenState extends ConsumerState<OAuthConsentScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                _appName,
-                                style: textTheme.titleMedium,
-                              ),
+                              Text(_appName, style: textTheme.titleMedium),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
                                 _appDescription,
@@ -801,10 +817,7 @@ class _OAuthConsentScreenState extends ConsumerState<OAuthConsentScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    '요청하는 권한',
-                    style: textTheme.titleSmall,
-                  ),
+                  child: Text('요청하는 권한', style: textTheme.titleSmall),
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 // Permission checklist
@@ -813,10 +826,12 @@ class _OAuthConsentScreenState extends ConsumerState<OAuthConsentScreen> {
                   return CheckboxListTile(
                     value: perm.granted,
                     onChanged: (v) {
-                      setState(() => _permissions[i] = _PermissionItem(
-                            label: perm.label,
-                            granted: v ?? false,
-                          ));
+                      setState(
+                        () => _permissions[i] = _PermissionItem(
+                          label: perm.label,
+                          granted: v ?? false,
+                        ),
+                      );
                     },
                     title: Text(perm.label),
                     controlAffinity: ListTileControlAffinity.leading,

@@ -1,8 +1,8 @@
-enum AuthStatus { unauthenticated, loading, authenticated }
+enum AuthStatus { initializing, unauthenticated, loading, authenticated }
 
 class AuthState {
   const AuthState({
-    this.status = AuthStatus.unauthenticated,
+    this.status = AuthStatus.initializing,
     this.accessToken,
     this.refreshToken,
   });

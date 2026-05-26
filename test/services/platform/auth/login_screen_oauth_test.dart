@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/auth_repository.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/oauth_redirect.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
@@ -18,6 +20,9 @@ void main() {
               baseUrl: 'http://localhost:8081',
               redirect: redirectedUrls.add,
             ),
+          ),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
           ),
         ],
         child: const MaterialApp(home: LoginScreen()),

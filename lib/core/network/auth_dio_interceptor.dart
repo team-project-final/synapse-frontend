@@ -36,31 +36,20 @@ class AuthDioInterceptor extends QueuedInterceptor {
       return;
     }
 
-    final tokens = await tokenStore.read();
-    if (tokens == null) {
-      handler.next(err);
-      return;
-    }
-
     try {
       final refreshResponse = await refreshDio.post<Map<String, dynamic>>(
         '/api/v1/auth/refresh',
-        data: {'refreshToken': tokens.refreshToken},
       );
       final data = refreshResponse.data;
       final accessToken = data?['accessToken'];
-      final refreshToken = data?['refreshToken'];
 
-      if (accessToken is! String || refreshToken is! String) {
+      if (accessToken is! String) {
         await tokenStore.clear();
         handler.next(err);
         return;
       }
 
-      final newTokens = AuthTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
+      final newTokens = AuthTokens(accessToken: accessToken);
       await tokenStore.save(newTokens);
 
       final requestOptions = err.requestOptions;

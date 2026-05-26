@@ -84,32 +84,33 @@
 - [x] 인증 필요 여부: No (인증 화면 자체는 공개)
 - [x] 권한 종류: 없음 (인증 전 화면)
 - [x] 공개 API 여부: Yes (인증 화면)
-- [ ] 토큰 저장: SecureStorage만 허용 (localStorage 금지)
+- [x] 토큰 저장: SecureStorage만 허용 (localStorage 금지)
 - [ ] 결과 → TASK Constraints 반영
 
 ### 1.4 ERD 설계
 - [x] 프론트엔드 — ERD 해당 없음
 - [x] 인증 상태 모델 설계 (AuthState: unauthenticated/loading/authenticated)
-- [ ] 토큰 저장 구조 설계 (access_token: SecureStorage 저장, refresh_token: httpOnly Cookie — 서버에서 Set-Cookie로 발급되므로 클라이언트에서 직접 저장 불필요)
+- [x] 토큰 저장 구조 설계 (access_token: SecureStorage 저장, refresh_token: httpOnly Cookie — 서버에서 Set-Cookie로 발급되므로 클라이언트에서 직접 저장 불필요)
 - [ ] Duration(final) 갱신
 
 ### 1.5 Security 2차 검토
-- [ ] 토큰 SecureStorage 전용 저장 확인
+- [x] 토큰 SecureStorage 전용 저장 확인
 - [ ] 비밀번호 입력 마스킹 확인
 - [x] platform-svc 베이스 URL 환경변수 관리
 - [ ] 결과 → TASK Constraints 반영
 
 ### 1.6 DTO / Entity 설계 (API First)
-- [ ] LoginRequest 모델 정의 (email, password)
-- [ ] SignupRequest 모델 정의 (email, password, confirmPassword)
+- [x] LoginRequest 모델 정의 (email, password)
+- [x] SignupRequest 모델 정의 (email, password, confirmPassword)
 - [ ] AuthToken 모델 정의 (accessToken, expiresIn) — refreshToken은 httpOnly Cookie로 서버 관리, JSON body 미포함
 - [x] AuthState Provider 설계
 - [ ] Output Format → TASK 반영
 
 ### 1.7 Repository 구현
-- [ ] AuthRepository 클래스 작성 (HTTP client + platform-svc 연동)
-- [ ] SecureStorage 토큰 저장/조회/삭제 구현
-- [ ] flutter_secure_storage 의존성 추가
+- [x] AuthRepositoryPort + platform AuthRepository 구현 (OAuth redirect + token storage 경계)
+- [x] PLAT-009 email/password login/signup API 연동 구현
+- [x] SecureStorage 토큰 저장/조회/삭제 구현
+- [x] flutter_secure_storage 의존성 추가
 
 ### 1.8 Service + Test
 - [x] AuthNotifier (Riverpod StateNotifier) 구현
@@ -120,18 +121,18 @@
 
 ### 1.9 Controller + Test
 - [x] 로그인 페이지 Widget 구현 (폼 + OAuth 버튼)
-- [ ] 회원가입 페이지 Widget 구현 (폼 + 유효성 검증)
-- [ ] 폼 유효성 검증 (비밀번호 8자+, 영문+숫자+특수문자)
-- [ ] 로딩 상태 및 에러 상태 UI 구현
-- [ ] Widget 테스트 (폼 제출, 에러 표시)
+- [x] 회원가입 페이지 Widget 구현 (폼 + 유효성 검증)
+- [x] 폼 유효성 검증 (비밀번호 8자+, 영문+숫자+특수문자)
+- [x] 로딩 상태 및 에러 상태 UI 구현
+- [x] Widget 테스트 (폼 제출, 에러 표시)
 
 ### 1.10 View + Test
 - [x] 로그인 화면 렌더링 + OAuth 버튼 동작 확인
-- [ ] 회원가입 화면 렌더링 + 유효성 검증 확인
+- [x] 회원가입 화면 렌더링 + 유효성 검증 확인
 - [ ] Smoke Test 1건 (로그인 → 대시보드 이동)
 - [ ] RULE Reference → TASK 반영
 
-**Step 2 Status**: [x] In Progress (OAuth 프론트 연동 완료, 이메일/비밀번호 API 연동 및 토큰 저장 정책 정리 잔여)
+**Step 2 Status**: [x] In Progress (OAuth 프론트 연동, AuthRepositoryPort 경계, SecureStorage 토큰 저장 완료 / PLAT-009 email/password API 연동 완료 / AuthToken expiresIn 항목은 backend 응답 미포함으로 잔여)
 
 ---
 

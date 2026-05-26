@@ -10,9 +10,7 @@ import 'package:synapse_frontend/core/network/auth_dio_interceptor.dart';
 void main() {
   test('adds bearer token to protected requests', () async {
     final tokenStore = InMemoryTokenStore();
-    await tokenStore.save(
-      const AuthTokens(accessToken: 'access', refreshToken: 'refresh'),
-    );
+    await tokenStore.save(const AuthTokens(accessToken: 'access'));
     final adapter = _FakeAdapter((request) {
       return ResponseBody.fromString('ok', 200);
     });
@@ -29,9 +27,7 @@ void main() {
 
   test('refreshes tokens and retries once after 401', () async {
     final tokenStore = InMemoryTokenStore();
-    await tokenStore.save(
-      const AuthTokens(accessToken: 'old-access', refreshToken: 'old-refresh'),
-    );
+    await tokenStore.save(const AuthTokens(accessToken: 'old-access'));
     var protectedAttempts = 0;
     final adapter = _FakeAdapter((request) {
       if (request.path == '/api/v1/billing/subscription') {
@@ -42,11 +38,9 @@ void main() {
         return ResponseBody.fromString('ok', 200);
       }
       if (request.path == '/api/v1/auth/refresh') {
+        expect(request.data, isNull);
         return ResponseBody.fromString(
-          jsonEncode({
-            'accessToken': 'new-access',
-            'refreshToken': 'new-refresh',
-          }),
+          jsonEncode({'accessToken': 'new-access'}),
           200,
           headers: {
             Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -71,7 +65,6 @@ void main() {
         .toList();
     expect(response.statusCode, 200);
     expect(tokens?.accessToken, 'new-access');
-    expect(tokens?.refreshToken, 'new-refresh');
     expect(protectedRequests, hasLength(2));
     expect(
       protectedRequests.first.headers['Authorization'],
@@ -85,10 +78,15 @@ void main() {
 }
 
 class _RecordedRequest {
-  const _RecordedRequest({required this.path, required this.headers});
+  const _RecordedRequest({
+    required this.path,
+    required this.headers,
+    required this.data,
+  });
 
   final String path;
   final Map<String, dynamic> headers;
+  final Object? data;
 }
 
 class _FakeAdapter implements HttpClientAdapter {
@@ -106,6 +104,7 @@ class _FakeAdapter implements HttpClientAdapter {
     final request = _RecordedRequest(
       path: options.path,
       headers: Map<String, dynamic>.from(options.headers),
+      data: options.data,
     );
     requests.add(request);
     return _handler(request);

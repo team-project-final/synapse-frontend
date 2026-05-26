@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
-import 'package:synapse_frontend/core/auth/token_store.dart';
 
 final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
@@ -12,7 +13,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> restoreSession() async {
     state = const AuthState(status: AuthStatus.initializing);
-    final tokens = await ref.read(tokenStoreProvider).read();
+    final tokens = await ref.read(authRepositoryPortProvider).restoreSession();
     if (tokens == null) {
       state = const AuthState(status: AuthStatus.unauthenticated);
       return;
@@ -21,45 +22,72 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState(
       status: AuthStatus.authenticated,
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
     );
   }
 
-  Future<void> completeOAuthLogin({
-    required String accessToken,
-    required String refreshToken,
-  }) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    await ref
-        .read(tokenStoreProvider)
-        .save(AuthTokens(accessToken: accessToken, refreshToken: refreshToken));
+  Future<void> completeOAuthLogin({required String accessToken}) async {
+    state = const AuthState(status: AuthStatus.loading);
+    final tokens = await ref
+        .read(authRepositoryPortProvider)
+        .completeOAuthLogin(accessToken: accessToken);
     state = AuthState(
       status: AuthStatus.authenticated,
-      accessToken: accessToken,
-      refreshToken: refreshToken,
+      accessToken: tokens.accessToken,
     );
   }
 
   Future<void> login(String email, String password) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — platform-svc 연동
-    // 성공 시: state = state.copyWith(status: AuthStatus.authenticated, accessToken: token);
-    // 실패 시: state = state.copyWith(status: AuthStatus.unauthenticated);
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      final tokens = await ref
+          .read(authRepositoryPortProvider)
+          .login(email: email, password: password);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        accessToken: tokens.accessToken,
+      );
+    } on AuthRepositoryException catch (error) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: error.detail,
+      );
+    } catch (_) {
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Login failed.',
+      );
+    }
   }
 
-  Future<void> loginWithOAuth(String provider) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — 서버 사이드 OAuth redirect 연동
+  void loginWithOAuth(String provider) {
+    ref.read(authRepositoryPortProvider).loginWithOAuth(provider);
   }
 
   Future<void> signup(String email, String password) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — platform-svc 연동
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      await ref
+          .read(authRepositoryPortProvider)
+          .signup(email: email, password: password);
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        successMessage: 'Signup completed. Please log in.',
+      );
+    } on AuthRepositoryException catch (error) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: error.detail,
+      );
+    } catch (_) {
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Signup failed.',
+      );
+    }
   }
 
   Future<void> logout() async {
-    // TODO: 팀원 구현 — SecureStorage 토큰 삭제
-    await ref.read(tokenStoreProvider).clear();
+    await ref.read(authRepositoryPortProvider).logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

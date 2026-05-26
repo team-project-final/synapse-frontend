@@ -9,13 +9,11 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
   const OAuthCallbackScreen({
     required this.accessToken,
-    required this.refreshToken,
     required this.error,
     super.key,
   });
 
   final String? accessToken;
-  final String? refreshToken;
   final String? error;
 
   @override
@@ -32,10 +30,9 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
 
   Future<void> _handleCallback() async {
     final accessToken = widget.accessToken;
-    final refreshToken = widget.refreshToken;
     final hasError = widget.error != null && widget.error!.isNotEmpty;
 
-    if (hasError || accessToken == null || refreshToken == null) {
+    if (hasError || accessToken == null) {
       if (mounted) context.go(AppRoutes.login);
       return;
     }
@@ -43,10 +40,7 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
     try {
       await ref
           .read(authNotifierProvider.notifier)
-          .completeOAuthLogin(
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-          );
+          .completeOAuthLogin(accessToken: accessToken);
       if (mounted) context.go(AppRoutes.dashboard);
     } catch (_) {
       if (mounted) context.go(AppRoutes.login);

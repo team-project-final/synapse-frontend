@@ -5,18 +5,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/app.dart';
 import 'package:synapse_frontend/core/auth/auth_notifier.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/services/service_boundary.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/auth_repository.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
 void main() {
   testWidgets('unauthenticated user sees login screen', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [tokenStoreProvider.overrideWithValue(InMemoryTokenStore())],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
         child: const SynapseApp(),
       ),
     );
@@ -27,16 +34,16 @@ void main() {
 
   testWidgets('stored tokens restore authenticated session', (tester) async {
     final tokenStore = InMemoryTokenStore();
-    await tokenStore.save(
-      const AuthTokens(
-        accessToken: 'stored-access',
-        refreshToken: 'stored-refresh',
-      ),
-    );
+    await tokenStore.save(const AuthTokens(accessToken: 'stored-access'));
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [tokenStoreProvider.overrideWithValue(tokenStore)],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
         child: const SynapseApp(),
       ),
     );
@@ -52,7 +59,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [tokenStoreProvider.overrideWithValue(tokenStore)],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
         child: const SynapseApp(),
       ),
     );
@@ -118,6 +130,9 @@ class _AuthenticatedNotifier extends AuthNotifier {
 
 class _DelayedTokenStore implements TokenStore {
   final completer = Completer<AuthTokens?>();
+
+  @override
+  Future<void> migrateLegacyStorage() async {}
 
   @override
   Future<AuthTokens?> read() => completer.future;

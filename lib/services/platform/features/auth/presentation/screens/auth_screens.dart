@@ -6,7 +6,6 @@ import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
-import 'package:synapse_frontend/services/platform/features/auth/data/oauth_redirect.dart';
 import 'dart:async';
 
 // ── Login ──
@@ -39,7 +38,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _loginWithOAuth(String provider) {
-    ref.read(oauthRedirectServiceProvider).redirectToProvider(provider);
+    ref.read(authNotifierProvider.notifier).loginWithOAuth(provider);
   }
 
   @override
@@ -104,7 +103,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
+                  if (authState.errorMessage != null) ...[
+                    Text(
+                      authState.errorMessage!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.error,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ] else
+                    const SizedBox(height: AppSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     height: 48,
@@ -229,8 +239,37 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         .signup(_emailController.text, _passwordController.text);
   }
 
+  String? _validateSignupPassword(String? value) {
+    final password = value ?? '';
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters.';
+    }
+    if (!RegExp('[A-Za-z]').hasMatch(password)) {
+      return 'Password must include a letter.';
+    }
+    if (!RegExp(r'\d').hasMatch(password)) {
+      return 'Password must include a number.';
+    }
+    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(password)) {
+      return 'Password must include a special character.';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authNotifierProvider, (previous, next) {
+      final message = next.successMessage;
+      if (message == null || message == previous?.successMessage) {
+        return;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      context.go(AppRoutes.login);
+    });
+
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.status == AuthStatus.loading;
     final textTheme = Theme.of(context).textTheme;
@@ -284,12 +323,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       ),
                     ),
                     obscureText: _obscurePassword,
-                    validator: (v) {
-                      if (v == null || v.length < 8) {
-                        return '비밀번호는 8자 이상이어야 합니다';
-                      }
-                      return null;
-                    },
+                    validator: _validateSignupPassword,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   TextFormField(
@@ -302,12 +336,23 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     obscureText: true,
                     validator: (v) {
                       if (v != _passwordController.text) {
-                        return '비밀번호가 일치하지 않습니다';
+                        return 'Passwords do not match.';
                       }
                       return null;
                     },
                   ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
+                  if (authState.errorMessage != null) ...[
+                    Text(
+                      authState.errorMessage!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: colorScheme.error,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ] else
+                    const SizedBox(height: AppSpacing.sm),
                   SizedBox(
                     width: double.infinity,
                     height: 48,

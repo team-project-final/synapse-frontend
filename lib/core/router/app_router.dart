@@ -81,7 +81,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.authCallback,
         builder: (context, state) => OAuthCallbackScreen(
           accessToken: state.uri.queryParameters['access_token'],
-          refreshToken: state.uri.queryParameters['refresh_token'],
           error: state.uri.queryParameters['error'],
         ),
       ),

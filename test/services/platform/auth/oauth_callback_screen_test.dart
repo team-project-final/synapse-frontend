@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/auth_repository.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/oauth_callback_screen.dart';
 
 void main() {
-  testWidgets('oauth callback stores tokens and navigates to dashboard', (
+  testWidgets('oauth callback stores access token and navigates to dashboard', (
     tester,
   ) async {
     final tokenStore = InMemoryTokenStore();
     final router = GoRouter(
-      initialLocation:
-          '${AppRoutes.authCallback}?access_token=access&refresh_token=refresh',
+      initialLocation: '${AppRoutes.authCallback}?access_token=access',
       routes: [
         GoRoute(
           path: AppRoutes.authCallback,
           builder: (context, state) => OAuthCallbackScreen(
             accessToken: state.uri.queryParameters['access_token'],
-            refreshToken: state.uri.queryParameters['refresh_token'],
             error: state.uri.queryParameters['error'],
           ),
         ),
@@ -36,7 +36,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [tokenStoreProvider.overrideWithValue(tokenStore)],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
         child: MaterialApp.router(routerConfig: router),
       ),
     );
@@ -44,7 +49,6 @@ void main() {
 
     final tokens = await tokenStore.read();
     expect(tokens?.accessToken, 'access');
-    expect(tokens?.refreshToken, 'refresh');
     expect(find.text('dashboard'), findsOneWidget);
   });
 
@@ -57,7 +61,6 @@ void main() {
           path: AppRoutes.authCallback,
           builder: (context, state) => OAuthCallbackScreen(
             accessToken: state.uri.queryParameters['access_token'],
-            refreshToken: state.uri.queryParameters['refresh_token'],
             error: state.uri.queryParameters['error'],
           ),
         ),
@@ -74,7 +77,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [tokenStoreProvider.overrideWithValue(tokenStore)],
+        overrides: [
+          tokenStoreProvider.overrideWithValue(tokenStore),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
         child: MaterialApp.router(routerConfig: router),
       ),
     );

@@ -4,22 +4,26 @@ class AuthState {
   const AuthState({
     this.status = AuthStatus.initializing,
     this.accessToken,
-    this.refreshToken,
+    this.errorMessage,
+    this.successMessage,
   });
 
   final AuthStatus status;
   final String? accessToken;
-  final String? refreshToken;
+  final String? errorMessage;
+  final String? successMessage;
 
   AuthState copyWith({
     AuthStatus? status,
     String? accessToken,
-    String? refreshToken,
+    String? errorMessage,
+    String? successMessage,
   }) {
     return AuthState(
       status: status ?? this.status,
       accessToken: accessToken ?? this.accessToken,
-      refreshToken: refreshToken ?? this.refreshToken,
+      errorMessage: errorMessage ?? this.errorMessage,
+      successMessage: successMessage ?? this.successMessage,
     );
   }
 }

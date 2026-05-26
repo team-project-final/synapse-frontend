@@ -15,6 +15,7 @@ final dioProvider = Provider<Dio>((ref) {
     baseUrl: environment.baseUrl,
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 20),
+    extra: {'withCredentials': true},
   );
   final dio = Dio(baseOptions);
   final refreshDio = Dio(baseOptions);

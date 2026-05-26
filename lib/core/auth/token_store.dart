@@ -1,18 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 final tokenStoreProvider = Provider<TokenStore>((ref) {
-  return const HiveTokenStore();
+  return const SecureTokenStore();
 });
 
 class AuthTokens {
-  const AuthTokens({required this.accessToken, required this.refreshToken});
+  const AuthTokens({required this.accessToken});
 
   final String accessToken;
-  final String refreshToken;
 }
 
 abstract interface class TokenStore {
+  Future<void> migrateLegacyStorage();
+
   Future<void> save(AuthTokens tokens);
 
   Future<AuthTokens?> read();
@@ -22,6 +24,9 @@ abstract interface class TokenStore {
 
 class InMemoryTokenStore implements TokenStore {
   AuthTokens? _tokens;
+
+  @override
+  Future<void> migrateLegacyStorage() async {}
 
   @override
   Future<void> save(AuthTokens tokens) async {
@@ -37,12 +42,51 @@ class InMemoryTokenStore implements TokenStore {
   }
 }
 
-class HiveTokenStore implements TokenStore {
-  const HiveTokenStore();
+abstract interface class SecureTokenStorage {
+  Future<String?> read(String key);
+
+  Future<void> write({required String key, required String value});
+
+  Future<void> delete(String key);
+}
+
+class FlutterSecureTokenStorage implements SecureTokenStorage {
+  const FlutterSecureTokenStorage([
+    this._storage = const FlutterSecureStorage(
+      webOptions: WebOptions(useSessionStorage: true),
+    ),
+  ]);
+
+  final FlutterSecureStorage _storage;
+
+  @override
+  Future<String?> read(String key) {
+    return _storage.read(key: key);
+  }
+
+  @override
+  Future<void> write({required String key, required String value}) {
+    return _storage.write(key: key, value: value);
+  }
+
+  @override
+  Future<void> delete(String key) {
+    return _storage.delete(key: key);
+  }
+}
+
+abstract interface class LegacyTokenStorage {
+  Future<String?> readAccessToken();
+
+  Future<void> clear();
+}
+
+class HiveLegacyTokenStorage implements LegacyTokenStorage {
+  const HiveLegacyTokenStorage();
 
   static const _boxName = 'synapse_auth_tokens';
   static const _accessTokenKey = 'access_token';
-  static const _refreshTokenKey = 'refresh_token';
+  static const _legacyRefreshTokenKey = 'refresh_token';
 
   Future<Box<String>> _openBox() async {
     await Hive.initFlutter();
@@ -53,29 +97,66 @@ class HiveTokenStore implements TokenStore {
   }
 
   @override
-  Future<void> save(AuthTokens tokens) async {
+  Future<String?> readAccessToken() async {
     final box = await _openBox();
-    await box.put(_accessTokenKey, tokens.accessToken);
-    await box.put(_refreshTokenKey, tokens.refreshToken);
-  }
-
-  @override
-  Future<AuthTokens?> read() async {
-    final box = await _openBox();
-    final accessToken = box.get(_accessTokenKey);
-    final refreshToken = box.get(_refreshTokenKey);
-
-    if (accessToken == null || refreshToken == null) {
-      return null;
-    }
-
-    return AuthTokens(accessToken: accessToken, refreshToken: refreshToken);
+    return box.get(_accessTokenKey);
   }
 
   @override
   Future<void> clear() async {
     final box = await _openBox();
     await box.delete(_accessTokenKey);
-    await box.delete(_refreshTokenKey);
+    await box.delete(_legacyRefreshTokenKey);
+  }
+}
+
+class SecureTokenStore implements TokenStore {
+  const SecureTokenStore({
+    this.secureStorage = const FlutterSecureTokenStorage(),
+    this.legacyStorage = const HiveLegacyTokenStorage(),
+  });
+
+  static const _accessTokenKey = 'access_token';
+
+  final SecureTokenStorage secureStorage;
+  final LegacyTokenStorage legacyStorage;
+
+  Future<void> _clearLegacyStorage() async {
+    await legacyStorage.clear();
+  }
+
+  @override
+  Future<void> migrateLegacyStorage() async {
+    final currentAccessToken = await secureStorage.read(_accessTokenKey);
+    final legacyAccessToken = await legacyStorage.readAccessToken();
+
+    if (currentAccessToken == null && legacyAccessToken != null) {
+      await secureStorage.write(key: _accessTokenKey, value: legacyAccessToken);
+    }
+
+    await _clearLegacyStorage();
+  }
+
+  @override
+  Future<void> save(AuthTokens tokens) async {
+    await secureStorage.write(key: _accessTokenKey, value: tokens.accessToken);
+    await _clearLegacyStorage();
+  }
+
+  @override
+  Future<AuthTokens?> read() async {
+    final accessToken = await secureStorage.read(_accessTokenKey);
+
+    if (accessToken == null) {
+      return null;
+    }
+
+    return AuthTokens(accessToken: accessToken);
+  }
+
+  @override
+  Future<void> clear() async {
+    await secureStorage.delete(_accessTokenKey);
+    await _clearLegacyStorage();
   }
 }

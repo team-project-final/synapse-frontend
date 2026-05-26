@@ -1,23 +1,29 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/network/app_environment.dart';
+import 'package:synapse_frontend/core/network/auth_dio_interceptor.dart';
 
 final environmentProvider = Provider<AppEnvironment>((ref) {
   const value = String.fromEnvironment('APP_ENV', defaultValue: 'dev');
-  return switch (value) {
-    'prod' => AppEnvironment.prod,
-    'staging' => AppEnvironment.staging,
-    _ => AppEnvironment.dev,
-  };
+  return parseAppEnvironment(value);
 });
 
 final dioProvider = Provider<Dio>((ref) {
   final environment = ref.watch(environmentProvider);
-  return Dio(
-    BaseOptions(
-      baseUrl: environment.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 20),
+  final baseOptions = BaseOptions(
+    baseUrl: environment.baseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 20),
+    extra: {'withCredentials': true},
+  );
+  final dio = Dio(baseOptions);
+  final refreshDio = Dio(baseOptions);
+  dio.interceptors.add(
+    AuthDioInterceptor(
+      tokenStore: ref.watch(tokenStoreProvider),
+      refreshDio: refreshDio,
     ),
   );
+  return dio;
 });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
 
 // ── ProfileSettingsScreen (SCR-W-SETTINGS-001) ──
@@ -14,12 +15,13 @@ class ProfileSettingsScreen extends ConsumerStatefulWidget {
       _ProfileSettingsScreenState();
 }
 
-class _ProfileSettingsScreenState
-    extends ConsumerState<ProfileSettingsScreen> {
-  final _nameController =
-      TextEditingController(text: '김시냅스'); // TODO: 팀원 구현 — 프로필 데이터 연동
-  final _emailController =
-      TextEditingController(text: 'user@example.com'); // TODO: 팀원 구현 — 이메일 연동
+class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
+  final _nameController = TextEditingController(
+    text: '김시냅스',
+  ); // TODO: 팀원 구현 — 프로필 데이터 연동
+  final _emailController = TextEditingController(
+    text: 'user@example.com',
+  ); // TODO: 팀원 구현 — 이메일 연동
   String _selectedLanguage = '한국어';
   String _selectedTimezone = 'Asia/Seoul (UTC+9)';
 
@@ -51,8 +53,9 @@ class _ProfileSettingsScreenState
                     backgroundColor: colorScheme.primaryContainer,
                     child: Text(
                       '김',
-                      style: textTheme.headlineMedium
-                          ?.copyWith(color: colorScheme.primary),
+                      style: textTheme.headlineMedium?.copyWith(
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   Positioned(
@@ -64,8 +67,11 @@ class _ProfileSettingsScreenState
                         shape: BoxShape.circle,
                       ),
                       child: IconButton(
-                        icon: const Icon(Icons.camera_alt,
-                            color: Colors.white, size: 18),
+                        icon: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         onPressed: () {
                           // TODO: 팀원 구현 — 프로필 사진 업로드
                         },
@@ -113,8 +119,7 @@ class _ProfileSettingsScreenState
             filled: true,
             fillColor: AppColors.stone100,
           ),
-          style: textTheme.bodyMedium
-              ?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.stone400),
           // TODO: 팀원 구현 — 이메일 (인증 서비스에서 가져옴, 읽기 전용)
         ),
         const SizedBox(height: AppSpacing.md),
@@ -147,13 +152,14 @@ class _ProfileSettingsScreenState
           ),
           items: const [
             DropdownMenuItem(
-                value: 'Asia/Seoul (UTC+9)',
-                child: Text('Asia/Seoul (UTC+9)')),
+              value: 'Asia/Seoul (UTC+9)',
+              child: Text('Asia/Seoul (UTC+9)'),
+            ),
+            DropdownMenuItem(value: 'UTC', child: Text('UTC')),
             DropdownMenuItem(
-                value: 'UTC', child: Text('UTC')),
-            DropdownMenuItem(
-                value: 'America/New_York (UTC-5)',
-                child: Text('America/New_York (UTC-5)')),
+              value: 'America/New_York (UTC-5)',
+              child: Text('America/New_York (UTC-5)'),
+            ),
           ],
           onChanged: (v) => setState(() => _selectedTimezone = v!),
           // TODO: 팀원 구현 — 타임존 설정 저장
@@ -185,7 +191,13 @@ class _SecuritySettingsScreenState
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _mfaCodeController = TextEditingController();
   bool _mfaEnabled = false;
+  bool _mfaLoading = false;
+  bool _mfaVerifyLoading = false;
+  bool _mfaVerified = false;
+  MfaSetupResult? _mfaSetup;
+  String? _mfaError;
 
   final List<String> _backupCodes = [
     'A1B2-C3D4',
@@ -203,7 +215,71 @@ class _SecuritySettingsScreenState
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _mfaCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleMfa(bool enabled) async {
+    if (!enabled) {
+      setState(() {
+        _mfaEnabled = false;
+        _mfaSetup = null;
+        _mfaError = null;
+        _mfaVerified = false;
+        _mfaCodeController.clear();
+      });
+      return;
+    }
+
+    setState(() {
+      _mfaLoading = true;
+      _mfaError = null;
+    });
+
+    try {
+      final setup = await ref.read(platformAuthApiProvider).setupMfa();
+      if (!mounted) return;
+      setState(() {
+        _mfaEnabled = true;
+        _mfaSetup = setup;
+        _mfaLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _mfaEnabled = false;
+        _mfaLoading = false;
+        _mfaError = 'MFA 설정을 시작하지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _verifyMfa() async {
+    final code = _mfaCodeController.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() {
+      _mfaVerifyLoading = true;
+      _mfaError = null;
+    });
+
+    try {
+      final verified = await ref.read(platformAuthApiProvider).verifyMfa(code);
+      if (!mounted) return;
+      setState(() {
+        _mfaVerified = verified;
+        _mfaVerifyLoading = false;
+        if (!verified) {
+          _mfaError = 'MFA 코드가 일치하지 않습니다.';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _mfaVerifyLoading = false;
+        _mfaError = 'MFA 코드를 검증하지 못했습니다.';
+      });
+    }
   }
 
   @override
@@ -271,17 +347,20 @@ class _SecuritySettingsScreenState
           title: const Text('TOTP 인증기'),
           subtitle: const Text('Google Authenticator 등 앱을 사용한 2단계 인증'),
           value: _mfaEnabled,
-          onChanged: (v) {
-            setState(() => _mfaEnabled = v);
-            // TODO: 팀원 구현 — auth-svc MFA 설정 API 연동
-          },
+          onChanged: _mfaLoading ? null : _toggleMfa,
         ),
+        if (_mfaError != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            _mfaError!,
+            style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+          ),
+        ],
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
             '2단계 인증을 활성화하면 로그인 시 추가 확인 코드가 필요합니다.',
-            style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.stone400),
+            style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
           ),
         ),
 
@@ -300,35 +379,89 @@ class _SecuritySettingsScreenState
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.qr_code_2,
-                    size: 64, color: AppColors.stone400),
+                const Icon(
+                  Icons.qr_code_2,
+                  size: 64,
+                  color: AppColors.stone400,
+                ),
                 const SizedBox(height: AppSpacing.sm),
-                Text('QR 코드 영역',
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone400)),
+                Text(
+                  'QR 코드 영역',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.stone400,
+                  ),
+                ),
               ],
             ),
           ),
+          const SizedBox(height: AppSpacing.md),
+          if (_mfaSetup != null) ...[
+            Text('수동 입력 키', style: textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              _mfaSetup!.secret,
+              style: textTheme.bodyMedium?.copyWith(
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          TextField(
+            key: const Key('mfa-code-field'),
+            controller: _mfaCodeController,
+            decoration: const InputDecoration(
+              labelText: '인증 코드',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton(
+              key: const Key('mfa-verify-button'),
+              onPressed: _mfaVerifyLoading ? null : _verifyMfa,
+              child: _mfaVerifyLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('검증'),
+            ),
+          ),
+          if (_mfaVerified) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'MFA 인증이 완료되었습니다.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.success),
+            ),
+          ],
           const SizedBox(height: AppSpacing.md),
           Text('백업 코드', style: textTheme.titleSmall),
           const SizedBox(height: AppSpacing.xs),
           Text(
             '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요.',
-            style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.stone400),
+            style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
           ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: _backupCodes
-                .map((code) => Chip(
-                      label: Text(code,
-                          style: textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace')),
-                      backgroundColor: AppColors.stone100,
-                      side: const BorderSide(color: AppColors.stone200),
-                    ))
+                .map(
+                  (code) => Chip(
+                    label: Text(
+                      code,
+                      style: textTheme.bodySmall?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    backgroundColor: AppColors.stone100,
+                    side: const BorderSide(color: AppColors.stone200),
+                  ),
+                )
                 .toList(),
           ),
         ],
@@ -341,8 +474,11 @@ class _SecuritySettingsScreenState
         Text('연결된 계정', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         ListTile(
-          leading: const Icon(Icons.g_mobiledata, size: 28,
-              color: AppColors.info),
+          leading: const Icon(
+            Icons.g_mobiledata,
+            size: 28,
+            color: AppColors.info,
+          ),
           title: const Text('Google'),
           subtitle: const Text('user@gmail.com'),
           trailing: OutlinedButton(
@@ -357,8 +493,7 @@ class _SecuritySettingsScreenState
           ),
         ),
         ListTile(
-          leading: const Icon(Icons.code, size: 24,
-              color: AppColors.stone700),
+          leading: const Icon(Icons.code, size: 24, color: AppColors.stone700),
           title: const Text('GitHub'),
           subtitle: const Text('github-user'),
           trailing: OutlinedButton(
@@ -399,12 +534,7 @@ class _NotificationSettingsScreenState
     [false, true, true], // 시스템 알림
   ];
 
-  static const _categoryLabels = [
-    '복습 리마인더',
-    '커뮤니티 활동',
-    '성취/배지',
-    '시스템 알림',
-  ];
+  static const _categoryLabels = ['복습 리마인더', '커뮤니티 활동', '성취/배지', '시스템 알림'];
 
   static const _channelLabels = ['Push', 'Email', 'InApp'];
 
@@ -447,18 +577,24 @@ class _NotificationSettingsScreenState
               children: [
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: Text('카테고리',
-                      style: textTheme.labelMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    '카테고리',
+                    style: textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 ...List.generate(
                   3,
                   (i) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Text(_channelLabels[i],
-                          style: textTheme.labelMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        _channelLabels[i],
+                        style: textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -470,9 +606,13 @@ class _NotificationSettingsScreenState
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                    child: Text(_categoryLabels[row],
-                        style: textTheme.bodyMedium),
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    child: Text(
+                      _categoryLabels[row],
+                      style: textTheme.bodyMedium,
+                    ),
                   ),
                   ...List.generate(
                     3,
@@ -500,13 +640,19 @@ class _NotificationSettingsScreenState
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(_formatHour(_quietHours.start),
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.primaryAmber)),
+            Text(
+              _formatHour(_quietHours.start),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.primaryAmber,
+              ),
+            ),
             Text('~', style: textTheme.bodyMedium),
-            Text(_formatHour(_quietHours.end),
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.primaryAmber)),
+            Text(
+              _formatHour(_quietHours.end),
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.primaryAmber,
+              ),
+            ),
           ],
         ),
         RangeSlider(
@@ -522,8 +668,7 @@ class _NotificationSettingsScreenState
         ),
         Text(
           '이 시간 동안 Push 알림이 비활성화됩니다.',
-          style:
-              textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
         ),
       ],
     );
@@ -536,8 +681,7 @@ class DataSettingsScreen extends ConsumerStatefulWidget {
   const DataSettingsScreen({super.key});
 
   @override
-  ConsumerState<DataSettingsScreen> createState() =>
-      _DataSettingsScreenState();
+  ConsumerState<DataSettingsScreen> createState() => _DataSettingsScreenState();
 }
 
 class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
@@ -600,20 +744,17 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
           runSpacing: AppSpacing.sm,
           children: [
             OutlinedButton.icon(
-              onPressed:
-                  _isExporting ? null : () => _mockExport('Markdown'),
+              onPressed: _isExporting ? null : () => _mockExport('Markdown'),
               icon: const Icon(Icons.description_outlined),
               label: const Text('Markdown'),
             ),
             OutlinedButton.icon(
-              onPressed:
-                  _isExporting ? null : () => _mockExport('PDF'),
+              onPressed: _isExporting ? null : () => _mockExport('PDF'),
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: const Text('PDF'),
             ),
             OutlinedButton.icon(
-              onPressed:
-                  _isExporting ? null : () => _mockExport('전체'),
+              onPressed: _isExporting ? null : () => _mockExport('전체'),
               icon: const Icon(Icons.download_outlined),
               label: const Text('전체 데이터'),
             ),
@@ -657,14 +798,16 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
               children: [
                 Text(
                   '계정 삭제',
-                  style: textTheme.titleMedium
-                      ?.copyWith(color: AppColors.error),
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.error,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '계정을 삭제하면 모든 노트, 카드, 학습 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone500),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.stone500,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
@@ -707,8 +850,9 @@ class TenantSettingsScreen extends ConsumerStatefulWidget {
 
 class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
   final _inviteEmailController = TextEditingController();
-  final _workspaceNameController =
-      TextEditingController(text: 'Synapse 팀'); // TODO: 팀원 구현 — 테넌트 정보 연동
+  final _workspaceNameController = TextEditingController(
+    text: 'Synapse 팀',
+  ); // TODO: 팀원 구현 — 테넌트 정보 연동
 
   // TODO: 팀원 구현 — platform-svc 멤버 목록 API 연동
   final _mockMembers = [
@@ -745,8 +889,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                       labelText: '이메일 주소',
                       hintText: 'user@example.com',
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.sm),
+                        borderRadius: BorderRadius.circular(AppSpacing.sm),
                       ),
                     ),
                   ),
@@ -756,20 +899,15 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                     decoration: InputDecoration(
                       labelText: '역할',
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.sm),
+                        borderRadius: BorderRadius.circular(AppSpacing.sm),
                       ),
                     ),
                     items: const [
-                      DropdownMenuItem(
-                          value: '관리자', child: Text('관리자')),
-                      DropdownMenuItem(
-                          value: '멤버', child: Text('멤버')),
-                      DropdownMenuItem(
-                          value: '뷰어', child: Text('뷰어')),
+                      DropdownMenuItem(value: '관리자', child: Text('관리자')),
+                      DropdownMenuItem(value: '멤버', child: Text('멤버')),
+                      DropdownMenuItem(value: '뷰어', child: Text('뷰어')),
                     ],
-                    onChanged: (v) =>
-                        setDialogState(() => dialogRole = v!),
+                    onChanged: (v) => setDialogState(() => dialogRole = v!),
                   ),
                 ],
               ),
@@ -815,70 +953,77 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
         // Members section
         Text('멤버 관리', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
-        ..._mockMembers.map((member) => Card(
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: colorScheme.primaryContainer,
-                  child: Text(
-                    member['name']!.substring(0, 1),
-                    style: TextStyle(color: colorScheme.primary),
-                  ),
-                ),
-                title: Text(member['name']!,
-                    style: textTheme.bodyMedium),
-                subtitle: Text(member['email']!,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone400)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs),
-                      decoration: BoxDecoration(
-                        color: member['role'] == '관리자'
-                            ? colorScheme.primaryContainer
-                            : AppColors.stone100,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.xs),
-                      ),
-                      child: Text(member['role']!,
-                          style: textTheme.labelSmall?.copyWith(
-                              color: member['role'] == '관리자'
-                                  ? colorScheme.primary
-                                  : AppColors.stone500)),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        // TODO: 팀원 구현 — 역할 변경/삭제 API 연동
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'role_admin',
-                          child: Text('관리자로 변경'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'role_member',
-                          child: Text('멤버로 변경'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'role_viewer',
-                          child: Text('뷰어로 변경'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'remove',
-                          child: Text('멤버 삭제',
-                              style: TextStyle(color: AppColors.error)),
-                        ),
-                      ],
-                    ),
-                  ],
+        ..._mockMembers.map(
+          (member) => Card(
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: colorScheme.primaryContainer,
+                child: Text(
+                  member['name']!.substring(0, 1),
+                  style: TextStyle(color: colorScheme.primary),
                 ),
               ),
-            )),
+              title: Text(member['name']!, style: textTheme.bodyMedium),
+              subtitle: Text(
+                member['email']!,
+                style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xxs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: member['role'] == '관리자'
+                          ? colorScheme.primaryContainer
+                          : AppColors.stone100,
+                      borderRadius: BorderRadius.circular(AppSpacing.xs),
+                    ),
+                    child: Text(
+                      member['role']!,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: member['role'] == '관리자'
+                            ? colorScheme.primary
+                            : AppColors.stone500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      // TODO: 팀원 구현 — 역할 변경/삭제 API 연동
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'role_admin',
+                        child: Text('관리자로 변경'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'role_member',
+                        child: Text('멤버로 변경'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'role_viewer',
+                        child: Text('뷰어로 변경'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'remove',
+                        child: Text(
+                          '멤버 삭제',
+                          style: TextStyle(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
 
         const SizedBox(height: AppSpacing.lg),
         const Divider(),

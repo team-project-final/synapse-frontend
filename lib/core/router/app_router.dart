@@ -12,6 +12,7 @@ import 'package:synapse_frontend/services/knowledge/features/search/presentation
 import 'package:synapse_frontend/services/learning/features/cards/presentation/screens/card_screens.dart';
 import 'package:synapse_frontend/services/platform/features/admin/presentation/screens/admin_screens.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
+import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/oauth_callback_screen.dart';
 import 'package:synapse_frontend/services/platform/features/billing/presentation/screens/billing_screens.dart';
 import 'package:synapse_frontend/services/platform/features/notifications/presentation/screens/notification_screens.dart';
 import 'package:synapse_frontend/services/platform/features/settings/presentation/screens/settings_screens.dart';
@@ -25,19 +26,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.dashboard,
     redirect: (context, state) {
-      const authRoutes = [
+      const authEntryRoutes = [
         AppRoutes.login,
         AppRoutes.signup,
         AppRoutes.mfa,
         AppRoutes.passwordReset,
         AppRoutes.oauthConsent,
+        AppRoutes.authCallback,
       ];
-      final isAuthRoute = authRoutes.contains(state.matchedLocation);
+      const publicRoutes = [
+        ...authEntryRoutes,
+        AppRoutes.billingSuccess,
+        AppRoutes.billingCancel,
+      ];
+      final isAuthEntryRoute = authEntryRoutes.contains(state.matchedLocation);
+      final isPublicRoute = publicRoutes.contains(state.matchedLocation);
 
-      if (authState.status == AuthStatus.unauthenticated && !isAuthRoute) {
+      if (authState.status == AuthStatus.initializing ||
+          authState.status == AuthStatus.loading) {
+        return null;
+      }
+
+      if (authState.status == AuthStatus.unauthenticated && !isPublicRoute) {
         return AppRoutes.login;
       }
-      if (authState.status == AuthStatus.authenticated && isAuthRoute) {
+      if (authState.status == AuthStatus.authenticated && isAuthEntryRoute) {
         return AppRoutes.dashboard;
       }
       return null;
@@ -64,6 +77,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.oauthConsent,
         builder: (context, state) => const OAuthConsentScreen(),
       ),
+      GoRoute(
+        path: AppRoutes.authCallback,
+        builder: (context, state) => OAuthCallbackScreen(
+          accessToken: state.uri.queryParameters['access_token'],
+          error: state.uri.queryParameters['error'],
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.billingSuccess,
+        builder: (context, state) => const BillingReturnScreen(success: true),
+      ),
+      GoRoute(
+        path: AppRoutes.billingCancel,
+        builder: (context, state) => const BillingReturnScreen(success: false),
+      ),
 
       // ── Shell routes (with SideNav + AppBar) ──
       ShellRoute(
@@ -87,18 +115,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.noteDetail,
-            builder: (context, state) => NoteDetailScreen(
-                noteId: state.pathParameters['noteId'] ?? ''),
+            builder: (context, state) =>
+                NoteDetailScreen(noteId: state.pathParameters['noteId'] ?? ''),
           ),
           GoRoute(
             path: AppRoutes.noteEditor,
-            builder: (context, state) => NoteEditorScreen(
-                noteId: state.pathParameters['noteId'] ?? ''),
+            builder: (context, state) =>
+                NoteEditorScreen(noteId: state.pathParameters['noteId'] ?? ''),
           ),
           GoRoute(
             path: AppRoutes.noteVersions,
             builder: (context, state) => NoteVersionsScreen(
-                noteId: state.pathParameters['noteId'] ?? ''),
+              noteId: state.pathParameters['noteId'] ?? '',
+            ),
           ),
           GoRoute(
             path: AppRoutes.tags,
@@ -110,8 +139,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.deckCards,
-            builder: (context, state) => CardListScreen(
-                deckId: state.pathParameters['deckId'] ?? ''),
+            builder: (context, state) =>
+                CardListScreen(deckId: state.pathParameters['deckId'] ?? ''),
           ),
           GoRoute(
             path: AppRoutes.cardNew,
@@ -135,8 +164,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.graphNote,
-            builder: (context, state) => GraphNoteScreen(
-                noteId: state.pathParameters['noteId'] ?? ''),
+            builder: (context, state) =>
+                GraphNoteScreen(noteId: state.pathParameters['noteId'] ?? ''),
           ),
           GoRoute(
             path: AppRoutes.graphClusters,
@@ -172,8 +201,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.settingsNotifications,
-            builder: (context, state) =>
-                const NotificationSettingsScreen(),
+            builder: (context, state) => const NotificationSettingsScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsData,
@@ -189,8 +217,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.communityGroupNew,
-            builder: (context, state) =>
-                const CommunityGroupEditorScreen(),
+            builder: (context, state) => const CommunityGroupEditorScreen(),
           ),
           GoRoute(
             path: AppRoutes.communityGroupDetail,
@@ -205,7 +232,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.communitySharedDeckDetail,
             builder: (context, state) => SharedDeckDetailScreen(
-                deckId: state.pathParameters['deckId'] ?? ''),
+              deckId: state.pathParameters['deckId'] ?? '',
+            ),
           ),
           GoRoute(
             path: AppRoutes.communitySharedNotes,
@@ -213,8 +241,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.gamificationProfile,
-            builder: (context, state) =>
-                const GamificationProfileScreen(),
+            builder: (context, state) => const GamificationProfileScreen(),
           ),
           GoRoute(
             path: AppRoutes.gamificationBadges,
@@ -226,13 +253,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.notifications,
-            builder: (context, state) =>
-                const NotificationCenterScreen(),
+            builder: (context, state) => const NotificationCenterScreen(),
           ),
           GoRoute(
             path: AppRoutes.notificationSettings,
-            builder: (context, state) =>
-                const NotificationPreferenceScreen(),
+            builder: (context, state) => const NotificationPreferenceScreen(),
           ),
         ],
       ),
@@ -243,8 +268,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: AppRoutes.admin,
-            redirect: (context, state) =>
-                kIsWeb ? null : AppRoutes.dashboard,
+            redirect: (context, state) => kIsWeb ? null : AppRoutes.dashboard,
             builder: (context, state) => const AdminDashboardScreen(),
           ),
           GoRoute(
@@ -261,8 +285,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.adminSettings,
-            builder: (context, state) =>
-                const AdminSystemSettingsScreen(),
+            builder: (context, state) => const AdminSystemSettingsScreen(),
           ),
           GoRoute(
             path: AppRoutes.adminReports,
@@ -278,13 +301,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.adminGamification,
-            builder: (context, state) =>
-                const AdminGamificationScreen(),
+            builder: (context, state) => const AdminGamificationScreen(),
           ),
           GoRoute(
             path: AppRoutes.adminDataRequests,
-            builder: (context, state) =>
-                const AdminDataRequestScreen(),
+            builder: (context, state) => const AdminDataRequestScreen(),
           ),
         ],
       ),

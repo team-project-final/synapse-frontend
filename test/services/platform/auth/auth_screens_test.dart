@@ -9,16 +9,36 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
 void main() {
-  testWidgets('login displays repository error message', (tester) async {
+  testWidgets('login bypass does not call repository and opens dashboard', (
+    tester,
+  ) async {
     final repository = _FakeAuthRepository()
       ..loginError = const AuthRepositoryException(
         status: 401,
         code: 'PLAT-009-002',
         detail: 'Invalid credentials',
       );
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dashboard,
+          builder: (context, state) =>
+              const Scaffold(body: Text('dashboard-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
 
     await tester.pumpWidget(
-      _app(repository: repository, child: const LoginScreen()),
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
     );
 
     await tester.enterText(
@@ -27,9 +47,43 @@ void main() {
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
     await tester.tap(find.byType(FilledButton));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('Invalid credentials'), findsOneWidget);
+    expect(repository.loginCallCount, 0);
+    expect(find.text('dashboard-target'), findsOneWidget);
+  });
+
+  testWidgets('login bypasses validation and opens dashboard in early dev', (
+    tester,
+  ) async {
+    final repository = _FakeAuthRepository();
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dashboard,
+          builder: (context, state) =>
+              const Scaffold(body: Text('dashboard-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('dashboard-target'), findsOneWidget);
   });
 
   testWidgets('signup rejects password without a digit', (tester) async {
@@ -141,6 +195,7 @@ Widget _app({required AuthRepositoryPort repository, required Widget child}) {
 class _FakeAuthRepository implements AuthRepositoryPort {
   Object? loginError;
   Object? signupError;
+  int loginCallCount = 0;
   int signupCallCount = 0;
 
   @override
@@ -156,6 +211,7 @@ class _FakeAuthRepository implements AuthRepositoryPort {
     required String email,
     required String password,
   }) async {
+    loginCallCount += 1;
     final error = loginError;
     if (error != null) throw error;
     return const AuthTokens(accessToken: 'access');

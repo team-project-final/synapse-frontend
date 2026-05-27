@@ -31,10 +31,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _submit() {
-    if (!_formKey.currentState!.validate()) return;
-    ref
-        .read(authNotifierProvider.notifier)
-        .login(_emailController.text, _passwordController.text);
+    // TODO: 개발 초기 임시 처리 - 실제 인증 재활성화 시 form validate와 AuthNotifier.login 호출 복구.
+    context.go(AppRoutes.dashboard);
   }
 
   void _loginWithOAuth(String provider) {

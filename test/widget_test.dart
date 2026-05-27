@@ -32,6 +32,29 @@ void main() {
     expect(find.text('로그인'), findsWidgets);
   });
 
+  testWidgets('dev login bypass reaches dashboard through app router', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
+          authRepositoryPortProvider.overrideWith(
+            (ref) => ref.watch(authRepositoryProvider),
+          ),
+        ],
+        child: const SynapseApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FilledButton, '로그인'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('오늘의 학습'), findsOneWidget);
+    expect(find.byType(LoginScreen), findsNothing);
+  });
+
   testWidgets('stored tokens restore authenticated session', (tester) async {
     final tokenStore = InMemoryTokenStore();
     await tokenStore.save(const AuthTokens(accessToken: 'stored-access'));

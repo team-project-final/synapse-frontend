@@ -63,6 +63,13 @@ class AuthNotifier extends Notifier<AuthState> {
     ref.read(authRepositoryPortProvider).loginWithOAuth(provider);
   }
 
+  void bypassLoginForDevelopment() {
+    state = const AuthState(
+      status: AuthStatus.authenticated,
+      accessToken: 'dev-bypass-token',
+    );
+  }
+
   Future<void> signup(String email, String password) async {
     state = const AuthState(status: AuthStatus.loading);
     try {

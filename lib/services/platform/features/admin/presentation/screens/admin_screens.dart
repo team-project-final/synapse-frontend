@@ -24,7 +24,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       _KpiData(label: 'DAU', value: '1,240', icon: Icons.person_outline, color: AppColors.info),
       _KpiData(label: 'MAU', value: '8,920', icon: Icons.groups_outlined, color: AppColors.info),
       _KpiData(label: 'MRR', value: '\$4,820', icon: Icons.attach_money, color: AppColors.success),
-      _KpiData(label: '신규 가입', value: '67/일', icon: Icons.person_add_outlined, color: AppColors.primaryAmber),
+      _KpiData(label: '신규 가입', value: '67/일', icon: Icons.person_add_outlined, color: AppColors.primary),
     ];
 
     // TODO: 팀원 구현 — platform-svc 시스템 사용량 API 연동
@@ -96,7 +96,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                       Expanded(
                         child: LinearProgressIndicator(
                           value: g.value,
-                          backgroundColor: AppColors.stone200,
+                          backgroundColor: AppColors.border,
                           color: g.value > 0.8
                               ? AppColors.error
                               : g.value > 0.6
@@ -152,7 +152,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               return Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.circle, size: 8, color: AppColors.stone300),
+                    leading: const Icon(Icons.circle, size: 8, color: AppColors.muted),
                     title: Text(entry.$2, style: textTheme.bodySmall),
                     dense: true,
                   ),
@@ -258,7 +258,7 @@ class _KpiCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(data.value, style: textTheme.headlineSmall?.copyWith(color: data.color)),
             const SizedBox(height: AppSpacing.xxs),
-            Text(data.label, style: textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+            Text(data.label, style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
           ],
         ),
       ),
@@ -396,9 +396,9 @@ class _PlanChip extends StatelessWidget {
       case 'Enterprise':
         color = AppColors.info;
       case 'Pro':
-        color = AppColors.primaryAmber;
+        color = AppColors.primary;
       default:
-        color = AppColors.stone400;
+        color = AppColors.muted;
     }
     return Chip(
       label: Text(plan, style: const TextStyle(fontSize: 12)),
@@ -651,11 +651,11 @@ class _ActionChip extends StatelessWidget {
       case 'CREATE':
         color = AppColors.success;
       case 'UPDATE':
-        color = AppColors.primaryAmber;
+        color = AppColors.primary;
       case 'DELETE':
         color = AppColors.error;
       default:
-        color = AppColors.stone400;
+        color = AppColors.muted;
     }
     return Chip(
       label: Text(action, style: TextStyle(fontSize: 11, color: color)),
@@ -732,7 +732,7 @@ class _AdminSystemSettingsScreenState extends ConsumerState<AdminSystemSettingsS
                 // ── Tab 1: Plan Quota ──
                 SingleChildScrollView(
                   child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColors.stone100),
+                    headingRowColor: WidgetStateProperty.all(AppColors.surface2),
                     columns: const [
                       DataColumn(label: Text('플랜')),
                       DataColumn(label: Text('AI 토큰/월'), numeric: true),
@@ -929,7 +929,7 @@ class _AdminReportScreenState extends ConsumerState<AdminReportScreen>
                     _ReportActionButton(
                       label: '기각',
                       icon: Icons.close,
-                      color: AppColors.stone500,
+                      color: AppColors.muted,
                       onPressed: () => _confirmAction(context, '기각', '이 신고를 기각하시겠습니까?'),
                     ),
                   ],
@@ -1255,7 +1255,7 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
         return Card(
           child: ListTile(
             title: Text(s.$1),
-            trailing: Text(s.$2, style: textTheme.titleMedium?.copyWith(color: AppColors.primaryAmber)),
+            trailing: Text(s.$2, style: textTheme.titleMedium?.copyWith(color: AppColors.primary)),
           ),
         );
       }).toList(),
@@ -1278,11 +1278,11 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(b.icon, size: 36, color: AppColors.primaryAmber),
+                Icon(b.icon, size: 36, color: AppColors.primary),
                 const SizedBox(height: AppSpacing.sm),
                 Text(b.name, style: textTheme.bodySmall, textAlign: TextAlign.center),
                 const SizedBox(height: AppSpacing.xs),
-                Text('${b.holders}명 보유', style: textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+                Text('${b.holders}명 보유', style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
               ],
             ),
           ),
@@ -1294,7 +1294,7 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
   Widget _buildLevelsTab() {
     return SingleChildScrollView(
       child: DataTable(
-        headingRowColor: WidgetStateProperty.all(AppColors.stone100),
+        headingRowColor: WidgetStateProperty.all(AppColors.surface2),
         columns: const [
           DataColumn(label: Text('레벨')),
           DataColumn(label: Text('필요 XP'), numeric: true),
@@ -1505,7 +1505,7 @@ class _DataRequestDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final daysColor = request.daysRemaining <= 7 ? AppColors.error : AppColors.stone600;
+    final daysColor = request.daysRemaining <= 7 ? AppColors.error : AppColors.text;
     return Card(
       margin: const EdgeInsets.only(top: AppSpacing.md),
       child: Padding(
@@ -1527,7 +1527,7 @@ class _DataRequestDetail extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             // TODO: 팀원 구현 — 데이터 요약 및 실행 로그 표시
             Text('데이터 요약: 카드 142개, 노트 38개, 복습 기록 1,204건', style: textTheme.bodySmall),
-            Text('실행 로그: (처리 대기 중)', style: textTheme.bodySmall?.copyWith(color: AppColors.stone400)),
+            Text('실행 로그: (처리 대기 중)', style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
           ],
         ),
       ),

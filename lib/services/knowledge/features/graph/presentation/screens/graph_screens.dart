@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 
 // ── Mock data models ──
 
@@ -58,11 +59,12 @@ const List<_MockGraphEdge> _mockEdges = [
   _MockGraphEdge(from: '1', to: '7'),
 ];
 
+// 컨셉 팔레트(보라/핑크/파랑/초록) — 목업 그래프 노드 색과 매칭.
 const List<Color> _clusterColors = [
-  AppColors.primaryAmber,
+  AppColors.primary,
+  AppColors.accent,
   AppColors.info,
   AppColors.success,
-  Colors.purple,
 ];
 
 // ── Shared Graph Painter ──
@@ -105,7 +107,9 @@ class _GraphPainter extends CustomPainter {
       final edgeDimmed = fromDimmed || toDimmed;
 
       final paint = Paint()
-        ..color = (edgeDimmed ? Colors.grey.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.4))
+        ..color = (edgeDimmed
+            ? AppColors.border.withValues(alpha: 0.4)
+            : AppColors.border)
         ..strokeWidth = 1.5
         ..style = PaintingStyle.stroke;
 
@@ -139,7 +143,9 @@ class _GraphPainter extends CustomPainter {
 
       // Node border
       final borderPaint = Paint()
-        ..color = isDimmed ? Colors.grey.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.8)
+        ..color = isDimmed
+            ? AppColors.surface.withValues(alpha: 0.3)
+            : AppColors.surface.withValues(alpha: 0.9)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0;
       canvas.drawCircle(Offset(node.x, node.y), radius, borderPaint);
@@ -148,9 +154,11 @@ class _GraphPainter extends CustomPainter {
       final textSpan = TextSpan(
         text: node.label,
         style: TextStyle(
-          color: isDimmed ? Colors.grey.withValues(alpha: 0.3) : Colors.black87,
+          color: isDimmed
+              ? AppColors.muted.withValues(alpha: 0.4)
+              : AppColors.text,
           fontSize: 11,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
         ),
       );
       final textPainter = TextPainter(
@@ -246,56 +254,64 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
         Column(
           children: [
             // Filter panel
-            ExpansionTile(
-              title: Text('필터', style: textTheme.titleSmall),
-              leading: const Icon(Icons.filter_list, size: 20),
-              childrenPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              children: [
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: _filterTags.map((tag) {
-                    final isSelected = _selectedTags.contains(tag);
-                    return FilterChip(
-                      label: Text(tag),
-                      selected: isSelected,
-                      onSelected: (selected) {
-                        setState(() {
-                          if (selected) {
-                            _selectedTags.add(tag);
-                          } else {
-                            _selectedTags.remove(tag);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
+            Theme(
+              data: Theme.of(context)
+                  .copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                title: Text('필터',
+                    style: textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                leading: const Icon(Icons.filter_list,
+                    size: 20, color: AppColors.primary),
+                childrenPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    Text('최소 연결 수: ${_minLinks.toInt()}',
-                        style: textTheme.bodySmall),
-                    Expanded(
-                      child: Slider(
-                        value: _minLinks,
-                        min: 0,
-                        max: 6,
-                        divisions: 6,
-                        label: _minLinks.toInt().toString(),
-                        onChanged: (value) {
+                children: [
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: _filterTags.map((tag) {
+                      final isSelected = _selectedTags.contains(tag);
+                      return ConceptFilterPill(
+                        label: tag,
+                        selected: isSelected,
+                        onTap: () {
                           setState(() {
-                            _minLinks = value;
+                            if (isSelected) {
+                              _selectedTags.remove(tag);
+                            } else {
+                              _selectedTags.add(tag);
+                            }
                           });
                         },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    children: [
+                      Text('최소 연결 수: ${_minLinks.toInt()}',
+                          style: textTheme.bodySmall
+                              ?.copyWith(color: AppColors.muted)),
+                      Expanded(
+                        child: Slider(
+                          value: _minLinks,
+                          min: 0,
+                          max: 6,
+                          divisions: 6,
+                          label: _minLinks.toInt().toString(),
+                          onChanged: (value) {
+                            setState(() {
+                              _minLinks = value;
+                            });
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
             // Graph area
             Expanded(
@@ -334,65 +350,68 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
         // Selected node info panel
         if (selectedNode != null)
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Card(
-              margin: const EdgeInsets.all(AppSpacing.sm),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: _clusterColors[selectedNode.cluster % _clusterColors.length],
-                          radius: 8,
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Text(selectedNode.label, style: textTheme.titleMedium),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: () => setState(() => _selectedNodeId = null),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '연결 ${selectedNode.linkCount}개 · PageRank ${selectedNode.pageRank.toStringAsFixed(2)}',
-                      style: textTheme.bodySmall?.copyWith(color: AppColors.stone500),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Wrap(
-                      spacing: AppSpacing.sm,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed: () => context.go(AppRoutes.noteDetailPath(selectedNode.id)),
-                          icon: const Icon(Icons.article_outlined, size: 16),
-                          label: const Text('노트 열기'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => context.go(AppRoutes.aiCards),
-                          icon: const Icon(Icons.auto_awesome, size: 16),
-                          label: const Text('AI 카드 생성'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: () => context.go(AppRoutes.graphNotePath(selectedNode.id)),
-                          icon: const Icon(Icons.hub_outlined, size: 16),
-                          label: const Text('이웃 확장'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            left: AppSpacing.sm,
+            right: AppSpacing.sm,
+            bottom: AppSpacing.sm,
+            child: ConceptCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: _clusterColors[
+                            selectedNode.cluster % _clusterColors.length],
+                        radius: 8,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(selectedNode.label,
+                            style: textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800)),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        color: AppColors.muted,
+                        onPressed: () =>
+                            setState(() => _selectedNodeId = null),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '연결 ${selectedNode.linkCount}개 · PageRank ${selectedNode.pageRank.toStringAsFixed(2)}',
+                    style: textTheme.bodySmall
+                        ?.copyWith(color: AppColors.muted),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => context
+                            .go(AppRoutes.noteDetailPath(selectedNode.id)),
+                        icon: const Icon(Icons.article_outlined, size: 16),
+                        label: const Text('노트 열기'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => context.go(AppRoutes.aiCards),
+                        icon: const Icon(Icons.auto_awesome, size: 16),
+                        label: const Text('AI 카드 생성'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => context
+                            .go(AppRoutes.graphNotePath(selectedNode.id)),
+                        icon: const Icon(Icons.hub_outlined, size: 16),
+                        label: const Text('이웃 확장'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -486,6 +505,7 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
+                    color: AppColors.muted,
                     onPressed: () => context.go(AppRoutes.graph),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -493,10 +513,13 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(centerNode.label, style: textTheme.headlineSmall),
+                        Text(centerNode.label,
+                            style: textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w800)),
                         Text(
                           '이웃 그래프 · ${neighborNodes.length - 1}개 연결 노드',
-                          style: textTheme.bodyMedium?.copyWith(color: AppColors.stone500),
+                          style: textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.muted),
                         ),
                       ],
                     ),
@@ -507,7 +530,9 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
               // Depth slider
               Row(
                 children: [
-                  Text('탐색 깊이: ${_depth.toInt()}홉', style: textTheme.bodySmall),
+                  Text('탐색 깊이: ${_depth.toInt()}홉',
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: AppColors.muted)),
                   Expanded(
                     child: Slider(
                       value: _depth,
@@ -609,7 +634,9 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
     final clusterList = ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('클러스터', style: textTheme.titleMedium),
+        Text('클러스터',
+            style:
+                textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
         const SizedBox(height: AppSpacing.sm),
         ..._clusterGroups.entries.map((entry) {
           final clusterId = entry.key;
@@ -620,49 +647,65 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
               ? _clusterNames[clusterId]
               : '클러스터 $clusterId';
 
-          return Card(
-            color: isSelected ? color.withValues(alpha: 0.1) : null,
-            margin: const EdgeInsets.only(bottom: AppSpacing.xs),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color,
-                radius: 10,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: ConceptCard(
+              highlightBorder: isSelected,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm + 2,
               ),
-              title: Text(name, style: textTheme.bodyMedium?.copyWith(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              )),
-              subtitle: Text('${nodes.length}개 노드',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
-              trailing: isSelected
-                  ? const Icon(Icons.check_circle, size: 18)
-                  : null,
               onTap: () {
                 setState(() {
                   _selectedCluster = isSelected ? null : clusterId;
                 });
               },
+              child: Row(
+                children: [
+                  CircleAvatar(backgroundColor: color, radius: 10),
+                  const SizedBox(width: AppSpacing.sm + 2),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name,
+                            style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700)),
+                        Text('${nodes.length}개 노드',
+                            style: textTheme.labelSmall
+                                ?.copyWith(color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    const Icon(Icons.check_circle,
+                        size: 18, color: AppColors.primary),
+                ],
+              ),
             ),
           );
         }),
         if (_selectedCluster != null) ...[
-          const Divider(height: AppSpacing.lg),
-          Text('선택된 노드', style: textTheme.titleSmall),
-          const SizedBox(height: AppSpacing.sm),
+          const ConceptSectionLabel('선택된 노드', topGap: AppSpacing.md),
           ...(_clusterGroups[_selectedCluster] ?? []).map((node) {
             return ListTile(
               dense: true,
-              leading: Icon(Icons.circle, size: 8,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.circle,
+                  size: 8,
                   color: _clusterColors[node.cluster % _clusterColors.length]),
               title: Text(node.label, style: textTheme.bodySmall),
               subtitle: Text('연결 ${node.linkCount}개',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.stone400,
-                    fontSize: 11,
-                  )),
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted)),
               onTap: () => context.go(AppRoutes.graphNotePath(node.id)),
             );
           }),
         ],
+        // AI 허브 분석 (목업 ai-comment)
+        const SizedBox(height: AppSpacing.md),
+        const ConceptAiComment(
+          text: '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). 「신경망 구조」 클러스터는 다른 노트와 연결이 적으니 위키링크를 더 만들어 보세요.',
+        ),
       ],
     );
 

@@ -15,7 +15,7 @@ class CommunityGroupsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // TODO: 팀원 구현 — engagement-svc 그룹 목록 API 연동
-    final mockGroups = [
+    const mockGroups = [
       _GroupData(
         id: '1',
         name: 'AWS 스터디',
@@ -117,13 +117,25 @@ class _GroupCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Text('👥', style: TextStyle(fontSize: 20)),
+                  ),
+                  const SizedBox(width: AppSpacing.sm + 2),
                   Expanded(
                     child: Text(group.name,
-                        style: textTheme.titleSmall),
+                        style: textTheme.titleSmall
+                            ?.copyWith(fontWeight: FontWeight.w800)),
                   ),
                   Text('마지막 활동: ${group.lastActivity}',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                      style: textTheme.labelSmall
+                          ?.copyWith(color: AppColors.muted)),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -157,11 +169,11 @@ class _GroupCard extends StatelessWidget {
                   if (overflow > 0)
                     Text('+$overflow',
                         style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400)),
+                            ?.copyWith(color: AppColors.muted)),
                   const SizedBox(width: AppSpacing.sm),
                   Text('${group.memberCount}명',
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone500)),
+                          ?.copyWith(color: AppColors.muted)),
                 ],
               ),
             ],
@@ -190,11 +202,11 @@ class _EmptyGroupList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.groups_outlined, size: 64, color: AppColors.stone300),
+          const Icon(Icons.groups_outlined, size: 64, color: AppColors.muted),
           const SizedBox(height: AppSpacing.md),
           Text(message,
               style: textTheme.bodyLarge
-                  ?.copyWith(color: AppColors.stone400)),
+                  ?.copyWith(color: AppColors.muted)),
           if (actionLabel != null) ...[
             const SizedBox(height: AppSpacing.md),
             OutlinedButton(
@@ -250,7 +262,7 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xs),
                 Text('멤버 ${mockMembers.length}명 · 공유 덱 3개',
                     style: textTheme.bodyMedium
-                        ?.copyWith(color: AppColors.stone500)),
+                        ?.copyWith(color: AppColors.muted)),
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
@@ -308,13 +320,13 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                               member['role'] as String,
                               style: textTheme.labelSmall?.copyWith(
                                 color: member['role'] == '소유자'
-                                    ? AppColors.primaryAmber
-                                    : AppColors.stone500,
+                                    ? AppColors.primary
+                                    : AppColors.muted,
                               ),
                             ),
                             backgroundColor: member['role'] == '소유자'
-                                ? AppColors.primaryAmber.withValues(alpha: 0.1)
-                                : AppColors.stone100,
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : AppColors.surface2,
                             side: BorderSide.none,
                             visualDensity: VisualDensity.compact,
                           ),
@@ -329,7 +341,7 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                           child: Row(
                             children: [
                               Icon(activity['icon'] as IconData,
-                                  size: 18, color: AppColors.stone400),
+                                  size: 18, color: AppColors.muted),
                               const SizedBox(width: AppSpacing.sm),
                               Expanded(
                                 child: Text(
@@ -339,7 +351,7 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                               ),
                               Text(activity['time'] as String,
                                   style: textTheme.bodySmall
-                                      ?.copyWith(color: AppColors.stone400)),
+                                      ?.copyWith(color: AppColors.muted)),
                             ],
                           ),
                         )),
@@ -351,11 +363,11 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.folder_outlined,
-                          size: 48, color: AppColors.stone300),
+                          size: 48, color: AppColors.muted),
                       const SizedBox(height: AppSpacing.md),
                       Text('공유된 콘텐츠가 없습니다',
                           style: textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.stone400)),
+                              ?.copyWith(color: AppColors.muted)),
                     ],
                   ),
                 ),
@@ -449,23 +461,23 @@ class _CommunityGroupEditorScreenState
         RadioGroup<String>(
           groupValue: _joinType,
           onChanged: (v) => setState(() => _joinType = v ?? _joinType),
-          child: Column(
+          child: const Column(
             children: [
               RadioListTile<String>(
-                title: const Text('공개'),
-                subtitle: const Text('누구나 바로 가입할 수 있습니다'),
+                title: Text('공개'),
+                subtitle: Text('누구나 바로 가입할 수 있습니다'),
                 value: 'open',
                 dense: true,
               ),
               RadioListTile<String>(
-                title: const Text('승인 필요'),
-                subtitle: const Text('관리자가 가입 요청을 승인합니다'),
+                title: Text('승인 필요'),
+                subtitle: Text('관리자가 가입 요청을 승인합니다'),
                 value: 'approval',
                 dense: true,
               ),
               RadioListTile<String>(
-                title: const Text('초대만'),
-                subtitle: const Text('초대받은 사용자만 가입할 수 있습니다'),
+                title: Text('초대만'),
+                subtitle: Text('초대받은 사용자만 가입할 수 있습니다'),
                 value: 'invite',
                 dense: true,
               ),
@@ -509,7 +521,7 @@ class _CommunityGroupEditorScreenState
             Text('최대 멤버 수', style: textTheme.bodyMedium),
             Text('${_maxMembers.toInt()}명',
                 style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.primaryAmber)),
+                    ?.copyWith(color: AppColors.primary)),
           ],
         ),
         Slider(
@@ -565,7 +577,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
     final difficulties = ['전체', '입문', '중급', '고급'];
 
     // TODO: 팀원 구현 — engagement-svc 공유 덱 목록 API 연동
-    final mockDecks = [
+    const mockDecks = [
       _SharedDeck(
         id: '1',
         name: '알고리즘 기초 100제',
@@ -609,7 +621,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
                 borderRadius: BorderRadius.circular(AppSpacing.sm),
               ),
               filled: true,
-              fillColor: AppColors.stone50,
+              fillColor: AppColors.bg,
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -647,7 +659,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
                   child: FilterChip(
                     label: Text(c),
                     selected: selected,
-                    selectedColor: AppColors.primaryAmber.withValues(alpha: 0.2),
+                    selectedColor: AppColors.primary.withValues(alpha: 0.2),
                     onSelected: (_) =>
                         setState(() => _selectedCategory = c),
                   ),
@@ -656,7 +668,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
               Container(
                 width: 1,
                 height: 24,
-                color: AppColors.stone200,
+                color: AppColors.border,
                 margin: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.xs),
               ),
@@ -685,7 +697,8 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
               crossAxisCount: 2,
               crossAxisSpacing: AppSpacing.md,
               mainAxisSpacing: AppSpacing.md,
-              childAspectRatio: 0.85,
+              // 고정 높이로 두어 좁은 폭에서 카드 내용 세로 오버플로 방지
+              mainAxisExtent: 232,
             ),
             itemCount: mockDecks.length,
             itemBuilder: (context, i) =>
@@ -732,7 +745,7 @@ class _SharedDeckCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.style_outlined,
-                  size: 32, color: AppColors.primaryAmber),
+                  size: 32, color: AppColors.primary),
               const SizedBox(height: AppSpacing.sm),
               Text(deck.name,
                   style: textTheme.titleSmall,
@@ -741,7 +754,7 @@ class _SharedDeckCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(deck.creator,
                   style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone400)),
+                      ?.copyWith(color: AppColors.muted)),
               const Spacer(),
               // Star rating row
               Row(
@@ -751,7 +764,7 @@ class _SharedDeckCard extends StatelessWidget {
                     size: 14,
                     color: i < fullStars
                         ? AppColors.warning
-                        : AppColors.stone300,
+                        : AppColors.muted,
                   );
                 }),
               ),
@@ -762,11 +775,11 @@ class _SharedDeckCard extends StatelessWidget {
                       style: textTheme.bodySmall),
                   const SizedBox(width: AppSpacing.sm),
                   const Icon(Icons.download_outlined,
-                      size: 14, color: AppColors.stone400),
+                      size: 14, color: AppColors.muted),
                   const SizedBox(width: AppSpacing.xxs),
                   Text('${deck.downloads}회',
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                          ?.copyWith(color: AppColors.muted)),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -835,24 +848,24 @@ class _SharedDeckDetailScreenState
         Row(
           children: [
             const Icon(Icons.person_outline,
-                size: 14, color: AppColors.stone400),
+                size: 14, color: AppColors.muted),
             const SizedBox(width: AppSpacing.xxs),
             Text('김알고',
                 style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone400)),
+                    ?.copyWith(color: AppColors.muted)),
             const SizedBox(width: AppSpacing.md),
             const Icon(Icons.star, size: 14, color: AppColors.warning),
             const SizedBox(width: AppSpacing.xxs),
             Text('4.5',
                 style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone500)),
+                    ?.copyWith(color: AppColors.muted)),
             const SizedBox(width: AppSpacing.md),
             const Icon(Icons.download_outlined,
-                size: 14, color: AppColors.stone400),
+                size: 14, color: AppColors.muted),
             const SizedBox(width: AppSpacing.xxs),
             Text('234',
                 style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone400)),
+                    ?.copyWith(color: AppColors.muted)),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -908,7 +921,7 @@ class _SharedDeckDetailScreenState
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.quiz_outlined,
-                          color: AppColors.stone400, size: 28),
+                          color: AppColors.muted, size: 28),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         mockCards[i],
@@ -919,7 +932,7 @@ class _SharedDeckDetailScreenState
                       Text(
                         '${i + 1} / ${mockCards.length}',
                         style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400),
+                            ?.copyWith(color: AppColors.muted),
                       ),
                     ],
                   ),
@@ -945,7 +958,7 @@ class _SharedDeckDetailScreenState
         const SizedBox(height: AppSpacing.xs),
         Text(
           '4.5 / 5.0 (42개 평가)',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: AppSpacing.md),
 
@@ -962,7 +975,7 @@ class _SharedDeckDetailScreenState
                   i < _userRating ? Icons.star : Icons.star_border,
                   color: i < _userRating
                       ? AppColors.warning
-                      : AppColors.stone300,
+                      : AppColors.muted,
                   size: 32,
                 ),
               ),
@@ -1002,7 +1015,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
     final filters = ['전체', '최근', '인기', '내 그룹'];
 
     // TODO: 팀원 구현 — engagement-svc 공유 노트 목록 API 연동
-    final mockNotes = [
+    const mockNotes = [
       _SharedNote(
         title: '정규화 기법 완전 정리',
         author: '이러닝',
@@ -1042,7 +1055,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
               borderRadius: BorderRadius.circular(AppSpacing.sm),
             ),
             filled: true,
-            fillColor: AppColors.stone50,
+            fillColor: AppColors.bg,
           ),
           onChanged: (_) => setState(() {}),
         ),
@@ -1075,7 +1088,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
               value: _sortOrder,
               underline: const SizedBox.shrink(),
               style: textTheme.bodySmall
-                  ?.copyWith(color: AppColors.stone500),
+                  ?.copyWith(color: AppColors.muted),
               items: const [
                 DropdownMenuItem(
                     value: '최신순', child: Text('최신순')),
@@ -1135,7 +1148,7 @@ class _SharedNoteItem extends StatelessWidget {
               Row(
                 children: [
                   const Icon(Icons.article_outlined,
-                      size: 16, color: AppColors.primaryAmber),
+                      size: 16, color: AppColors.primary),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
                     child: Text(note.title,
@@ -1143,24 +1156,24 @@ class _SharedNoteItem extends StatelessWidget {
                   ),
                   Text(note.timeAgo,
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                          ?.copyWith(color: AppColors.muted)),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
                   const Icon(Icons.person_outline,
-                      size: 12, color: AppColors.stone400),
+                      size: 12, color: AppColors.muted),
                   const SizedBox(width: AppSpacing.xxs),
                   Text(note.author,
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                          ?.copyWith(color: AppColors.muted)),
                   const SizedBox(width: AppSpacing.sm),
                   const Icon(Icons.star, size: 12, color: AppColors.warning),
                   const SizedBox(width: AppSpacing.xxs),
                   Text(note.rating.toStringAsFixed(1),
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone500)),
+                          ?.copyWith(color: AppColors.muted)),
                 ],
               ),
               // Preview text
@@ -1169,7 +1182,7 @@ class _SharedNoteItem extends StatelessWidget {
                 Text(
                   note.preview,
                   style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone500),
+                      ?.copyWith(color: AppColors.muted),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

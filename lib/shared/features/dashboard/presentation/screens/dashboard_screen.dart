@@ -759,11 +759,12 @@ class _DashboardHeatmapScreenState
   }
 
   Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
+    // 컨셉 보라 스케일 (적음→많음)
+    if (count == 0) return AppColors.surface2;
+    if (count <= 2) return const Color(0xFFD8C6F5);
+    if (count <= 5) return const Color(0xFFB388F0);
+    if (count <= 9) return const Color(0xFF8B5CF6);
+    return AppColors.primary;
   }
 
   int? _hitTest(Offset local) {
@@ -871,11 +872,12 @@ class _HeatmapFullPainter extends CustomPainter {
   static const double _gap = 3;
 
   Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
+    // 컨셉 보라 스케일 (적음→많음)
+    if (count == 0) return AppColors.surface2;
+    if (count <= 2) return const Color(0xFFD8C6F5);
+    if (count <= 5) return const Color(0xFFB388F0);
+    if (count <= 9) return const Color(0xFF8B5CF6);
+    return AppColors.primary;
   }
 
   @override

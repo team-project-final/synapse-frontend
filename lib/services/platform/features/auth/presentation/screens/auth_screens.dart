@@ -6,6 +6,7 @@ import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 import 'dart:async';
 
 // ── Login ──
@@ -58,9 +59,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.hub, size: 48, color: colorScheme.primary),
+                  const SynapseOrb(size: 48, glyphScale: 0.46, shadow: true),
                   const SizedBox(height: AppSpacing.sm),
-                  Text('Synapse', style: textTheme.headlineMedium),
+                  Text('Synapse',
+                      style: textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: AppSpacing.xxl),
                   TextFormField(
                     controller: _emailController,
@@ -139,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Text(
                           '또는',
                           style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.stone400,
+                            color: AppColors.muted,
                           ),
                         ),
                       ),
@@ -285,9 +288,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.hub, size: 48, color: colorScheme.primary),
+                  const SynapseOrb(size: 48, glyphScale: 0.46, shadow: true),
                   const SizedBox(height: AppSpacing.sm),
-                  Text('회원가입', style: textTheme.headlineMedium),
+                  Text('회원가입',
+                      style: textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.w800)),
                   const SizedBox(height: AppSpacing.xxl),
                   TextFormField(
                     controller: _emailController,
@@ -488,7 +493,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                 Text(
                   '인증 앱에 표시된 6자리 코드를 입력해주세요.',
                   style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.stone500,
+                    color: AppColors.muted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -529,7 +534,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                         : '코드가 만료되었습니다',
                     style: textTheme.bodySmall?.copyWith(
                       color: _secondsRemaining > 0
-                          ? AppColors.stone500
+                          ? AppColors.muted
                           : AppColors.error,
                     ),
                   ),
@@ -848,7 +853,7 @@ class _OAuthConsentScreenState extends ConsumerState<OAuthConsentScreen> {
                               Text(
                                 _appDescription,
                                 style: textTheme.bodySmall?.copyWith(
-                                  color: AppColors.stone500,
+                                  color: AppColors.muted,
                                 ),
                               ),
                             ],

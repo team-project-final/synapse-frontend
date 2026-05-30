@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/auth/auth_notifier.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/core/theme/app_colors.dart';
+import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 class OAuthCallbackScreen extends ConsumerStatefulWidget {
   const OAuthCallbackScreen({
@@ -49,6 +52,26 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    final textTheme = Theme.of(context).textTheme;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SynapseOrb(size: 56, glyphScale: 0.46, shadow: true),
+            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.5, color: AppColors.primary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Text('로그인 처리 중…',
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted)),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 
 // ── Mock data ──
 
@@ -15,12 +16,14 @@ class _MockNote {
     required this.snippet,
     required this.tags,
     required this.timeAgo,
+    this.backlinks,
   });
   final String id;
   final String title;
   final String snippet;
   final List<String> tags;
   final String timeAgo;
+  final int? backlinks;
 }
 
 const _mockNotes = [
@@ -30,6 +33,7 @@ const _mockNotes = [
     snippet: 'L1/L2 정규화는 과적합을 방지하기 위한 기법입니다. L1은 Lasso, L2는 Ridge라고 불립니다.',
     tags: ['머신러닝', '딥러닝'],
     timeAgo: '2시간 전',
+    backlinks: 5,
   ),
   _MockNote(
     id: '2',
@@ -57,80 +61,58 @@ class NoteListScreen extends ConsumerStatefulWidget {
 }
 
 class _NoteListScreenState extends ConsumerState<NoteListScreen> {
-  final _searchController = TextEditingController();
   String _selectedFilter = '전체';
   String _sortOrder = '최근 수정';
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final filters = ['전체', '최근', '즐겨찾기'];
+    final textTheme = Theme.of(context).textTheme;
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final filters = ['전체', '머신러닝', '딥러닝', '알고리즘', 'AWS'];
 
     return Stack(
       children: [
-        ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        ConceptPage(
           children: [
-            // Search bar
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '노트 검색...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {});
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
-                ),
-                filled: true,
-                fillColor: AppColors.stone50,
-              ),
-              onChanged: (_) => setState(() {}),
-              // TODO: 팀원 구현 — knowledge-svc 검색 API 연동
+            const ConceptViewHead(title: '라이브러리', meta: '노트 24'),
+            // Search bar (탭하면 검색 화면) — 데모용
+            // TODO: 팀원 구현 — knowledge-svc 검색 API 연동
+            ConceptSearchBar(
+              hint: '노트 검색…',
+              onTap: () => context.go(AppRoutes.search),
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Filter chips
+            const SizedBox(height: AppSpacing.md),
+            // Filter pills
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: filters.map((f) {
-                  final selected = _selectedFilter == f;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: AppSpacing.xs),
-                    child: FilterChip(
-                      label: Text(f),
-                      selected: selected,
-                      selectedColor: colorScheme.primaryContainer,
-                      onSelected: (_) => setState(() => _selectedFilter = f),
+                children: [
+                  for (final f in filters) ...[
+                    ConceptFilterPill(
+                      label: f,
+                      selected: _selectedFilter == f,
+                      onTap: () => setState(() => _selectedFilter = f),
                     ),
-                  );
-                }).toList(),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            // Sort order dropdown
+            const SizedBox(height: AppSpacing.sm),
+            // Sort order
             Row(
               children: [
-                Text('정렬:', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.stone500)),
+                Text('정렬',
+                    style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.muted, fontWeight: FontWeight.w700)),
                 const SizedBox(width: AppSpacing.xs),
                 DropdownButton<String>(
                   value: _sortOrder,
                   underline: const SizedBox.shrink(),
                   isDense: true,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.stone600),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  style: textTheme.labelMedium
+                      ?.copyWith(color: AppColors.text, fontWeight: FontWeight.w700),
                   items: const [
                     DropdownMenuItem(value: '최근 수정', child: Text('최근 수정')),
                     DropdownMenuItem(value: '제목순', child: Text('제목순')),
@@ -142,14 +124,18 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.md),
+            const ConceptSectionLabel('최근 노트', topGap: AppSpacing.md),
             // Note list
             // TODO: 팀원 구현 — knowledge-svc 노트 목록 API 연동
-            ..._mockNotes.map((note) => _NoteCard(note: note)),
+            ConceptResponsiveGrid(
+              isWide: isWide,
+              children: [
+                for (final note in _mockNotes) _NoteCard(note: note),
+              ],
+            ),
             const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
           ],
         ),
-        // FAB
         Positioned(
           bottom: AppSpacing.lg,
           right: AppSpacing.lg,
@@ -157,8 +143,6 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
             onPressed: () => context.go(AppRoutes.noteEditorPath('new')),
             icon: const Icon(Icons.add),
             label: const Text('새 노트'),
-            backgroundColor: colorScheme.primary,
-            foregroundColor: Colors.white,
           ),
         ),
       ],
@@ -174,53 +158,48 @@ class _NoteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
+      child: ConceptCard(
         onTap: () => context.go(AppRoutes.noteDetailPath(note.id)),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(note.title, style: textTheme.bodyLarge),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              note.title,
+              style: textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs + 2),
+            Text(
+              note.snippet,
+              style: textTheme.bodySmall
+                  ?.copyWith(color: AppColors.muted, height: 1.5),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppSpacing.sm + 2),
+            Row(
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: AppSpacing.xs + 2,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final tag in note.tags) ConceptTag('#$tag'),
+                    ],
                   ),
-                  Text(note.timeAgo,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Row(
-                children: note.tags
-                    .map((tag) => Padding(
-                          padding: const EdgeInsets.only(right: AppSpacing.xs),
-                          child: Chip(
-                            label: Text(tag,
-                                style: textTheme.bodySmall
-                                    ?.copyWith(fontSize: 11)),
-                            padding: EdgeInsets.zero,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ))
-                    .toList(),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                note.snippet,
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone500),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  note.backlinks != null ? '백링크 ${note.backlinks}' : note.timeAgo,
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -257,143 +236,193 @@ class NoteDetailScreen extends ConsumerWidget {
 참고: [[드롭아웃]], [[배치 정규화]]
 ''';
 
-    final mainContent = SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final mainContent = Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        // ListView가 tight 폭을 자식에게 전달하도록 maxWidth를 정의한다.
+        // (Center+loose 제약 + stretch 조합은 자식 폭을 intrinsic으로 잘못
+        // 계산해 오버플로를 유발하므로 Align+고정폭 ListView로 분리)
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isMobile)
+                  ConceptBackRow(
+                    label: '라이브러리',
+                    onTap: () => context.go(AppRoutes.notes),
+                  ),
+                // Title + tags
+                Text(
+                  '정규화 기법 (Regularization)',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                // TODO: 팀원 구현 — 노트 태그 동적 연동
+                const Wrap(
+                  spacing: AppSpacing.xs + 2,
+                  runSpacing: AppSpacing.xs,
+                  children: [ConceptTag('#머신러닝'), ConceptTag('#딥러닝')],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // Markdown body
+                const MarkdownBody(data: mockContent),
+                const SizedBox(height: AppSpacing.sm),
+                // WikiLink chips
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    _WikiLink(
+                      '드롭아웃',
+                      onTap: () => context.go(AppRoutes.noteDetailPath('2')),
+                    ),
+                    _WikiLink(
+                      '배치 정규화',
+                      onTap: () => context.go(AppRoutes.noteDetailPath('3')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // AI 진입
+                ConceptAiEntry(
+                  title: '✦ AI에게 이 노트 질문하기',
+                  subtitle: '요약·퀴즈·심화 설명을 대화로 받아보세요',
+                  onTap: () => context.go(AppRoutes.qa),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                // Action row
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            context.go(AppRoutes.noteEditorPath(noteId)),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('편집'),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            context.go(AppRoutes.noteVersionsPath(noteId)),
+                        icon: const Icon(Icons.history, size: 18),
+                        label: const Text('버전 이력'),
+                      ),
+                    ),
+                  ],
+                ),
+                const ConceptSectionLabel('백링크 2'),
+                // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
+                _BacklinkItem(
+                  title: '드롭아웃 기법',
+                  snippet: '...과적합 방지를 위한 또 다른 기법으로 [[정규화 기법]]을 함께 사용합니다...',
+                  onTap: () => context.go(AppRoutes.noteDetailPath('2')),
+                ),
+                _BacklinkItem(
+                  title: 'Ridge vs Lasso 비교',
+                  snippet: '...L2 정규화([[정규화 기법]])는 Ridge 회귀에 해당합니다...',
+                  onTap: () => context.go(AppRoutes.noteDetailPath('3')),
+                ),
+                const ConceptSectionLabel('참조 노트 2'),
+                _BacklinkItem(
+                  title: '드롭아웃 (Dropout)',
+                  snippet: '과적합 방지를 위해 학습 시 뉴런을 랜덤하게 비활성화하는 기법입니다.',
+                  onTap: () => context.go(AppRoutes.noteDetailPath('4')),
+                ),
+                _BacklinkItem(
+                  title: '배치 정규화 (Batch Normalization)',
+                  snippet: '미니배치 단위로 입력을 정규화하여 학습 속도를 향상시키는 기법입니다.',
+                  onTap: () => context.go(AppRoutes.noteDetailPath('5')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (isMobile) {
+      return mainContent;
+    }
+
+    final backlinkPanel = Container(
+      width: 280,
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: AppColors.border)),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          // Title + tags
-          Text('정규화 기법 (Regularization)',
-              style: textTheme.headlineSmall),
+          Text(
+            '백링크',
+            style: textTheme.labelLarge?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.xs,
-            children: ['머신러닝', '딥러닝']
-                .map((t) => Chip(
-                      label: Text(t, style: textTheme.bodySmall),
-                      visualDensity: VisualDensity.compact,
-                    ))
-                .toList(),
-          ),
-          // TODO: 팀원 구현 — 노트 태그 동적 연동
-          const SizedBox(height: AppSpacing.md),
-          // Markdown body
-          const MarkdownBody(data: mockContent),
-          const SizedBox(height: AppSpacing.xs),
-          // WikiLink chips
-          Row(
-            children: [
-              const Icon(Icons.link, size: 14, color: AppColors.stone400),
-              const SizedBox(width: AppSpacing.xs),
-              ActionChip(
-                label: const Text('드롭아웃'),
-                onPressed: () => context.go(AppRoutes.noteDetailPath('2')),
-                visualDensity: VisualDensity.compact,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              ActionChip(
-                label: const Text('배치 정규화'),
-                onPressed: () => context.go(AppRoutes.noteDetailPath('3')),
-                visualDensity: VisualDensity.compact,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          // Action row
-          Row(
-            children: [
-              FilledButton.icon(
-                onPressed: () =>
-                    context.go(AppRoutes.noteEditorPath(noteId)),
-                icon: const Icon(Icons.edit),
-                label: const Text('편집'),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              OutlinedButton.icon(
-                onPressed: () =>
-                    context.go(AppRoutes.noteVersionsPath(noteId)),
-                icon: const Icon(Icons.history),
-                label: const Text('버전 이력'),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          // Backlinks
-          Text('이 노트를 참조하는 노트 (2)',
-              style: textTheme.titleMedium
-                  ?.copyWith(color: AppColors.stone600)),
-          const Divider(height: AppSpacing.md),
           // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
           _BacklinkItem(
             title: '드롭아웃 기법',
-            snippet: '...과적합 방지를 위한 또 다른 기법으로 [[정규화 기법]]을 함께 사용합니다...',
+            snippet: '과적합 방지를 위한 기법',
             onTap: () => context.go(AppRoutes.noteDetailPath('2')),
           ),
           _BacklinkItem(
             title: 'Ridge vs Lasso 비교',
-            snippet: '...L2 정규화([[정규화 기법]])는 Ridge 회귀에 해당합니다...',
+            snippet: 'L2 정규화 비교 분석',
             onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          // 참조 노트 section
-          Text('참조 노트 (2)',
-              style: textTheme.titleMedium
-                  ?.copyWith(color: AppColors.stone600)),
-          const Divider(height: AppSpacing.md),
-          _BacklinkItem(
-            title: '드롭아웃 (Dropout)',
-            snippet: '과적합 방지를 위해 학습 시 뉴런을 랜덤하게 비활성화하는 기법입니다.',
-            onTap: () => context.go(AppRoutes.noteDetailPath('4')),
-          ),
-          _BacklinkItem(
-            title: '배치 정규화 (Batch Normalization)',
-            snippet: '미니배치 단위로 입력을 정규화하여 학습 속도를 향상시키는 기법입니다.',
-            onTap: () => context.go(AppRoutes.noteDetailPath('5')),
           ),
         ],
       ),
     );
 
-    final backlinkPanel = isMobile
-        ? const SizedBox.shrink()
-        : Container(
-            width: 280,
-            decoration: const BoxDecoration(
-              border: Border(left: BorderSide(color: AppColors.stone200)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Text('백링크',
-                      style: textTheme.titleSmall
-                          ?.copyWith(color: AppColors.stone600)),
-                ),
-                const Divider(height: 1),
-                // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
-                _BacklinkItem(
-                  title: '드롭아웃 기법',
-                  snippet: '과적합 방지를 위한 기법',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-                ),
-                _BacklinkItem(
-                  title: 'Ridge vs Lasso 비교',
-                  snippet: 'L2 정규화 비교 분석',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-                ),
-              ],
-            ),
-          );
-
-    if (isMobile) {
-      return mainContent;
-    }
     return Row(
       children: [
         Expanded(child: mainContent),
         backlinkPanel,
       ],
+    );
+  }
+}
+
+/// 위키링크 인라인 칩 (목업 `.wl`).
+class _WikiLink extends StatelessWidget {
+  const _WikiLink(this.label, {required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.10),
+      borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          child: Text(
+            '[[$label]]',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -411,21 +440,52 @@ class _BacklinkItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return ListTile(
-      leading:
-          const Icon(Icons.arrow_back, size: 16, color: AppColors.stone400),
-      title: Text(title, style: textTheme.bodyMedium),
-      subtitle: Text(snippet,
-          style: textTheme.bodySmall?.copyWith(color: AppColors.stone500),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis),
-      onTap: onTap,
-      dense: true,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: ConceptCard(
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md - 2,
+          vertical: AppSpacing.sm + 3,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+              ),
+              child: const Text('📄', style: TextStyle(fontSize: 14)),
+            ),
+            const SizedBox(width: AppSpacing.sm + 1),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 1),
+                  Text(
+                    snippet,
+                    style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-// ── NoteEditorScreen (split view) — DO NOT CHANGE ──
+// ── NoteEditorScreen (split view) ──
 
 class NoteEditorScreen extends ConsumerStatefulWidget {
   const NoteEditorScreen({required this.noteId, super.key});
@@ -473,7 +533,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
     return Column(
@@ -483,49 +542,53 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md, vertical: AppSpacing.xs),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppColors.stone200)),
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.border)),
           ),
           child: Row(
             children: [
-              _ToolbarButton(
-                  icon: Icons.format_bold,
-                  tooltip: 'Bold',
-                  onTap: () => _insertMarkdown('**텍스트**')),
-              _ToolbarButton(
-                  icon: Icons.format_italic,
-                  tooltip: 'Italic',
-                  onTap: () => _insertMarkdown('*텍스트*')),
-              _ToolbarButton(
-                  icon: Icons.title,
-                  tooltip: 'Heading 1',
-                  onTap: () => _insertMarkdown('# ')),
-              _ToolbarButton(
-                  icon: Icons.text_fields,
-                  tooltip: 'Heading 2',
-                  onTap: () => _insertMarkdown('## ')),
-              _ToolbarButton(
-                  icon: Icons.link,
-                  tooltip: 'Link',
-                  onTap: () => _insertMarkdown('[텍스트](url)')),
-              _ToolbarButton(
-                  icon: Icons.code,
-                  tooltip: 'Code',
-                  onTap: () => _insertMarkdown('`코드`')),
-              const Spacer(),
-              // 자동저장 인디케이터
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.circle, size: 8, color: colorScheme.primary),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text('저장됨',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
-                  // TODO: 팀원 구현 — 자동저장 상태 연동
-                ],
+              // 좁은 폭에서도 오버플로 없이 가로 스크롤되는 포맷 버튼 그룹.
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _ToolbarButton(
+                          icon: Icons.format_bold,
+                          tooltip: 'Bold',
+                          onTap: () => _insertMarkdown('**텍스트**')),
+                      _ToolbarButton(
+                          icon: Icons.format_italic,
+                          tooltip: 'Italic',
+                          onTap: () => _insertMarkdown('*텍스트*')),
+                      _ToolbarButton(
+                          icon: Icons.title,
+                          tooltip: 'Heading 1',
+                          onTap: () => _insertMarkdown('# ')),
+                      _ToolbarButton(
+                          icon: Icons.text_fields,
+                          tooltip: 'Heading 2',
+                          onTap: () => _insertMarkdown('## ')),
+                      _ToolbarButton(
+                          icon: Icons.link,
+                          tooltip: 'Link',
+                          onTap: () => _insertMarkdown('[[')),
+                      _ToolbarButton(
+                          icon: Icons.code,
+                          tooltip: 'Code',
+                          onTap: () => _insertMarkdown('`코드`')),
+                    ],
+                  ),
+                ),
               ),
+              // 자동저장 인디케이터
+              const Icon(Icons.circle, size: 8, color: AppColors.success),
+              const SizedBox(width: AppSpacing.xs),
+              Text('저장됨',
+                  style:
+                      textTheme.labelSmall?.copyWith(color: AppColors.muted)),
+              // TODO: 팀원 구현 — 자동저장 상태 연동
               const SizedBox(width: AppSpacing.md),
-              // 등록/저장 버튼
               FilledButton(
                 onPressed: () {
                   if (widget.noteId == 'new') {
@@ -570,14 +633,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               textAlignVertical: TextAlignVertical.top,
               style: textTheme.bodyLarge?.copyWith(fontFamily: 'monospace'),
               decoration: const InputDecoration(
-                hintText: '마크다운으로 작성하세요...',
+                hintText: '마크다운으로 작성하세요…  [[ 로 위키링크',
                 border: InputBorder.none,
               ),
               // TODO: 팀원 구현 — knowledge-svc API 연동, 위키링크 파싱
             ),
           ),
         ),
-        const VerticalDivider(width: 1, color: AppColors.stone200),
+        const VerticalDivider(width: 1, color: AppColors.border),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
@@ -585,7 +648,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                 ? Center(
                     child: Text('미리보기가 여기에 표시됩니다',
                         style: textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.stone400)))
+                            ?.copyWith(color: AppColors.muted)))
                 : SingleChildScrollView(
                     child: MarkdownBody(data: _markdown),
                   ),
@@ -616,7 +679,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   style:
                       textTheme.bodyLarge?.copyWith(fontFamily: 'monospace'),
                   decoration: const InputDecoration(
-                    hintText: '마크다운으로 작성하세요...',
+                    hintText: '마크다운으로 작성하세요…',
                     border: InputBorder.none,
                   ),
                 ),
@@ -627,7 +690,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                     ? Center(
                         child: Text('미리보기가 여기에 표시됩니다',
                             style: textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.stone400)))
+                                ?.copyWith(color: AppColors.muted)))
                     : SingleChildScrollView(
                         child: MarkdownBody(data: _markdown),
                       ),
@@ -657,6 +720,7 @@ class _ToolbarButton extends StatelessWidget {
       icon: Icon(icon, size: 20),
       tooltip: tooltip,
       onPressed: onTap,
+      color: AppColors.muted,
       visualDensity: VisualDensity.compact,
     );
   }
@@ -688,29 +752,24 @@ class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return ConceptPage(
       children: [
-        Text('버전 이력', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.xs),
+        const ConceptViewHead(title: '버전 이력'),
         Text('노트 ID: ${widget.noteId}',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.stone400)),
+            style: textTheme.labelSmall?.copyWith(color: AppColors.muted)),
         const SizedBox(height: AppSpacing.md),
         ..._mockVersions.map((v) => _VersionItem(
               version: v['version']!,
               date: v['date']!,
               description: v['desc']!,
               isSelected: _selectedVersion == v['version'],
-              onTap: () =>
-                  setState(() => _selectedVersion = v['version']),
+              onTap: () => setState(() => _selectedVersion = v['version']),
             )),
         if (_selectedVersion != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          Text('변경 사항 ($_selectedVersion)',
-              style: textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.sm),
+          ConceptSectionLabel('변경 사항 ($_selectedVersion)'),
           const _DiffView(),
         ],
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
@@ -733,48 +792,52 @@ class _VersionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      color: isSelected ? AppColors.stone100 : null,
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: ConceptCard(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            children: [
-              Container(
+        highlightBorder: isSelected,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+              ),
+              child: Text(version,
+                  style: textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800, color: AppColors.primary)),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(description,
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(date,
+                      style: textTheme.labelSmall
+                          ?.copyWith(color: AppColors.muted)),
+                ],
+              ),
+            ),
+            OutlinedButton(
+              onPressed: () {
+                // TODO: 팀원 구현 — 버전 복원 API 연동
+              },
+              style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primaryAmber.withValues(alpha: 0.15) : AppColors.stone100,
-                  borderRadius: BorderRadius.circular(AppSpacing.xs),
-                ),
-                child: Text(version,
-                    style: textTheme.labelMedium
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(description, style: textTheme.bodyMedium),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(date,
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400)),
-                  ],
-                ),
-              ),
-              OutlinedButton(
-                onPressed: () {
-                  // TODO: 팀원 구현 — 버전 복원 API 연동
-                },
-                child: const Text('복원'),
-              ),
-            ],
-          ),
+              child: const Text('복원'),
+            ),
+          ],
         ),
       ),
     );
@@ -810,78 +873,83 @@ class _DiffView extends StatelessWidget {
         textTheme.bodySmall?.copyWith(fontFamily: 'monospace') ??
             const TextStyle(fontFamily: 'monospace', fontSize: 12);
 
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.stone200),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Old (left)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                  color: AppColors.stone100,
-                  child: Text('이전', style: textTheme.labelSmall?.copyWith(color: AppColors.stone500)),
-                ),
-                ..._oldLines.map((line) => Container(
+    // 비균일 색 Border + borderRadius 조합으로 인한 렌더 이슈를 피하기 위해
+    // ClipRRect로 모서리를 클립하고 내부를 분리한다.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Old (left)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
                       width: double.infinity,
-                      color: line.changed
-                          ? const Color(0x20DC2626)
-                          : null,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
-                      child: RichText(
-                        text: TextSpan(
-                          text: line.changed ? '- ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.error : null,
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      color: AppColors.surface2,
+                      child: Text('이전',
+                          style: textTheme.labelSmall
+                              ?.copyWith(color: AppColors.muted)),
+                    ),
+                    ..._oldLines.map((line) => Container(
+                          width: double.infinity,
+                          color: line.changed ? const Color(0x20DC2626) : null,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs),
+                          child: Text(
+                            line.changed ? '- ${line.text}' : '  ${line.text}',
+                            style: monoStyle.copyWith(
+                              color: line.changed ? AppColors.error : null,
+                            ),
                           ),
-                        ),
-                      ),
-                    )),
-              ],
-            ),
-          ),
-          Container(width: 1, color: AppColors.stone200),
-          // New (right)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                  color: AppColors.stone100,
-                  child: Text('현재', style: textTheme.labelSmall?.copyWith(color: AppColors.stone500)),
+                        )),
+                  ],
                 ),
-                ..._newLines.map((line) => Container(
+              ),
+              Container(width: 1, color: AppColors.border),
+              // New (right)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
                       width: double.infinity,
-                      color: line.changed
-                          ? const Color(0x2016A34A)
-                          : null,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
-                      child: RichText(
-                        text: TextSpan(
-                          text: line.changed ? '+ ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.success : null,
+                          horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                      color: AppColors.surface2,
+                      child: Text('현재',
+                          style: textTheme.labelSmall
+                              ?.copyWith(color: AppColors.muted)),
+                    ),
+                    ..._newLines.map((line) => Container(
+                          width: double.infinity,
+                          color: line.changed ? const Color(0x2016A34A) : null,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs),
+                          child: Text(
+                            line.changed ? '+ ${line.text}' : '  ${line.text}',
+                            style: monoStyle.copyWith(
+                              color: line.changed ? AppColors.success : null,
+                            ),
                           ),
-                        ),
-                      ),
-                    )),
-              ],
-            ),
+                        )),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -905,7 +973,7 @@ class TagManagementScreen extends ConsumerStatefulWidget {
 
 class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   final _searchController = TextEditingController();
-  int _selectedColorIndex = 0;
+  int _selectedColorIndex = 5;
 
   static const _presetColors = [
     Color(0xFFDC2626), // red
@@ -991,46 +1059,44 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final filtered = _mockTags
+        .where((t) => t['name'].toString().contains(_searchController.text))
+        .toList();
 
     return Stack(
       children: [
-        ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+        ConceptPage(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: '태그 검색...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
-                ),
-                filled: true,
-                fillColor: AppColors.stone50,
-              ),
-              onChanged: (_) => setState(() {}),
+            const ConceptViewHead(title: '태그 관리'),
+            ConceptSearchBar(
+              hint: '태그 검색…',
+              value: _searchController.text,
+              onTap: () {},
             ),
-            const SizedBox(height: AppSpacing.md),
-            // Color picker
-            Text('태그 색상', style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: AppSpacing.xs),
+            // 검색 입력(숨김 컨트롤러) — 데모상 비표시이나 mock 필터 유지
+            Offstage(
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const ConceptSectionLabel('새 태그 색상', topGap: AppSpacing.md),
             Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
+              spacing: AppSpacing.sm + 2,
+              runSpacing: AppSpacing.sm + 2,
               children: List.generate(_presetColors.length, (i) {
                 final isSelected = _selectedColorIndex == i;
                 return GestureDetector(
                   onTap: () => setState(() => _selectedColorIndex = i),
                   child: Container(
-                    width: 32,
-                    height: 32,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: _presetColors[i],
                       shape: BoxShape.circle,
                       border: isSelected
-                          ? Border.all(color: AppColors.stone800, width: 2.5)
-                          : Border.all(color: AppColors.stone200),
+                          ? Border.all(color: AppColors.text, width: 2.5)
+                          : Border.all(color: AppColors.border),
                     ),
                     child: isSelected
                         ? const Icon(Icons.check, size: 16, color: Colors.white)
@@ -1040,49 +1106,45 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
               }),
             ),
             const SizedBox(height: AppSpacing.md),
-            // Tag merge button
             OutlinedButton.icon(
               onPressed: () => _showTagMergeDialog(context),
-              icon: const Icon(Icons.merge_type),
+              icon: const Icon(Icons.merge_type, size: 18),
               label: const Text('태그 병합'),
             ),
-            const SizedBox(height: AppSpacing.md),
-            ..._mockTags
-                .where((t) => t['name']
-                    .toString()
-                    .contains(_searchController.text))
-                .map((tag) => ListTile(
-                      leading: const Icon(Icons.tag, color: AppColors.stone400),
-                      title: Text(tag['name'].toString(),
-                          style: textTheme.bodyLarge),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
-                                vertical: AppSpacing.xxs),
-                            decoration: BoxDecoration(
-                              color: AppColors.stone100,
-                              borderRadius:
-                                  BorderRadius.circular(AppSpacing.xl),
-                            ),
-                            child: Text('${tag['count']}개 노트',
-                                style: textTheme.bodySmall
-                                    ?.copyWith(color: AppColors.stone500)),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline,
-                                color: AppColors.error),
-                            onPressed: () {
-                              // TODO: 팀원 구현 — 태그 삭제 API 연동
-                            },
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ],
+            const ConceptSectionLabel('모든 태그'),
+            for (final tag in filtered)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ConceptCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm + 2,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.tag, size: 18, color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(tag['name'].toString(),
+                            style: textTheme.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w700)),
                       ),
-                    )),
+                      Text('${tag['count']}개 노트',
+                          style: textTheme.labelSmall
+                              ?.copyWith(color: AppColors.muted)),
+                      const SizedBox(width: AppSpacing.xs),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: AppColors.error, size: 20),
+                        onPressed: () {
+                          // TODO: 팀원 구현 — 태그 삭제 API 연동
+                        },
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
           ],
         ),
@@ -1095,8 +1157,6 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
             },
             icon: const Icon(Icons.add),
             label: const Text('태그 추가'),
-            backgroundColor: colorScheme.primary,
-            foregroundColor: Colors.white,
           ),
         ),
       ],

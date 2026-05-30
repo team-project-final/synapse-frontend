@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
+
+/// 컨셉 입력 필드 보더 (큰 radius + 토큰 색).
+OutlineInputBorder _conceptBorder() => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderSide: const BorderSide(color: AppColors.border),
+    );
 
 // ── ProfileSettingsScreen (SCR-W-SETTINGS-001) ──
 
@@ -40,7 +47,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('프로필 설정', style: textTheme.headlineSmall),
+        const ConceptViewHead(title: '프로필 설정'),
         const SizedBox(height: AppSpacing.xl),
         // Avatar with camera overlay
         Center(
@@ -100,9 +107,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           controller: _nameController,
           decoration: InputDecoration(
             labelText: '표시 이름',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           // TODO: 팀원 구현 — 표시 이름 저장 연동
         ),
@@ -113,24 +121,25 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           readOnly: true,
           decoration: InputDecoration(
             labelText: '이메일',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
             filled: true,
-            fillColor: AppColors.stone100,
+            fillColor: AppColors.surface2,
           ),
-          style: textTheme.bodyMedium?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
           // TODO: 팀원 구현 — 이메일 (인증 서비스에서 가져옴, 읽기 전용)
         ),
         const SizedBox(height: AppSpacing.md),
         // Language dropdown
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _selectedLanguage,
           decoration: InputDecoration(
             labelText: '언어',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           items: const [
             DropdownMenuItem(value: '한국어', child: Text('한국어')),
@@ -143,12 +152,14 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         const SizedBox(height: AppSpacing.md),
         // Timezone dropdown
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _selectedTimezone,
           decoration: InputDecoration(
             labelText: '타임존',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           items: const [
             DropdownMenuItem(
@@ -289,7 +300,7 @@ class _SecuritySettingsScreenState
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('보안 설정', style: textTheme.headlineSmall),
+        const ConceptViewHead(title: '보안 설정'),
         const SizedBox(height: AppSpacing.xl),
 
         // Password section
@@ -300,9 +311,10 @@ class _SecuritySettingsScreenState
           obscureText: true,
           decoration: InputDecoration(
             labelText: '현재 비밀번호',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           // TODO: 팀원 구현 — 비밀번호 변경 API 연동
         ),
@@ -312,9 +324,10 @@ class _SecuritySettingsScreenState
           obscureText: true,
           decoration: InputDecoration(
             labelText: '새 비밀번호',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -323,9 +336,10 @@ class _SecuritySettingsScreenState
           obscureText: true,
           decoration: InputDecoration(
             labelText: '비밀번호 확인',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -360,7 +374,7 @@ class _SecuritySettingsScreenState
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           child: Text(
             '2단계 인증을 활성화하면 로그인 시 추가 확인 코드가 필요합니다.',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+            style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
           ),
         ),
 
@@ -372,9 +386,9 @@ class _SecuritySettingsScreenState
             height: 200,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.stone100,
+              color: AppColors.surface2,
               borderRadius: BorderRadius.circular(AppSpacing.sm),
-              border: Border.all(color: AppColors.stone200),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -382,13 +396,13 @@ class _SecuritySettingsScreenState
                 const Icon(
                   Icons.qr_code_2,
                   size: 64,
-                  color: AppColors.stone400,
+                  color: AppColors.muted,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'QR 코드 영역',
                   style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.stone400,
+                    color: AppColors.muted,
                   ),
                 ),
               ],
@@ -443,7 +457,7 @@ class _SecuritySettingsScreenState
           const SizedBox(height: AppSpacing.xs),
           Text(
             '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요.',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+            style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
           ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
@@ -458,8 +472,8 @@ class _SecuritySettingsScreenState
                         fontFamily: 'monospace',
                       ),
                     ),
-                    backgroundColor: AppColors.stone100,
-                    side: const BorderSide(color: AppColors.stone200),
+                    backgroundColor: AppColors.surface2,
+                    side: const BorderSide(color: AppColors.border),
                   ),
                 )
                 .toList(),
@@ -493,7 +507,7 @@ class _SecuritySettingsScreenState
           ),
         ),
         ListTile(
-          leading: const Icon(Icons.code, size: 24, color: AppColors.stone700),
+          leading: const Icon(Icons.code, size: 24, color: AppColors.text),
           title: const Text('GitHub'),
           subtitle: const Text('github-user'),
           trailing: OutlinedButton(
@@ -538,7 +552,8 @@ class _NotificationSettingsScreenState
 
   static const _channelLabels = ['Push', 'Email', 'InApp'];
 
-  RangeValues _quietHours = const RangeValues(22, 8);
+  // RangeSlider는 start<=end를 요구하므로 방해금지 시간을 정렬된 범위로 둔다.
+  RangeValues _quietHours = const RangeValues(0, 8);
 
   String _formatHour(double h) {
     final hour = h.toInt() % 24;
@@ -553,7 +568,7 @@ class _NotificationSettingsScreenState
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('알림 설정', style: textTheme.headlineSmall),
+        const ConceptViewHead(title: '알림 설정'),
         const SizedBox(height: AppSpacing.lg),
         Text('카테고리별 알림 설정', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.md),
@@ -571,7 +586,7 @@ class _NotificationSettingsScreenState
             // Header row
             TableRow(
               decoration: BoxDecoration(
-                color: AppColors.stone100,
+                color: AppColors.surface2,
                 borderRadius: BorderRadius.circular(AppSpacing.xs),
               ),
               children: [
@@ -643,14 +658,14 @@ class _NotificationSettingsScreenState
             Text(
               _formatHour(_quietHours.start),
               style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.primaryAmber,
+                color: AppColors.primary,
               ),
             ),
             Text('~', style: textTheme.bodyMedium),
             Text(
               _formatHour(_quietHours.end),
               style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.primaryAmber,
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -668,7 +683,7 @@ class _NotificationSettingsScreenState
         ),
         Text(
           '이 시간 동안 Push 알림이 비활성화됩니다.',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
         ),
       ],
     );
@@ -703,7 +718,7 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('데이터 관리', style: textTheme.headlineSmall),
+        const ConceptViewHead(title: '데이터 관리'),
         const SizedBox(height: AppSpacing.xl),
 
         // Export section
@@ -711,16 +726,18 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
         const SizedBox(height: AppSpacing.xs),
         Text(
           '노트, 카드, 태그를 선택한 형식으로 내보낼 수 있습니다.',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.stone500),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _exportFormat,
           decoration: InputDecoration(
             labelText: '형식',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           items: const [
             DropdownMenuItem(value: 'JSON', child: Text('JSON')),
@@ -770,7 +787,7 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
         const SizedBox(height: AppSpacing.xs),
         Text(
           'Anki (.apkg), Markdown 파일을 가져올 수 있습니다.\n기존 데이터와 병합되며 중복 항목은 무시됩니다.',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.stone500),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: AppSpacing.md),
         OutlinedButton.icon(
@@ -806,7 +823,7 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
                 Text(
                   '계정을 삭제하면 모든 노트, 카드, 학습 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
                   style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.stone500,
+                    color: AppColors.muted,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -939,7 +956,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Text('테넌트 관리', style: textTheme.headlineSmall),
+        const ConceptViewHead(title: '테넌트 관리'),
         const SizedBox(height: AppSpacing.xl),
 
         // Invite button
@@ -967,7 +984,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
               title: Text(member['name']!, style: textTheme.bodyMedium),
               subtitle: Text(
                 member['email']!,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -980,7 +997,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                     decoration: BoxDecoration(
                       color: member['role'] == '관리자'
                           ? colorScheme.primaryContainer
-                          : AppColors.stone100,
+                          : AppColors.surface2,
                       borderRadius: BorderRadius.circular(AppSpacing.xs),
                     ),
                     child: Text(
@@ -988,7 +1005,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                       style: textTheme.labelSmall?.copyWith(
                         color: member['role'] == '관리자'
                             ? colorScheme.primary
-                            : AppColors.stone500,
+                            : AppColors.muted,
                       ),
                     ),
                   ),
@@ -1036,9 +1053,10 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
           controller: _workspaceNameController,
           decoration: InputDecoration(
             labelText: '워크스페이스 이름',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
-            ),
+            border: _conceptBorder(),
+            enabledBorder: _conceptBorder(),
+            filled: true,
+            fillColor: AppColors.surface,
           ),
           // TODO: 팀원 구현 — 테넌트 정보 저장 연동
         ),

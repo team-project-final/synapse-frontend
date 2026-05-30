@@ -467,14 +467,18 @@ class ConceptStatRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (int i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(width: AppSpacing.sm + 2),
-          Expanded(child: children[i]),
+    // 세로 스크롤(ListView) 안에서 Row(stretch)는 높이가 unbounded라
+    // 단언 위반/크래시가 난다. IntrinsicHeight로 높이를 확정해 감싼다.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(width: AppSpacing.sm + 2),
+            Expanded(child: children[i]),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

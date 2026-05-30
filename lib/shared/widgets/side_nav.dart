@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 class SideNavItem {
   const SideNavItem({
@@ -15,6 +16,10 @@ class SideNavItem {
   final String route;
 }
 
+/// "AI Tutor" 컨셉 사이드바.
+///
+/// 브랜드(✦ orb + Synapse) → 네비 → 최근 대화(mock) → 프로필 풋터.
+/// 활성 항목은 보라 12% 배경 + 보라 텍스트의 알약형 강조.
 class SideNav extends StatelessWidget {
   const SideNav({
     required this.currentRoute,
@@ -29,16 +34,14 @@ class SideNav extends StatelessWidget {
   final bool isExpanded;
   final VoidCallback onToggle;
 
-  static const double expandedWidth = 240;
-  static const double collapsedWidth = 56;
+  static const double expandedWidth = 248;
+  static const double collapsedWidth = 72;
 
   static const _topItems = [
-    SideNavItem(
-        icon: Icons.dashboard_outlined, label: '대시보드', route: '/'),
+    SideNavItem(icon: Icons.home_outlined, label: '홈', route: '/'),
     SideNavItem(
         icon: Icons.description_outlined, label: '노트', route: '/notes'),
-    SideNavItem(
-        icon: Icons.style_outlined, label: '덱/복습', route: '/decks'),
+    SideNavItem(icon: Icons.refresh, label: '복습', route: '/decks'),
     SideNavItem(icon: Icons.hub_outlined, label: '그래프', route: '/graph'),
     SideNavItem(icon: Icons.search, label: '검색', route: '/search'),
     SideNavItem(
@@ -58,6 +61,13 @@ class SideNav extends StatelessWidget {
         route: '/settings/profile'),
   ];
 
+  // 최근 대화 — mock 데이터 (기능 없음, 디자인 시연용)
+  static const _recentChats = [
+    '트랜스포머 복습 카드 4장',
+    '과적합 약점 미니 퀴즈',
+    'ML 정규화 기법 요약',
+  ];
+
   bool _isActive(String itemRoute) {
     if (itemRoute == '/') return currentRoute == '/';
     return currentRoute.startsWith(itemRoute);
@@ -65,7 +75,6 @@ class SideNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final width = isExpanded ? expandedWidth : collapsedWidth;
 
     return AnimatedContainer(
@@ -73,29 +82,31 @@ class SideNav extends StatelessWidget {
       curve: Curves.easeInOut,
       width: width,
       clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: const Border(right: BorderSide(color: AppColors.stone200)),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(right: BorderSide(color: AppColors.border)),
       ),
       child: Column(
         children: [
-          const SizedBox(height: AppSpacing.sm),
-          _buildToggleButton(),
-          const SizedBox(height: AppSpacing.sm),
+          _buildBrand(context),
           Expanded(
             child: ListView(
               padding:
-                  const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               children: [
-                for (final item in _topItems)
-                  _buildItem(context, item, colorScheme),
+                for (final item in _topItems) _buildItem(context, item),
+                if (isExpanded) ...[
+                  const _SideSection(label: '최근 대화'),
+                  for (final chat in _recentChats)
+                    _buildRecentChat(context, chat),
+                ],
               ],
             ),
           ),
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
+              horizontal: AppSpacing.sm,
               vertical: AppSpacing.sm,
             ),
             child: Column(
@@ -104,71 +115,95 @@ class SideNav extends StatelessWidget {
                   _buildItem(
                     context,
                     const SideNavItem(
-                      icon: Icons.admin_panel_settings,
+                      icon: Icons.admin_panel_settings_outlined,
                       label: '관리자',
                       route: '/admin',
                     ),
-                    colorScheme,
                   ),
-                for (final item in _bottomItems)
-                  _buildItem(context, item, colorScheme),
+                for (final item in _bottomItems) _buildItem(context, item),
               ],
             ),
           ),
+          _buildProfile(context),
         ],
       ),
     );
   }
 
-  Widget _buildToggleButton() {
-    return Align(
-      alignment: isExpanded ? Alignment.centerRight : Alignment.center,
+  Widget _buildBrand(BuildContext context) {
+    return InkWell(
+      onTap: () => onItemTap('/'),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-        child: IconButton(
-          icon:
-              Icon(isExpanded ? Icons.chevron_left : Icons.chevron_right),
-          onPressed: onToggle,
-          tooltip: isExpanded ? '사이드바 접기' : '사이드바 펼치기',
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            const SynapseOrb(size: 34, glyphScale: 0.52),
+            if (isExpanded) ...[
+              const SizedBox(width: AppSpacing.sm + 2),
+              Expanded(
+                child: Text(
+                  'Synapse',
+                  overflow: TextOverflow.clip,
+                  softWrap: false,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        color: AppColors.text,
+                      ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_left, size: 20),
+                color: AppColors.muted,
+                onPressed: onToggle,
+                tooltip: '사이드바 접기',
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildItem(
-      BuildContext context, SideNavItem item, ColorScheme colorScheme) {
+  Widget _buildItem(BuildContext context, SideNavItem item) {
     final active = _isActive(item.route);
     final iconWidget = Icon(
       item.icon,
-      size: 24,
-      color: active ? colorScheme.primary : AppColors.stone500,
+      size: 22,
+      color: active ? AppColors.primary : AppColors.muted,
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Material(
-        color:
-            active ? colorScheme.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: active
+            ? AppColors.primary.withValues(alpha: 0.12)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppSpacing.sm + 4),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppSpacing.sm + 4),
           onTap: () => onItemTap(item.route),
           child: LayoutBuilder(
             builder: (context, constraints) {
               // Use actual width to decide layout, not the boolean,
               // so we stay safe during AnimatedContainer transitions.
-              final showLabel = constraints.maxWidth > 100;
+              final showLabel = constraints.maxWidth > 110;
 
               if (showLabel) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
+                    horizontal: AppSpacing.sm + 4,
+                    vertical: AppSpacing.sm + 3,
                   ),
                   child: Row(
                     children: [
                       iconWidget,
-                      const SizedBox(width: AppSpacing.md),
+                      const SizedBox(width: AppSpacing.sm + 3),
                       Expanded(
                         child: Text(
                           item.label,
@@ -177,11 +212,9 @@ class SideNav extends StatelessWidget {
                               .bodyMedium
                               ?.copyWith(
                                 color: active
-                                    ? colorScheme.primary
-                                    : AppColors.stone700,
-                                fontWeight: active
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
+                                    ? AppColors.primary
+                                    : AppColors.muted,
+                                fontWeight: FontWeight.w700,
                               ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -192,13 +225,122 @@ class SideNav extends StatelessWidget {
               }
 
               return Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: AppSpacing.sm),
+                padding:
+                    const EdgeInsets.symmetric(vertical: AppSpacing.sm + 3),
                 child: Center(child: iconWidget),
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildRecentChat(BuildContext context, String title) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppSpacing.sm + 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppSpacing.sm + 3),
+        // 최근 대화는 아직 라우트가 없으므로 검색으로 보낸다(데모용).
+        onTap: () => onItemTap('/search'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              const SynapseOrb(size: 26, glyphScale: 0.46),
+              const SizedBox(width: AppSpacing.sm + 1),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.text,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfile(BuildContext context) {
+    return InkWell(
+      onTap: () => onItemTap('/settings/profile'),
+      child: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: AppColors.border)),
+        ),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm + 2,
+        ),
+        child: Row(
+          children: [
+            const SynapseOrb(size: 36, glyph: '🧑‍💻', glyphScale: 0.5),
+            if (isExpanded) ...[
+              const SizedBox(width: AppSpacing.sm + 2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '김시냅스',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.text,
+                          ),
+                    ),
+                    Text(
+                      'Lv7 · 지식 탐험가',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SideSection extends StatelessWidget {
+  const _SideSection({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm + 4,
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.sm,
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+            ),
       ),
     );
   }

@@ -7,13 +7,15 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/onboarding_checklist.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
-const _kReviewCardCount = 12;
-const _kTotalCards = 78;
-const _kAccuracyPercent = 82;
-const _kStreakDays = 5;
+const _kReviewCardCount = 18;
+const _kStreakDays = 14;
+const _kWeeklyReviews = 152;
+const _kWeeklyAccuracy = 94;
+const _kWeeklyXp = 420;
 
 const _kMockNotes = [
   _MockNote(
@@ -67,214 +69,614 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       children: [
-        // ── Review card ──
-        Text('오늘의 학습', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
+                // ── AI 히어로 ──
+                _AiHero(isWide: isWide),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ── 질문 입력 박스 (디자인 데모 — 탭하면 AI Q&A로) ──
+                _AskBox(onTap: () => context.go(AppRoutes.qa)),
+                const SizedBox(height: AppSpacing.md),
+
+                // ── 빠른 진입 칩 ──
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    _QuickChip(
+                      emoji: '📝',
+                      label: '노트에서 카드 만들기',
+                      onTap: () => context.go(AppRoutes.qa),
+                    ),
+                    _QuickChip(
+                      emoji: '🎯',
+                      label: '오늘 복습 $_kReviewCardCount장',
+                      onTap: () => context.go(AppRoutes.review),
+                    ),
+                    _QuickChip(
+                      emoji: '🩺',
+                      label: '약점 진단',
+                      onTap: () => context.go(AppRoutes.qa),
+                    ),
+                    _QuickChip(
+                      emoji: '🔍',
+                      label: '의미 검색',
+                      onTap: () => context.go(AppRoutes.search),
+                    ),
+                  ],
+                ),
+
+                // ── 시작하기 온보딩 ──
+                const SizedBox(height: AppSpacing.xl),
+                const OnboardingChecklist(),
+
+                // ── AI 추천 ──
+                const _SectionLabel('AI 추천'),
+                _ResponsiveTwoCol(
+                  isWide: isWide,
+                  children: [
+                    _SuggestCard(
+                      emoji: '🩺',
+                      title: '\'과적합\' 개념이 약해 보여요',
+                      body: '최근 3번 중 2번 틀렸어요. 관련 노트 3개로 미니 퀴즈를 만들어 드릴까요?',
+                      cta: '퀴즈 시작 →',
+                      onTap: () => context.go(AppRoutes.review),
+                    ),
+                    _SuggestCard(
+                      emoji: '✨',
+                      title: '새 노트 「트랜스포머」에서 4장',
+                      body: '어제 쓴 노트로 복습 카드를 만들 수 있어요.',
+                      cta: '카드 생성 →',
+                      onTap: () => context.go(AppRoutes.qa),
+                    ),
+                  ],
+                ),
+
+                // ── 이번 주 인사이트 ──
+                const _SectionLabel('이번 주 인사이트'),
+                const Row(
+                  children: [
+                    Expanded(
+                      child: _InsightStat(
+                        value: '$_kWeeklyReviews',
+                        label: '복습',
+                        color: AppColors.text,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm + 2),
+                    Expanded(
+                      child: _InsightStat(
+                        value: '$_kWeeklyAccuracy%',
+                        label: '정답률',
+                        color: AppColors.success,
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm + 2),
+                    Expanded(
+                      child: _InsightStat(
+                        value: '+$_kWeeklyXp',
+                        label: 'XP',
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.go(AppRoutes.dashboardStats),
+                    child: const Text('통계 더보기'),
+                  ),
+                ),
+
+                // ── 최근 AI 대화 ──
+                const _SectionLabel('최근 AI 대화'),
+                _RecentChatCard(onTap: () => context.go(AppRoutes.qa)),
+
+                // ── 최근 노트 ──
+                const _SectionLabel('최근 노트'),
+                Card(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('복습 대기', style: textTheme.titleMedium),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '$_kReviewCardCount장',
-                        style: textTheme.headlineLarge
-                            ?.copyWith(color: colorScheme.primary),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      // TODO: 팀원 구현 — learning-svc 복습 대기 카드 수 연동
-                      Text(
-                        '오늘 복습할 카드가 준비되어 있습니다',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400),
-                      ),
+                      // TODO: 팀원 구현 — knowledge-svc 최근 노트 목록 연동
+                      for (int i = 0; i < _kMockNotes.length; i++) ...[
+                        if (i > 0) const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.description_outlined,
+                              color: AppColors.muted),
+                          title: Text(_kMockNotes[i].title,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700)),
+                          subtitle: Text(
+                            _kMockNotes[i].snippet,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppColors.muted),
+                          ),
+                          trailing: Text(
+                            _kMockNotes[i].timeAgo,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: AppColors.muted),
+                          ),
+                          onTap: () => context.go(AppRoutes.notes),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                FilledButton.icon(
-                  onPressed: () => context.go(AppRoutes.review),
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('복습 시작'),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => context.go(AppRoutes.notes),
+                    child: const Text('노트 더보기'),
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.xl),
               ],
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Onboarding checklist ──
-        const OnboardingChecklist(),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Stats cards ──
-        Text('학습 현황', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                label: '복습 카드',
-                value: '$_kTotalCards장',
-                icon: Icons.style_outlined,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: _StatCard(
-                label: '정확도',
-                value: '$_kAccuracyPercent%',
-                icon: Icons.check_circle_outline,
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: _StatCard(
-                label: '연속 학습',
-                value: '$_kStreakDays일 🔥',
-                icon: Icons.local_fire_department,
-                color: AppColors.primaryAmber,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.dashboardStats),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Mini heatmap ──
-        Text('학습 히트맵', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        GestureDetector(
-          onTap: () => context.go(AppRoutes.dashboardHeatmap),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: SizedBox(
-                height: 100,
-                child: CustomPaint(
-                  painter: _HeatmapMiniPainter(
-                    data: _generateHeatmapData(84), // 12 weeks
-                  ),
-                  size: Size.infinite,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.dashboardHeatmap),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Recent notes ──
-        Text('최근 노트', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Column(
-            children: [
-              // TODO: 팀원 구현 — knowledge-svc 최근 노트 목록 연동
-              for (int i = 0; i < _kMockNotes.length; i++) ...[
-                if (i > 0) const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.description_outlined,
-                      color: AppColors.stone400),
-                  title: Text(_kMockNotes[i].title,
-                      style: textTheme.bodyMedium),
-                  subtitle: Text(
-                    _kMockNotes[i].snippet,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone500),
-                  ),
-                  trailing: Text(
-                    _kMockNotes[i].timeAgo,
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: AppColors.stone400),
-                  ),
-                  onTap: () => context.go(AppRoutes.notes),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.notes),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }
 }
 
-// ── Stat card widget ───────────────────────────────────────────────────────
+// ── Concept components ───────────────────────────────────────────────────────
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+class _AiHero extends StatelessWidget {
+  const _AiHero({required this.isWide});
+
+  final bool isWide;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final heading = Text(
+      '무엇을 학습해 볼까요?',
+      textAlign: isWide ? TextAlign.start : TextAlign.center,
+      style: textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+        color: AppColors.text,
+      ),
+    );
+    final sub = Text(
+      '김시냅스님, 오늘도 함께 해요 · 🔥 $_kStreakDays일 연속',
+      textAlign: isWide ? TextAlign.start : TextAlign.center,
+      style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+    );
+
+    if (isWide) {
+      return Row(
+        children: [
+          const SynapseOrb(size: 64, glyphScale: 0.46, shadow: true),
+          const SizedBox(width: AppSpacing.md + 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [heading, const SizedBox(height: 4), sub],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        const SynapseOrb(size: 74, glyphScale: 0.44, shadow: true),
+        const SizedBox(height: AppSpacing.md),
+        heading,
+        const SizedBox(height: 5),
+        sub,
+      ],
+    );
+  }
+}
+
+class _AskBox extends StatelessWidget {
+  const _AskBox({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.primary, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.18),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Text(
+                  '질문하거나, 노트를 붙여넣거나, 주제를 입력하세요…',
+                  style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                ),
+              ),
+              Row(
+                children: [
+                  const Icon(Icons.mic_none, color: AppColors.muted, size: 22),
+                  const SizedBox(width: AppSpacing.sm + 2),
+                  const Icon(Icons.chat_bubble_outline,
+                      color: AppColors.muted, size: 20),
+                  const Spacer(),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.primary,
+                    ),
+                    child: const Icon(Icons.arrow_forward,
+                        color: AppColors.primaryFg, size: 19),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickChip extends StatelessWidget {
+  const _QuickChip({
+    required this.emoji,
     required this.label,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm + 5,
+            vertical: AppSpacing.sm + 1,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 13)),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(2, AppSpacing.xl, 2, AppSpacing.sm + 2),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+      ),
+    );
+  }
+}
+
+/// 넓으면 2열, 좁으면 1열로 자식 카드를 배치.
+class _ResponsiveTwoCol extends StatelessWidget {
+  const _ResponsiveTwoCol({required this.isWide, required this.children});
+
+  final bool isWide;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isWide) {
+      return Column(
+        children: [
+          for (int i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpacing.sm + 2),
+            children[i],
+          ],
+        ],
+      );
+    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: AppSpacing.sm + 2),
+          Expanded(child: children[i]),
+        ],
+      ],
+    );
+  }
+}
+
+class _SuggestCard extends StatelessWidget {
+  const _SuggestCard({
+    required this.emoji,
+    required this.title,
+    required this.body,
+    required this.cta,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final String title;
+  final String body;
+  final String cta;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.10),
+            AppColors.accent.withValues(alpha: 0.08),
+          ],
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+              color: AppColors.primary.withValues(alpha: 0.16),
+            ),
+            alignment: Alignment.center,
+            child: Text(emoji, style: const TextStyle(fontSize: 18)),
+          ),
+          const SizedBox(width: AppSpacing.sm + 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: AppSpacing.sm + 1),
+                FilledButton(
+                  onPressed: onTap,
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm - 3),
+                    ),
+                  ),
+                  child: Text(cta, style: const TextStyle(fontSize: 12.5)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightStat extends StatelessWidget {
+  const _InsightStat({
     required this.value,
-    required this.icon,
+    required this.label,
     required this.color,
   });
 
-  final String label;
   final String value;
-  final IconData icon;
+  final String label;
   final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.md - 3,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: textTheme.labelSmall?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentChatCard extends StatelessWidget {
+  const _RecentChatCard({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.md,
-        ),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              value,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                const SynapseOrb(size: 32, glyphScale: 0.47),
+                const SizedBox(width: AppSpacing.sm + 2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('AI 튜터',
+                          style: textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w800)),
+                      Text('● 답변 완료',
+                          style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              label,
-              style:
-                  textTheme.bodySmall?.copyWith(color: AppColors.stone500),
+            const SizedBox(height: AppSpacing.md),
+            const _ChatBubble(
+              text: '트랜스포머 노트로 복습 카드 만들어줘',
+              isMe: true,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const _ChatBubble(
+              text: '「트랜스포머」 노트에서 핵심 4장을 만들었어요. 추가할 카드를 골라주세요 👇',
+              isMe: false,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md - 2,
+                vertical: AppSpacing.sm + 1,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('3장 선택됨',
+                            style: textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        Text('덱: ML 기초 · +15 XP',
+                            style: textTheme.labelSmall
+                                ?.copyWith(color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: onTap,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('대화 이어가기',
+                        style: TextStyle(fontSize: 12.5)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -283,53 +685,46 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ── Mini heatmap painter ───────────────────────────────────────────────────
+class _ChatBubble extends StatelessWidget {
+  const _ChatBubble({required this.text, required this.isMe});
 
-class _HeatmapMiniPainter extends CustomPainter {
-  _HeatmapMiniPainter({required this.data});
-
-  final List<int> data;
-
-  static const int _cols = 12;
-  static const int _rows = 7;
-
-  Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
-  }
+  final String text;
+  final bool isMe;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final cellW = (size.width - (_cols - 1) * 2) / _cols;
-    final cellH = (size.height - (_rows - 1) * 2) / _rows;
-    final cellSize = math.min(cellW, cellH);
-    const gap = 2.0;
-
-    for (int col = 0; col < _cols; col++) {
-      for (int row = 0; row < _rows; row++) {
-        final index = col * _rows + row;
-        final count = index < data.length ? data[index] : 0;
-        final paint = Paint()..color = _colorForCount(count);
-        final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            col * (cellSize + gap),
-            row * (cellSize + gap),
-            cellSize,
-            cellSize,
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.7,
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md - 2,
+            vertical: AppSpacing.sm + 3,
           ),
-          const Radius.circular(2),
-        );
-        canvas.drawRRect(rect, paint);
-      }
-    }
+          decoration: BoxDecoration(
+            color: isMe ? AppColors.primary : AppColors.bg,
+            border: isMe ? null : Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: Radius.circular(isMe ? 16 : 5),
+              bottomRight: Radius.circular(isMe ? 5 : 16),
+            ),
+          ),
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isMe ? AppColors.primaryFg : AppColors.text,
+                  height: 1.5,
+                ),
+          ),
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant _HeatmapMiniPainter oldDelegate) =>
-      oldDelegate.data != data;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

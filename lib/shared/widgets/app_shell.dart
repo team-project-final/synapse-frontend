@@ -7,6 +7,7 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/bottom_nav.dart';
 import 'package:synapse_frontend/shared/widgets/command_palette.dart';
 import 'package:synapse_frontend/shared/widgets/side_nav.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 final sideNavExpandedProvider =
     NotifierProvider<SideNavExpandedNotifier, bool>(
@@ -87,7 +88,17 @@ class AppShell extends ConsumerWidget {
                 ),
               )
             : null,
-        title: const Text('Synapse'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SynapseOrb(size: 28, glyphScale: 0.5),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Synapse',
+              style: Theme.of(context).appBarTheme.titleTextStyle,
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

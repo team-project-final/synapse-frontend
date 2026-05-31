@@ -47,6 +47,14 @@ void main() {
     });
   }
 
+  // v1 ③: 노트 상세 본문에 인라인 위키링크 + "백링크 4" 인용 스니펫.
+  testWidgets('NoteDetail 인라인 위키링크 + 백링크 4', (tester) async {
+    await pump(tester, const NoteDetailScreen(noteId: '1'), mobile);
+    expect(find.text('[[드롭아웃]]'), findsOneWidget);
+    expect(find.text('백링크 4'), findsOneWidget);
+    expect(find.text('"…해결: ML 정규화 기법, 교차검증."'), findsOneWidget);
+  });
+
   // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이
   // 뜨는지 확인한다. (드롭다운 진입 분기를 실제로 타게 한다)
   testWidgets('NoteEditor [[ 자동완성 드롭다운 렌더', (tester) async {

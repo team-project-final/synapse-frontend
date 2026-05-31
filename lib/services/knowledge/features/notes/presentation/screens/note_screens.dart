@@ -219,23 +219,12 @@ class NoteDetailScreen extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
+    // v1 ③: 본문 속 인라인 위키링크([[…]])가 탭 가능해야 한다.
     // TODO: 팀원 구현 — knowledge-svc 노트 상세 API 연동 (noteId: $noteId)
-    const mockContent = '''
-## 정규화 기법 (Regularization)
-
-정규화는 머신러닝 모델의 **과적합(Overfitting)**을 방지하는 핵심 기법입니다.
-
-### L1 정규화 (Lasso)
-- 가중치의 절댓값 합을 페널티로 추가
-- 일부 가중치를 정확히 0으로 만들어 **희소성(Sparsity)** 유도
-- 특성 선택 효과가 있음
-
-### L2 정규화 (Ridge)
-- 가중치의 제곱합을 페널티로 추가
-- 가중치를 작게 만들되 0에 가깝게만 유지
-
-참고: [[드롭아웃]], [[배치 정규화]]
-''';
+    void openWiki(String title) {
+      // mock — 위키링크 타깃 노트로 이동(실제 ID는 백엔드 연동 시 해석)
+      context.go(AppRoutes.noteDetailPath('2'));
+    }
 
     final mainContent = Align(
       alignment: Alignment.topCenter,
@@ -271,23 +260,23 @@ class NoteDetailScreen extends ConsumerWidget {
                   children: [ConceptTag('#머신러닝'), ConceptTag('#딥러닝')],
                 ),
                 const SizedBox(height: AppSpacing.md),
-                // Markdown body
-                const MarkdownBody(data: mockContent),
-                const SizedBox(height: AppSpacing.sm),
-                // WikiLink chips
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    _WikiLink(
-                      '드롭아웃',
-                      onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-                    ),
-                    _WikiLink(
-                      '배치 정규화',
-                      onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-                    ),
+                // 본문 — 인라인 위키링크([[…]])가 본문 안에서 탭 가능.
+                _WikiBody(
+                  spans: const [
+                    _Span.text('과적합 방지를 위한 기법들을 정리한다. 대표적으로 '),
+                    _Span.wiki('Lasso'),
+                    _Span.text('(L1)와 '),
+                    _Span.wiki('Ridge'),
+                    _Span.text('(L2) 정규화가 있다.\n\nL1은 '),
+                    _Span.wiki('가중치'),
+                    _Span.text('를 0으로 만들어 sparse 솔루션을 유도하고, L2는 가중치를 작게 유지한다. '
+                        '신경망에서는 '),
+                    _Span.wiki('드롭아웃'),
+                    _Span.text('이 정규화 역할을 하며, 이는 '),
+                    _Span.wiki('과적합'),
+                    _Span.text('을 효과적으로 줄인다.'),
                   ],
+                  onWikiTap: openWiki,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 // AI 진입
@@ -319,27 +308,27 @@ class NoteDetailScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const ConceptSectionLabel('백링크 2'),
+                // 백링크 — 📄 아이콘 + 제목 + 인용 스니펫 (v1 `.backlinks`).
+                const ConceptSectionLabel('백링크 4'),
                 // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
                 _BacklinkItem(
-                  title: '드롭아웃 기법',
-                  snippet: '...과적합 방지를 위한 또 다른 기법으로 [[정규화 기법]]을 함께 사용합니다...',
+                  title: '과적합',
+                  snippet: '"…해결: ML 정규화 기법, 교차검증."',
                   onTap: () => context.go(AppRoutes.noteDetailPath('2')),
                 ),
                 _BacklinkItem(
-                  title: 'Ridge vs Lasso 비교',
-                  snippet: '...L2 정규화([[정규화 기법]])는 Ridge 회귀에 해당합니다...',
+                  title: '드롭아웃',
+                  snippet: '"…ML 정규화 기법의 한 종류로…"',
                   onTap: () => context.go(AppRoutes.noteDetailPath('3')),
                 ),
-                const ConceptSectionLabel('참조 노트 2'),
                 _BacklinkItem(
-                  title: '드롭아웃 (Dropout)',
-                  snippet: '과적합 방지를 위해 학습 시 뉴런을 랜덤하게 비활성화하는 기법입니다.',
+                  title: '교차검증',
+                  snippet: '"…ML 정규화 기법과 함께 사용…"',
                   onTap: () => context.go(AppRoutes.noteDetailPath('4')),
                 ),
                 _BacklinkItem(
-                  title: '배치 정규화 (Batch Normalization)',
-                  snippet: '미니배치 단위로 입력을 정규화하여 학습 속도를 향상시키는 기법입니다.',
+                  title: '경사하강법',
+                  snippet: '"…정규화 항을 손실에 더해…"',
                   onTap: () => context.go(AppRoutes.noteDetailPath('5')),
                 ),
               ],
@@ -394,35 +383,55 @@ class NoteDetailScreen extends ConsumerWidget {
   }
 }
 
-/// 위키링크 인라인 칩 (목업 `.wl`).
-class _WikiLink extends StatelessWidget {
-  const _WikiLink(this.label, {required this.onTap});
+/// 본문 인라인 조각 — 일반 텍스트 또는 위키링크.
+class _Span {
+  const _Span.text(this.value) : isWiki = false;
+  const _Span.wiki(this.value) : isWiki = true;
+  final String value;
+  final bool isWiki;
+}
 
-  final String label;
-  final VoidCallback onTap;
+/// 위키링크가 본문 안에 인라인으로 박힌 노트 본문 (v1 `.detail-b` + `.wl`).
+/// 위키링크는 primary 틴트 배경 + 탭 시 해당 노트로 이동.
+class _WikiBody extends StatelessWidget {
+  const _WikiBody({required this.spans, required this.onWikiTap});
+
+  final List<_Span> spans;
+  final ValueChanged<String> onWikiTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.primary.withValues(alpha: 0.10),
-      borderRadius: BorderRadius.circular(AppRadius.sm - 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.sm - 4),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          child: Text(
-            '[[$label]]',
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-        ),
+    final textTheme = Theme.of(context).textTheme;
+    final base = textTheme.bodyLarge?.copyWith(height: 1.7, color: AppColors.text);
+    return Text.rich(
+      TextSpan(
+        children: [
+          for (final s in spans)
+            if (!s.isWiki)
+              TextSpan(text: s.value, style: base)
+            else
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: GestureDetector(
+                  onTap: () => onWikiTap(s.value),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      '[[${s.value}]]',
+                      style: base?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+        ],
       ),
     );
   }

@@ -46,4 +46,16 @@ void main() {
       await pump(tester, entry.value, mobile);
     });
   }
+
+  // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이
+  // 뜨는지 확인한다. (드롭다운 진입 분기를 실제로 타게 한다)
+  testWidgets('NoteEditor [[ 자동완성 드롭다운 렌더', (tester) async {
+    await pump(tester, const NoteEditorScreen(noteId: '1'), desktop);
+    await tester.enterText(find.byType(TextField).first, '핵심은 [[어텐');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull);
+    expect(find.text('위키링크 자동완성'), findsOneWidget);
+    expect(find.text('어텐션 메커니즘'), findsWidgets);
+  });
 }

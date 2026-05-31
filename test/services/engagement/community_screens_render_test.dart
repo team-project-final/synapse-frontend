@@ -44,4 +44,13 @@ void main() {
       await pump(tester, entry.value, mobile);
     });
   }
+
+  // v1 ⑪: 그룹 메타("승인제·8/20명·공유덱3") + 주간 랭킹(본인 강조)이 보이는지.
+  testWidgets('CommunityGroups v1 디테일 노출', (tester) async {
+    await pump(tester, const CommunityGroupsScreen(), mobile);
+    expect(find.text('승인제 · 8/20명 · 공유덱 3'), findsOneWidget);
+    expect(find.text('가입됨'), findsWidgets);
+    expect(find.textContaining('🥇'), findsOneWidget);
+    expect(find.textContaining('🥉 나'), findsOneWidget);
+  });
 }

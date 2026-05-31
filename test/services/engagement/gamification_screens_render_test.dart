@@ -40,4 +40,13 @@ void main() {
       await pump(tester, entry.value, mobile);
     });
   }
+
+  // v1 ⑩: 프로필의 핵심 디테일(레벨/XP·스트릭 최고/배지 5/8)이 보이는지.
+  testWidgets('GamificationProfile v1 디테일 노출', (tester) async {
+    await pump(tester, const GamificationProfileScreen(), mobile);
+    expect(find.text('레벨 7 · 지식 탐험가'), findsOneWidget);
+    expect(find.text('Lv 8까지 360'), findsOneWidget);
+    expect(find.text('연속 · 최고 21일'), findsOneWidget);
+    expect(find.text('배지 5 / 8'), findsOneWidget);
+  });
 }

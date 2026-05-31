@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 // ── GamificationProfileScreen (SCR-W-GAME-001) ──
@@ -11,325 +12,233 @@ import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 class GamificationProfileScreen extends ConsumerWidget {
   const GamificationProfileScreen({super.key});
 
+  // v1 ⑩: 배지 갤러리 5/8(획득 5, 잠금 3) — 이모지 + 이름.
+  // TODO: 팀원 구현 — engagement-svc 게이미피케이션 프로필 API 연동
+  static const _badges = [
+    _ProfileBadge(emoji: '📝', name: '첫 노트', locked: false),
+    _ProfileBadge(emoji: '🎯', name: '첫 복습', locked: false),
+    _ProfileBadge(emoji: '🔥', name: '연속 7일', locked: false),
+    _ProfileBadge(emoji: '💯', name: '복습 100회', locked: false),
+    _ProfileBadge(emoji: '⭐', name: '레벨 5', locked: false),
+    _ProfileBadge(emoji: '🗓️', name: '연속 30일', locked: true),
+    _ProfileBadge(emoji: '📚', name: '노트 50개', locked: true),
+    _ProfileBadge(emoji: '🏆', name: '레벨 10', locked: true),
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final acquired = _badges.where((b) => !b.locked).length;
 
-    // TODO: 팀원 구현 — engagement-svc 게이미피케이션 프로필 API 연동
-    const acquiredBadgeData = [
-      _BadgeInfo(icon: Icons.star, name: '노트 마스터', condition: '노트 50개 작성', date: '2026-04-10'),
-      _BadgeInfo(icon: Icons.military_tech, name: '7일 연속', condition: '7일 연속 학습', date: '2026-05-01'),
-      _BadgeInfo(icon: Icons.emoji_events, name: '첫 복습', condition: '첫 번째 복습 완료', date: '2026-03-15'),
-      _BadgeInfo(icon: Icons.local_fire_department, name: '불꽃 학습', condition: '하루 50장 복습', date: '2026-05-10'),
-      _BadgeInfo(icon: Icons.school, name: '지식 탐험가', condition: '레벨 7 달성', date: '2026-05-15'),
-      _BadgeInfo(icon: Icons.lightbulb, name: 'AI 활용', condition: 'AI 카드 생성 10회', date: '2026-04-20'),
-      _BadgeInfo(icon: Icons.workspace_premium, name: '프리미엄', condition: 'Pro 플랜 가입', date: '2026-03-01'),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return ConceptPage(
       children: [
-        // Header card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const SynapseOrb(size: 60, glyph: '🧑‍💻', glyphScale: 0.5),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('김시냅스',
-                              style: textTheme.titleMedium),
-                          const SizedBox(height: AppSpacing.xxs),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
-                                vertical: AppSpacing.xxs),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary
-                                  .withValues(alpha: 0.15),
-                              borderRadius:
-                                  BorderRadius.circular(AppSpacing.xs),
-                            ),
-                            child: Text(
-                              '레벨 7 — 지식 탐험가',
-                              style: textTheme.labelSmall?.copyWith(
-                                  color: AppColors.primary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // XP bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('경험치', style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.muted)),
-                        Text('3,240 / 5,000 XP',
-                            style: textTheme.bodySmall?.copyWith(
-                                color: AppColors.primary)),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    // primary→accent 그라데이션 XP 바 (목업 xpbar)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: Container(
-                        height: 9,
-                        color: AppColors.surface2,
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: 0.65,
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [AppColors.primary, AppColors.accent],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // Streak
-                Row(
-                  children: [
-                    const Icon(Icons.local_fire_department,
-                        color: Colors.deepOrange, size: 20),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text('연속 학습 14일',
-                        style: textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.text)),
-                    // TODO: 팀원 구현 — 연속 학습 스트릭 데이터 연동
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // Weekly stats row
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('이번 주 통계', style: textTheme.titleSmall),
-                const SizedBox(height: AppSpacing.sm),
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _WeeklyStat(
-                        icon: Icons.style_outlined,
-                        label: '복습',
-                        value: '78장'),
-                    _WeeklyStat(
-                        icon: Icons.article_outlined,
-                        label: '노트',
-                        value: '12개'),
-                    _WeeklyStat(
-                        icon: Icons.bolt,
-                        label: 'XP',
-                        value: '450'),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // Badge section
+        // 헤더: 아바타(orb) + 이름 + 레벨
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('획득한 배지 (12/30)', style: textTheme.titleMedium),
-            TextButton(
-              onPressed: () => context.go(AppRoutes.gamificationBadges),
-              child: const Text('전체 보기 →'),
+            const SynapseOrb(size: 64, glyph: '🧑‍💻', glyphScale: 0.44),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('개발자 김시냅스',
+                      style: textTheme.titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text('레벨 7 · 지식 탐험가',
+                      style: textTheme.labelLarge?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: acquiredBadgeData
-              .map((badge) => GestureDetector(
-                    onTap: () => _showBadgeDetail(context, badge),
-                    child: Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface2,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.sm),
-                        border:
-                            Border.all(color: AppColors.border),
-                      ),
-                      child: Icon(badge.icon,
-                          color: AppColors.primary, size: 24),
-                    ),
-                  ))
-              .toList(),
-        ),
-        // TODO: 팀원 구현 — 획득 배지 목록 API 연동
         const SizedBox(height: AppSpacing.md),
-
-        // Stats section
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _ProfileStat(label: '복습 카드', value: '152장'),
-                    _VerticalDivider(),
-                    _ProfileStat(label: '노트', value: '8개'),
-                    _VerticalDivider(),
-                    _ProfileStat(label: 'XP', value: '+420'),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () =>
-                        context.go(AppRoutes.gamificationLeaderboard),
-                    child: const Text('리더보드 보기 →'),
+        // XP 바 (Lv 8까지 360 — 90%)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('XP 3,240',
+                style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.muted, fontWeight: FontWeight.w700)),
+            Text('Lv 8까지 360',
+                style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.muted, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // primary→accent 그라데이션 XP 바 (목업 xpbar)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: Container(
+            height: 9,
+            color: AppColors.surface2,
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: 0.90,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.primary, AppColors.accent],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ),
-        // TODO: 팀원 구현 — 학습 통계 데이터 API 연동
-      ],
-    );
-  }
-
-  void _showBadgeDetail(BuildContext context, _BadgeInfo badge) {
-    final textTheme = Theme.of(context).textTheme;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: AppSpacing.md),
+        // 스트릭 배너 (연속 + 최고)
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.md - 2),
+          decoration: BoxDecoration(
+            color: AppColors.streak.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.streak.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(badge.icon,
-                  size: 48, color: AppColors.primary),
-              const SizedBox(height: AppSpacing.md),
-              Text(badge.name, style: textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                '조건: ${badge.condition}',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.muted),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '획득일: ${badge.date}',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.muted),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              const Text('🔥', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: AppSpacing.sm),
+              Text('14일',
+                  style: textTheme.titleMedium?.copyWith(
+                      color: AppColors.streak, fontWeight: FontWeight.w800)),
+              const SizedBox(width: 6),
+              Text('연속 · 최고 21일',
+                  style: textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
-        );
-      },
+        ),
+        // 이번 주 통계 statgrid
+        const ConceptSectionLabel('이번 주'),
+        const ConceptStatRow(
+          children: [
+            ConceptStat(value: '152', label: '복습'),
+            ConceptStat(value: '8', label: '새 노트'),
+            ConceptStat(value: '+420', label: 'XP', color: AppColors.primary),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm + 2),
+        // 정답률 행 (full-width stat)
+        ConceptCard(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.md - 3),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('정답률',
+                  style: textTheme.labelMedium?.copyWith(
+                      color: AppColors.muted, fontWeight: FontWeight.w600)),
+              Text('94%',
+                  style: textTheme.headlineSmall?.copyWith(
+                      color: AppColors.success, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+        // 배지 갤러리
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, AppSpacing.xl, 2, AppSpacing.sm + 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('배지 $acquired / ${_badges.length}',
+                  style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5)),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.gamificationBadges),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('전체 보기 →'),
+              ),
+            ],
+          ),
+        ),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: isWide ? 8 : 4,
+            crossAxisSpacing: AppSpacing.sm + 4,
+            mainAxisSpacing: AppSpacing.sm + 4,
+            childAspectRatio: 0.78,
+          ),
+          itemCount: _badges.length,
+          itemBuilder: (context, i) => _ProfileBadgeTile(badge: _badges[i]),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => context.go(AppRoutes.gamificationLeaderboard),
+            child: const Text('리더보드 보기 →'),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
     );
   }
 }
 
-class _BadgeInfo {
-  const _BadgeInfo({
-    required this.icon,
+/// 프로필 배지(이모지). v1 `.badge2` — 정사각 라운드 + 잠금 시 그레이/반투명.
+class _ProfileBadge {
+  const _ProfileBadge({
+    required this.emoji,
     required this.name,
-    required this.condition,
-    required this.date,
+    required this.locked,
   });
-  final IconData icon;
+  final String emoji;
   final String name;
-  final String condition;
-  final String date;
+  final bool locked;
 }
 
-class _WeeklyStat extends StatelessWidget {
-  const _WeeklyStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
+class _ProfileBadgeTile extends StatelessWidget {
+  const _ProfileBadgeTile({required this.badge});
+  final _ProfileBadge badge;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: AppColors.primary, size: 24),
-        const SizedBox(height: AppSpacing.xs),
-        Text(value,
-            style: textTheme.titleSmall
-                ?.copyWith(color: AppColors.primary)),
-        Text(label,
-            style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.muted)),
+        AspectRatio(
+          aspectRatio: 1,
+          child: Opacity(
+            opacity: badge.locked ? 0.4 : 1,
+            child: Container(
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: badge.locked
+                    ? AppColors.surface2
+                    : AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Text(badge.emoji, style: const TextStyle(fontSize: 24)),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs + 1),
+        Flexible(
+          child: Text(
+            badge.name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: textTheme.labelSmall?.copyWith(
+                color: AppColors.muted, fontWeight: FontWeight.w700),
+          ),
+        ),
       ],
     );
-  }
-}
-
-class _ProfileStat extends StatelessWidget {
-  const _ProfileStat({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Column(
-      children: [
-        Text(value,
-            style: textTheme.titleMedium
-                ?.copyWith(color: AppColors.primary)),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(label,
-            style: textTheme.bodySmall
-                ?.copyWith(color: AppColors.muted)),
-      ],
-    );
-  }
-}
-
-class _VerticalDivider extends StatelessWidget {
-  const _VerticalDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 1, height: 36, color: AppColors.border);
   }
 }
 

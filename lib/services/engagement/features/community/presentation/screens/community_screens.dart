@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/report_dialog.dart';
 import 'package:synapse_frontend/shared/widgets/toast.dart';
 
@@ -12,61 +13,67 @@ import 'package:synapse_frontend/shared/widgets/toast.dart';
 class CommunityGroupsScreen extends ConsumerWidget {
   const CommunityGroupsScreen({super.key});
 
+  // v1 ⑪: 내 그룹 / 추천 그룹 + 주간 랭킹.
+  // TODO: 팀원 구현 — engagement-svc 그룹 목록 API 연동
+  static const _myGroups = [
+    _GroupData(
+        id: '1',
+        emoji: '☁️',
+        name: 'AWS 자격증 스터디',
+        meta: '승인제 · 8/20명 · 공유덱 3',
+        joined: true),
+    _GroupData(
+        id: '2',
+        emoji: '🧩',
+        name: '알고리즘 마스터즈',
+        meta: '공개 · 15/30명 · 공유덱 7',
+        joined: true),
+  ];
+
+  static const _suggestedGroups = [
+    _GroupData(
+        id: '3',
+        emoji: '🧠',
+        name: '딥러닝 논문 읽기',
+        meta: '초대제 · 6/10명 · 공유덱 2',
+        joined: false,
+        joinLabel: '신청'),
+    _GroupData(
+        id: '4',
+        emoji: '✦',
+        name: 'Synapse 사용자 모임',
+        meta: '공개 · 42/100명 · 공유덱 15',
+        joined: false,
+        joinLabel: '가입'),
+  ];
+
+  static const _ranking = [
+    _RankEntry(badge: '🥇', name: '민지', xp: 980, isMe: false),
+    _RankEntry(badge: '🥈', name: '준호', xp: 760, isMe: false),
+    _RankEntry(badge: '🥉', name: '나', xp: 420, isMe: true),
+    _RankEntry(badge: '4.', name: '서연', xp: 310, isMe: false),
+  ];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: 팀원 구현 — engagement-svc 그룹 목록 API 연동
-    const mockGroups = [
-      _GroupData(
-        id: '1',
-        name: 'AWS 스터디',
-        memberCount: 12,
-        lastActivity: '2시간 전',
-        memberAvatars: ['김', '이', '박', '최', '정'],
-      ),
-      _GroupData(
-        id: '2',
-        name: '알고리즘 마스터',
-        memberCount: 8,
-        lastActivity: '1일 전',
-        memberAvatars: ['홍', '윤', '임'],
-      ),
-      _GroupData(
-        id: '3',
-        name: '머신러닝 기초반',
-        memberCount: 25,
-        lastActivity: '30분 전',
-        memberAvatars: ['서', '강', '조', '한', '백', '노'],
-      ),
-    ];
-
-    return DefaultTabController(
+    return const DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          const TabBar(
+          TabBar(
             tabs: [Tab(text: '내 그룹'), Tab(text: '탐색')],
           ),
           Expanded(
             child: TabBarView(
               children: [
-                // My groups tab
-                mockGroups.isEmpty
-                    ? _EmptyGroupList(
-                        message: '가입한 그룹이 없습니다',
-                        actionLabel: '그룹 만들기',
-                        onAction: () =>
-                            context.go(AppRoutes.communityGroupNew),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        itemCount: mockGroups.length,
-                        itemBuilder: (context, i) =>
-                            _GroupCard(group: mockGroups[i]),
-                      ),
-                // Explore tab
-                const _EmptyGroupList(
-                  message: '공개 그룹이 없습니다',
+                // My groups tab — 내 그룹 + 추천 + 주간 랭킹
+                _GroupsTab(
+                  myGroups: _myGroups,
+                  suggestedGroups: _suggestedGroups,
+                  ranking: _ranking,
                 ),
+                // Explore tab
+                _ExploreTab(),
               ],
             ),
           ),
@@ -76,21 +83,74 @@ class CommunityGroupsScreen extends ConsumerWidget {
   }
 }
 
+class _GroupsTab extends StatelessWidget {
+  const _GroupsTab({
+    required this.myGroups,
+    required this.suggestedGroups,
+    required this.ranking,
+  });
+
+  final List<_GroupData> myGroups;
+  final List<_GroupData> suggestedGroups;
+  final List<_RankEntry> ranking;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ConceptSearchBar(hint: '그룹 찾기…', onTap: () {}),
+                const ConceptSectionLabel('내 그룹', topGap: AppSpacing.md),
+                ConceptResponsiveGrid(
+                  isWide: isWide,
+                  children: [
+                    for (final g in myGroups) _GroupCard(group: g),
+                  ],
+                ),
+                const ConceptSectionLabel('추천 그룹'),
+                ConceptResponsiveGrid(
+                  isWide: isWide,
+                  children: [
+                    for (final g in suggestedGroups) _GroupCard(group: g),
+                  ],
+                ),
+                const ConceptSectionLabel('주간 랭킹 · 알고리즘 마스터즈'),
+                _WeeklyRanking(entries: ranking),
+                const SizedBox(height: AppSpacing.xl),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _GroupData {
   const _GroupData({
     required this.id,
+    required this.emoji,
     required this.name,
-    required this.memberCount,
-    required this.lastActivity,
-    required this.memberAvatars,
+    required this.meta,
+    required this.joined,
+    this.joinLabel = '가입',
   });
   final String id;
+  final String emoji;
   final String name;
-  final int memberCount;
-  final String lastActivity;
-  final List<String> memberAvatars;
+  final String meta;
+  final bool joined;
+  final String joinLabel;
 }
 
+/// 그룹 카드 (v1 `.group`) — 이모지 아이콘 + 이름/메타 + 가입됨/신청 상태.
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.group});
   final _GroupData group;
@@ -98,123 +158,166 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
-    // Show up to 3 overlapping avatars
-    final visibleAvatars = group.memberAvatars.take(3).toList();
-    final overflow = group.memberAvatars.length - 3;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: InkWell(
-        onTap: () => context
-            .go(AppRoutes.communityGroupDetailPath(group.id)),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm + 2),
+      child: ConceptCard(
+        onTap: () =>
+            context.go(AppRoutes.communityGroupDetailPath(group.id)),
+        padding: const EdgeInsets.all(AppSpacing.md - 2),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Text(group.emoji, style: const TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(width: AppSpacing.sm + 2),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: const Text('👥', style: TextStyle(fontSize: 20)),
-                  ),
-                  const SizedBox(width: AppSpacing.sm + 2),
-                  Expanded(
-                    child: Text(group.name,
-                        style: textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w800)),
-                  ),
-                  Text('마지막 활동: ${group.lastActivity}',
+                  Text(group.name,
+                      style: textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 3),
+                  Text(group.meta,
                       style: textTheme.labelSmall
                           ?.copyWith(color: AppColors.muted)),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                children: [
-                  // Overlapping member avatars
-                  SizedBox(
-                    width: visibleAvatars.length * 16.0 + 12,
-                    height: 24,
-                    child: Stack(
-                      children: [
-                        for (int i = 0; i < visibleAvatars.length; i++)
-                          Positioned(
-                            left: i * 16.0,
-                            child: CircleAvatar(
-                              radius: 12,
-                              backgroundColor:
-                                  colorScheme.primaryContainer,
-                              child: Text(
-                                visibleAvatars[i],
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (overflow > 0)
-                    Text('+$overflow',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.muted)),
-                  const SizedBox(width: AppSpacing.sm),
-                  Text('${group.memberCount}명',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.muted)),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _JoinPill(group: group),
+          ],
         ),
       ),
     );
   }
 }
 
-class _EmptyGroupList extends StatelessWidget {
-  const _EmptyGroupList({
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
+/// "가입됨"(성공 틴트) / "가입·신청"(primary 버튼) 상태 pill. v1 `.gj`.
+class _JoinPill extends StatelessWidget {
+  const _JoinPill({required this.group});
+  final _GroupData group;
 
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
+  @override
+  Widget build(BuildContext context) {
+    if (group.joined) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm + 3, vertical: AppSpacing.xs + 2),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+        child: const Text('가입됨',
+            style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.success)),
+      );
+    }
+    return FilledButton(
+      onPressed: () {
+        // TODO: 팀원 구현 — 그룹 가입/신청 API 연동
+      },
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md - 2, vertical: AppSpacing.xs + 2),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.pill)),
+      ),
+      child: Text(group.joinLabel,
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+/// 주간 랭킹 행 데이터 (v1 ⑪ 하단 랭킹표).
+class _RankEntry {
+  const _RankEntry({
+    required this.badge,
+    required this.name,
+    required this.xp,
+    required this.isMe,
+  });
+  final String badge; // 🥇🥈🥉 또는 "4."
+  final String name;
+  final int xp;
+  final bool isMe;
+}
+
+/// 주간 랭킹 표 (메달 + 이름 + +XP, 본인 행 accent 강조). v1 `.card` 랭킹.
+class _WeeklyRanking extends StatelessWidget {
+  const _WeeklyRanking({required this.entries});
+  final List<_RankEntry> entries;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Center(
+    return ConceptCard(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md - 2, vertical: AppSpacing.xs),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.groups_outlined, size: 64, color: AppColors.muted),
-          const SizedBox(height: AppSpacing.md),
-          Text(message,
-              style: textTheme.bodyLarge
-                  ?.copyWith(color: AppColors.muted)),
-          if (actionLabel != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
+          for (int i = 0; i < entries.length; i++) ...[
+            if (i > 0) const Divider(height: 1, color: AppColors.border),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${entries[i].badge} ${entries[i].name}',
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight:
+                            entries[i].isMe ? FontWeight.w800 : FontWeight.w700,
+                        color: entries[i].isMe ? AppColors.accent : null,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '+${entries[i].xp}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color:
+                          entries[i].isMe ? AppColors.accent : AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 탐색 탭 — 빈 상태 + 그룹 만들기 진입(v1엔 별도 화면이나 빈 상태로 대체).
+class _ExploreTab extends StatelessWidget {
+  const _ExploreTab();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConceptEmptyState(
+        emoji: '🫧',
+        title: '공개 그룹이 없습니다',
+        body: '새 그룹을 만들어 함께 학습할 동료를 모아보세요',
+        action: FilledButton.icon(
+          onPressed: () => context.go(AppRoutes.communityGroupNew),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('그룹 만들기'),
+        ),
       ),
     );
   }

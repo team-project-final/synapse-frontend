@@ -51,7 +51,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '로그인'));
     await tester.pumpAndSettle();
 
-    expect(find.text('오늘의 학습'), findsOneWidget);
+    // 대시보드 히어로 카피가 AI Tutor 디자인으로 변경됨.
+    expect(find.text('무엇을 학습해 볼까요?'), findsOneWidget);
     expect(find.byType(LoginScreen), findsNothing);
   });
 

@@ -93,9 +93,13 @@ class AppShell extends ConsumerWidget {
           children: [
             const SynapseOrb(size: 28, glyphScale: 0.5),
             const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Synapse',
-              style: Theme.of(context).appBarTheme.titleTextStyle,
+            Flexible(
+              child: Text(
+                'Synapse',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).appBarTheme.titleTextStyle,
+              ),
             ),
           ],
         ),

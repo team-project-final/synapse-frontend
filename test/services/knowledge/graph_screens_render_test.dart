@@ -40,4 +40,12 @@ void main() {
       await pump(tester, entry.value, mobile);
     });
   }
+
+  // v1 ⑧: 태그 색상 범례 + AI 허브 분석 코멘트가 보이는지.
+  testWidgets('GraphView 범례 + AI 허브 분석 노출', (tester) async {
+    await pump(tester, const GraphViewScreen(), desktop);
+    expect(find.text('머신러닝'), findsWidgets);
+    expect(find.text('알고리즘'), findsWidgets);
+    expect(find.textContaining('PageRank 1위'), findsOneWidget);
+  });
 }

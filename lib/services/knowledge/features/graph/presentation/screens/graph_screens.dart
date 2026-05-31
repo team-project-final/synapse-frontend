@@ -89,6 +89,16 @@ class _GraphPainter extends CustomPainter {
   final double highlightRadius;
 
   static const double _defaultNodeRadius = 20.0;
+  // PageRank → 반지름 매핑 범위 (v1: 노드 크기 = PageRank).
+  static const double _minRadius = 14.0;
+  static const double _maxRadius = 30.0;
+
+  /// PageRank(0~1 가정)를 반지름으로 선형 매핑. 데이터가 없으면 기본값.
+  double _radiusFor(_MockGraphNode node) {
+    if (node.pageRank <= 0) return _defaultNodeRadius;
+    final r = _minRadius + (_maxRadius - _minRadius) * node.pageRank.clamp(0.0, 1.0);
+    return r;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -121,7 +131,8 @@ class _GraphPainter extends CustomPainter {
       final isDimmed = dimmedClusters.contains(node.cluster);
       final isSelected = node.id == selectedNodeId;
       final isHighlight = node.id == highlightNodeId;
-      final radius = isHighlight ? highlightRadius : _defaultNodeRadius;
+      // 명시적 하이라이트가 있으면 고정 반지름, 아니면 PageRank로 크기 결정.
+      final radius = isHighlight ? highlightRadius : _radiusFor(node);
 
       final clusterColor = clusterColors[node.cluster % clusterColors.length];
       final color = isDimmed ? clusterColor.withValues(alpha: 0.2) : clusterColor;
@@ -313,6 +324,8 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                 ],
               ),
             ),
+            // 태그 색상 범례 (v1 ⑧ legend) — 노드 크기=PageRank, 색=태그.
+            const _GraphLegend(),
             // Graph area
             Expanded(
               child: InteractiveViewer(
@@ -337,10 +350,21 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
             ),
           ],
         ),
-        // Fit FAB
+        // 노드 미선택 시 AI 허브 분석 코멘트(v1 ⑧ ai-comment).
+        if (selectedNode == null)
+          const Positioned(
+            left: AppSpacing.sm,
+            right: AppSpacing.sm,
+            bottom: AppSpacing.sm,
+            child: ConceptAiComment(
+              text: '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). '
+                  '「신경망 구조」 클러스터는 다른 노트와 연결이 적으니 위키링크를 더 만들어 보세요.',
+            ),
+          ),
+        // Fit FAB — 노드 선택 패널/AI 코멘트 위로 띄운다.
         Positioned(
           right: AppSpacing.md,
-          bottom: selectedNode != null ? 220 : AppSpacing.md,
+          bottom: selectedNode != null ? 220 : 96,
           child: FloatingActionButton.small(
             heroTag: 'fit_screen',
             onPressed: _resetView,
@@ -416,6 +440,47 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// 그래프 태그 색상 범례 (v1 ⑧ `.legend`). 색 = 태그(클러스터).
+class _GraphLegend extends StatelessWidget {
+  const _GraphLegend();
+
+  // _clusterColors 순서와 매칭되는 태그 라벨.
+  static const _labels = ['머신러닝', '딥러닝', '아키텍처', '알고리즘'];
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+      child: Wrap(
+        spacing: AppSpacing.sm + 2,
+        runSpacing: AppSpacing.xs,
+        children: [
+          for (int i = 0; i < _labels.length; i++)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 11,
+                  height: 11,
+                  decoration: BoxDecoration(
+                    color: _clusterColors[i % _clusterColors.length],
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(_labels[i],
+                    style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.muted, fontWeight: FontWeight.w700)),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

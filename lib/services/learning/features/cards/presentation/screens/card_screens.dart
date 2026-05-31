@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
-import 'package:synapse_frontend/shared/widgets/ai_generate_loading.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/flip_card.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
@@ -565,212 +564,290 @@ class AiCardGenerationScreen extends ConsumerStatefulWidget {
 
 class _AiCardGenerationScreenState
     extends ConsumerState<AiCardGenerationScreen> {
-  String? _selectedNote;
-  int _cardCount = 10;
-  bool _isGenerating = false;
-  bool _hasResults = false;
-  final Set<int> _selectedResults = {};
+  // v1 목업 ⑤: 대화 흐름 속에서 카드가 만들어진다.
+  // 생성된 4장 중 기본 3장 선택(마지막 1장 미선택) — 목업과 동일.
+  final Set<int> _selected = {0, 1, 2};
 
-  // TODO: 팀원 구현 — knowledge-svc 노트 목록 API 연동
-  final _mockNotes = [
-    {'id': '1', 'title': '정규화 기법 (Regularization)'},
-    {'id': '2', 'title': '동적 프로그래밍 기초'},
-    {'id': '3', 'title': 'AWS S3 버킷 정책'},
+  static const _deckName = 'ML 기초';
+  static const _xpPerCard = 5;
+
+  // TODO: 팀원 구현 — learning-svc AI 카드 생성 API 연동(대화형)
+  static const _generated = <_GenCard>[
+    _GenCard(type: 'basic', q: '트랜스포머의 핵심 메커니즘은?', a: '어텐션 메커니즘 — 입력의 어느 부분에 집중할지 학습'),
+    _GenCard(type: 'cloze', q: '트랜스포머는 ___ 방지를 위해 드롭아웃을 쓴다', a: '과적합'),
+    _GenCard(type: 'basic', q: '트랜스포머가 표준인 분야는?', a: 'NLP와 Vision'),
+    _GenCard(type: 'basic', q: '어텐션과 RNN의 차이는?', a: '병렬 처리 가능, 장거리 의존성에 강함'),
   ];
 
-  static const _mockGeneratedCards = [
-    {'front': 'L1 정규화의 다른 이름은?', 'back': 'Lasso', 'type': 'basic'},
-    {'front': 'L2 정규화의 다른 이름은?', 'back': 'Ridge', 'type': 'basic'},
-    {'front': '정규화의 주요 목적은?', 'back': '과적합 방지', 'type': 'cloze'},
-    {'front': 'L1 정규화가 유도하는 성질은?', 'back': '희소성(Sparsity)', 'type': 'basic'},
-    {'front': 'Dropout이란?', 'back': '뉴런을 랜덤하게 비활성화', 'type': 'basic'},
-    {'front': 'Batch Normalization의 역할은?', 'back': '학습 안정성 향상', 'type': 'basic'},
-  ];
+  void _toggle(int i) {
+    setState(() {
+      if (!_selected.add(i)) _selected.remove(i);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final isWide = MediaQuery.sizeOf(context).width >= 600;
+    final count = _selected.length;
 
-    return ConceptPage(
+    return Column(
       children: [
-        // 히어로
-        Row(
+        // 대화 헤더 (orb + 이름 + ●답변 중)
+        Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              const SynapseOrb(size: 32, glyphScale: 0.47),
+              const SizedBox(width: AppSpacing.sm + 2),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('AI 튜터',
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                  Text('● 답변 중',
+                      style: textTheme.labelSmall?.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // 대화 본문
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                children: [
+                  const ConceptChatBubble(
+                    text: '트랜스포머 노트로 복습 카드 만들어줘',
+                    isMe: true,
+                  ),
+                  const SizedBox(height: AppSpacing.sm + 2),
+                  const ConceptChatBubble(
+                    text: '「트랜스포머」 노트에서 핵심 4장을 만들었어요. 추가할 카드를 골라주세요 👇',
+                    isMe: false,
+                  ),
+                  const SizedBox(height: AppSpacing.sm + 2),
+                  for (int i = 0; i < _generated.length; i++)
+                    _GenCardTile(
+                      card: _generated[i],
+                      checked: _selected.contains(i),
+                      onChanged: (_) => _toggle(i),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // "N장 선택됨 · 덱 · +XP / 덱에 추가" 바
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+              child: ConceptCard(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md - 2, vertical: AppSpacing.sm + 2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('$count장 선택됨',
+                              style: textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800)),
+                          Text('덱: $_deckName · +${count * _xpPerCard} XP',
+                              style: textTheme.labelSmall
+                                  ?.copyWith(color: AppColors.muted)),
+                        ],
+                      ),
+                    ),
+                    FilledButton(
+                      onPressed: count > 0
+                          ? () {
+                              // TODO: 팀원 구현 — 선택 카드 덱 추가 API 연동
+                              context.go(AppRoutes.decks);
+                            }
+                          : null,
+                      child: const Text('덱에 추가'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 채팅 입력 바
+        Container(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm,
+              AppSpacing.md, AppSpacing.sm),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text('더 물어보거나 카드를 수정하세요…',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.bodySmall
+                          ?.copyWith(color: AppColors.muted)),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              IconButton.filled(
+                onPressed: () {
+                  // TODO: 팀원 구현 — 대화형 카드 수정 입력 연동
+                },
+                icon: const Icon(Icons.arrow_forward),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.primaryFg,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// AI 생성 카드 1건 (v1 `.gencard`).
+class _GenCard {
+  const _GenCard({required this.type, required this.q, required this.a});
+  final String type; // basic | cloze
+  final String q;
+  final String a;
+}
+
+/// 체크박스 + basic/cloze 배지 + Q/A. v1 목업 `.gencard`.
+class _GenCardTile extends StatelessWidget {
+  const _GenCardTile({
+    required this.card,
+    required this.checked,
+    required this.onChanged,
+  });
+
+  final _GenCard card;
+  final bool checked;
+  final ValueChanged<bool?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: ConceptCard(
+        highlightBorder: checked,
+        padding: const EdgeInsets.all(AppSpacing.sm + 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SynapseOrb(size: 48, glyphScale: 0.46, shadow: true),
-            const SizedBox(width: AppSpacing.md),
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                value: checked,
+                onChanged: onChanged,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm + 2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AI 카드 생성',
-                      style: textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  Text('노트를 골라 복습 카드를 자동으로 만들어요',
+                  _CardTypeBadge(card.type),
+                  const SizedBox(height: AppSpacing.xs + 1),
+                  Text('Q. ${card.q}',
+                      style: textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 3),
+                  Text('A. ${card.a}',
                       style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.muted)),
+                          ?.copyWith(color: AppColors.muted, height: 1.45)),
                 ],
               ),
             ),
           ],
         ),
-        const ConceptSectionLabel('노트 선택'),
-        ConceptCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (int i = 0; i < _mockNotes.length; i++) ...[
-                if (i > 0) const Divider(height: 1),
-                RadioListTile<String>(
-                  value: _mockNotes[i]['id']!,
-                  // ignore: deprecated_member_use
-                  groupValue: _selectedNote,
-                  title: Text(_mockNotes[i]['title']!,
-                      style: textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  activeColor: AppColors.primary,
-                  // ignore: deprecated_member_use
-                  onChanged: (v) => setState(() => _selectedNote = v),
-                ),
-              ],
-            ],
-          ),
+      ),
+    );
+  }
+}
+
+/// basic / cloze 배지 (v1 `.gencard .badge`).
+class _CardTypeBadge extends StatelessWidget {
+  const _CardTypeBadge(this.type);
+  final String type;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.sm - 6),
+      ),
+      child: Text(
+        type,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primary,
         ),
-        const ConceptSectionLabel('카드 수'),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final count in [5, 10, 15, 20]) ...[
-                ConceptFilterPill(
-                  label: '$count장',
-                  selected: _cardCount == count,
-                  onTap: () => setState(() => _cardCount = count),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        FilledButton.icon(
-          onPressed: _selectedNote != null && !_isGenerating
-              ? () {
-                  setState(() {
-                    _isGenerating = true;
-                    _hasResults = false;
-                    _selectedResults.clear();
-                  });
-                  Future.delayed(const Duration(seconds: 2), () {
-                    if (mounted) {
-                      setState(() {
-                        _isGenerating = false;
-                        _hasResults = true;
-                      });
-                    }
-                  });
-                }
-              : null,
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('AI 카드 생성'),
-        ),
-        const ConceptSectionLabel('생성 결과'),
-        if (_isGenerating)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-            child: AIGenerateLoading(),
-          )
-        else if (_hasResults) ...[
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 2 : 1,
-              mainAxisSpacing: AppSpacing.sm + 2,
-              crossAxisSpacing: AppSpacing.sm + 2,
-              mainAxisExtent: 132,
-            ),
-            itemCount: _mockGeneratedCards.length,
-            itemBuilder: (context, i) {
-              final card = _mockGeneratedCards[i];
-              final isChecked = _selectedResults.contains(i);
-              return ConceptCard(
-                highlightBorder: isChecked,
-                onTap: () {
-                  setState(() {
-                    if (isChecked) {
-                      _selectedResults.remove(i);
-                    } else {
-                      _selectedResults.add(i);
-                    }
-                  });
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        ConceptTag(card['type']!),
-                        const Spacer(),
-                        Icon(
-                          isChecked
-                              ? Icons.check_circle
-                              : Icons.circle_outlined,
-                          size: 20,
-                          color:
-                              isChecked ? AppColors.primary : AppColors.border,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs + 2),
-                    Text('Q. ${card['front']!}',
-                        style: textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Expanded(
-                      child: Text('A. ${card['back']!}',
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: AppColors.muted),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          if (_selectedResults.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
-            FilledButton.icon(
-              onPressed: () {
-                // TODO: 팀원 구현 — 선택 카드 저장 API 연동
-                context.go(AppRoutes.decks);
-              },
-              icon: const Icon(Icons.save_outlined),
-              label: Text('덱에 추가 (${_selectedResults.length})'),
-            ),
-          ],
-        ] else
-          const ConceptEmptyState(
-            emoji: '✨',
-            title: '생성 결과가 여기에 표시됩니다',
-            body: '노트를 선택하고 AI 카드 생성 버튼을 눌러 시작하세요',
-          ),
-        const SizedBox(height: AppSpacing.xl),
-      ],
+      ),
     );
   }
 }
 
 // ── ReviewScreen (FlipCard) ──
 
-class ReviewScreen extends ConsumerWidget {
+class ReviewScreen extends ConsumerStatefulWidget {
   const ReviewScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
+}
+
+class _ReviewScreenState extends ConsumerState<ReviewScreen> {
+  // v1 ⑥: 진행 7/18, 단계별 AI 힌트(1→2단계).
+  static const _current = 7;
+  static const _total = 18;
+
+  // TODO: 팀원 구현 — learning-svc 단계별 AI 힌트 API 연동
+  static const _hints = [
+    '힌트: 모델이 학습 데이터를 "외워버린" 상황을 떠올려 보세요. 새로운 데이터에서는 어떻게 될까요?',
+    '힌트 2: 학습 데이터의 정답률은 매우 높지만, 처음 보는 검증 데이터에서는 정답률이 떨어지는 현상이에요.',
+  ];
+
+  int _hintLevel = 1;
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Column(
@@ -790,7 +867,7 @@ class ReviewScreen extends ConsumerWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.pill),
                   child: const LinearProgressIndicator(
-                    value: 1 / 20,
+                    value: _current / _total,
                     minHeight: 7,
                     backgroundColor: AppColors.surface2,
                     color: AppColors.primary,
@@ -798,7 +875,7 @@ class ReviewScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Text('1 / 20',
+              Text('$_current / $_total',
                   style: textTheme.labelLarge?.copyWith(
                       color: AppColors.muted, fontWeight: FontWeight.w700)),
             ],
@@ -812,27 +889,34 @@ class ReviewScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 480),
-                child: const Column(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox(
+                    const SizedBox(
                       height: 260,
                       child: FlipCard(
                         front: _FlashFace(
-                          label: '카드 앞면 (질문)',
+                          label: '과적합이란 무엇인가?',
                           hint: '👆 탭하여 정답 확인',
                         ),
                         back: _FlashFace(
-                          label: '카드 뒷면 (정답)',
+                          label: '학습 데이터에는 잘 맞지만 새 데이터에 일반화하지 못하는 현상.',
                           highlighted: true,
                         ),
                       ),
                     ),
-                    SizedBox(height: AppSpacing.md),
-                    // AI 힌트
-                    ConceptAiComment(
-                      text: '힌트: 모델이 학습 데이터를 "외워버린" 상황을 떠올려 보세요. 새로운 데이터에서는 어떻게 될까요?',
-                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    // 단계별 AI 힌트
+                    for (int i = 0; i < _hintLevel; i++) ...[
+                      if (i > 0) const SizedBox(height: AppSpacing.sm),
+                      ConceptAiComment(text: _hints[i]),
+                    ],
+                    if (_hintLevel < _hints.length) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      _HintButton(
+                        onTap: () => setState(() => _hintLevel++),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -970,6 +1054,90 @@ class _RateButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "💡 한 단계 더 힌트 받기" 버튼. v1 목업 `.hintbtn` — surface2 배경 +
+/// primary 점선 보더 + primary 텍스트.
+class _HintButton extends StatelessWidget {
+  const _HintButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface2,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: DottedBorderBox(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 3),
+            child: Center(
+              child: Text(
+                '💡 한 단계 더 힌트 받기',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// primary 점선 테두리 박스 (CustomPaint). Flutter 기본 Border는 점선을
+/// 지원하지 않으므로 직접 그린다.
+class DottedBorderBox extends StatelessWidget {
+  const DottedBorderBox({required this.child, super.key});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedBorderPainter(
+        color: AppColors.primary,
+        radius: AppRadius.sm,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final rrect = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    const dash = 5.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      double dist = 0;
+      while (dist < metric.length) {
+        final next = (dist + dash).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(dist, next), paint);
+        dist = next + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.radius != radius;
 }
 
 // ── ReviewResultScreen (SCR-W-CARD-006) ──

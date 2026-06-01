@@ -36,8 +36,9 @@ class _WidgetBoardSectionState extends State<WidgetBoardSection> {
 
   void _toggleEdit() => setState(() => _editing = !_editing);
 
-  void _remove(_BoardKind kind) =>
-      setState(() => _items.removeWhere((_BoardItem item) => item.kind == kind));
+  void _remove(_BoardKind kind) => setState(
+    () => _items.removeWhere((_BoardItem item) => item.kind == kind),
+  );
 
   void _add(_BoardKind kind) {
     final _BoardItem? item = _catalog[kind];
@@ -53,8 +54,9 @@ class _WidgetBoardSectionState extends State<WidgetBoardSection> {
         final int cols = isMobile ? 2 : 4;
 
         // 추가 바 카탈로그: 전체 - 현재 보드에 올라간 항목.
-        final Set<_BoardKind> present =
-            _items.map((_BoardItem item) => item.kind).toSet();
+        final Set<_BoardKind> present = _items
+            .map((_BoardItem item) => item.kind)
+            .toSet();
         final List<_BoardItem> addable = _catalog.values
             .where((_BoardItem item) => !present.contains(item.kind))
             .toList(growable: false);
@@ -62,22 +64,25 @@ class _WidgetBoardSectionState extends State<WidgetBoardSection> {
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1080),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                _BoardHeader(editing: _editing, onToggleEdit: _toggleEdit),
-                const SizedBox(height: AppSpacing.md),
-                _WidgetGrid(
-                  items: _items,
-                  columns: cols,
-                  editing: _editing,
-                  onRemove: _remove,
-                ),
-                if (_editing) ...<Widget>[
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _BoardHeader(editing: _editing, onToggleEdit: _toggleEdit),
                   const SizedBox(height: AppSpacing.md),
-                  _AddWidgetBar(items: addable, onAdd: _add),
+                  _WidgetGrid(
+                    items: _items,
+                    columns: cols,
+                    editing: _editing,
+                    onRemove: _remove,
+                  ),
+                  if (_editing) ...<Widget>[
+                    const SizedBox(height: AppSpacing.md),
+                    _AddWidgetBar(items: addable, onAdd: _add),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -189,9 +194,7 @@ final Map<_BoardKind, _BoardItem> _catalog = <_BoardKind, _BoardItem>{
     builder: () => const WidgetTile.custom(
       label: '지식 그래프',
       emoji: '🕸',
-      child: SizedBox.expand(
-        child: CustomPaint(painter: _MiniGraphPainter()),
-      ),
+      child: SizedBox.expand(child: CustomPaint(painter: _MiniGraphPainter())),
     ),
   ),
   _BoardKind.notes: _BoardItem(
@@ -262,10 +265,7 @@ class _BoardHeader extends StatelessWidget {
         ),
         // 편집/완료 토글
         editing
-            ? FilledButton(
-                onPressed: onToggleEdit,
-                child: const Text('완료'),
-              )
+            ? FilledButton(onPressed: onToggleEdit, child: const Text('완료'))
             : OutlinedButton.icon(
                 onPressed: onToggleEdit,
                 icon: const Icon(Icons.edit, size: 16),
@@ -447,8 +447,7 @@ class _AddWidgetBar extends StatelessWidget {
                 children: <Widget>[
                   for (final _BoardItem item in items)
                     Padding(
-                      padding:
-                          const EdgeInsets.only(right: AppSpacing.sm + 2),
+                      padding: const EdgeInsets.only(right: AppSpacing.sm + 2),
                       child: _AddItem(
                         item: item,
                         onTap: () => onAdd(item.kind),
@@ -536,10 +535,7 @@ class _AddItem extends StatelessWidget {
 
 /// 최근 노트 mock 데이터.
 class _MockNote {
-  const _MockNote({
-    required this.title,
-    required this.timeAgo,
-  });
+  const _MockNote({required this.title, required this.timeAgo});
   final String title;
   final String timeAgo;
 }
@@ -601,10 +597,7 @@ class _MiniNoteRow extends StatelessWidget {
           Container(
             width: 7,
             height: 7,
-            decoration: BoxDecoration(
-              color: dotColor,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(

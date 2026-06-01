@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/calendar_section.dart';
+import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/kanban_section.dart';
+import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/widget_board_section.dart';
 import 'package:synapse_frontend/shared/widgets/onboarding_checklist.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
@@ -64,8 +67,53 @@ class _MockNote {
 // DASH-001  DashboardScreen
 // ═══════════════════════════════════════════════════════════════════════════
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // 회의 결정(2026-06-01): tutor 대시보드를 메인으로, 타 시안의 핵심 기능을
+    // 탭으로 통합 — 홈(기존 tutor) · 캘린더(planner) · 칸반(board) · 위젯보드(widgets).
+    return const DefaultTabController(
+      length: 4,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Material(
+            color: AppColors.surface,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  Tab(text: '홈'),
+                  Tab(text: '캘린더'),
+                  Tab(text: '칸반'),
+                  Tab(text: '위젯보드'),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, thickness: 1, color: AppColors.border),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _HomeTab(),
+                CalendarSection(),
+                KanbanSection(),
+                WidgetBoardSection(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeTab extends ConsumerWidget {
+  const _HomeTab();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

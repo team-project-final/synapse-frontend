@@ -60,4 +60,12 @@ abstract final class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF2563EB);
+
+  // ── Kanban 컬럼 스트립 (board 통합 · tutor 팔레트로 리스킨) ──
+  // 4단계 워크플로우(수집/학습/복습/완료)를 구분하는 컬럼 색.
+  // board 원본의 독자 색감 대신 tutor 시맨틱 토큰에 매핑해 일관성 유지.
+  static const Color columnCollect = info; // 수집함 — 인포 블루
+  static const Color columnLearn = streak; // 학습 중 — 앰버
+  static const Color columnReview = accent; // 복습 대기 — 핑크 액센트
+  static const Color columnDone = success; // 완료 — 그린
 }

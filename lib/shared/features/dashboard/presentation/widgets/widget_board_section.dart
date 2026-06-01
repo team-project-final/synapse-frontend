@@ -65,7 +65,10 @@ class _WidgetBoardSectionState extends State<WidgetBoardSection> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1080),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[

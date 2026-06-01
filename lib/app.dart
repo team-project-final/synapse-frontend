@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,6 +47,23 @@ class _SynapseAppState extends ConsumerState<SynapseApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: router,
+      // 웹에서도 마우스/트랙패드 드래그로 스크롤 가능하게 한다.
+      // (칸반 모바일 가로 보드 등 드래그-스크롤 UX 확보)
+      scrollBehavior: const _AppScrollBehavior(),
     );
   }
+}
+
+/// 마우스·트랙패드·스타일러스 드래그까지 스크롤 제스처로 허용하는 스크롤 동작.
+/// 기본값은 web에서 마우스 드래그 스크롤을 비활성화하므로 이를 보완한다.
+class _AppScrollBehavior extends MaterialScrollBehavior {
+  const _AppScrollBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => <PointerDeviceKind>{
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+  };
 }

@@ -27,18 +27,19 @@ class CalendarSection extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           children: [
             if (isWide)
-              const IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 3, child: _MonthCalendar()),
-                    SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      flex: 2,
-                      child: _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
-                    ),
-                  ],
-                ),
+              // NOTE: IntrinsicHeight + GridView(shrinkWrap)는 그리드 intrinsic
+              // 높이를 0으로 보고해 달력이 짧은 아젠다 높이로 잘린다. 각 컬럼이
+              // 자연 높이를 갖도록 IntrinsicHeight 없이 상단 정렬한다.
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: _MonthCalendar()),
+                  SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    flex: 2,
+                    child: _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
+                  ),
+                ],
               )
             else ...const [
               _WeekStrip(),

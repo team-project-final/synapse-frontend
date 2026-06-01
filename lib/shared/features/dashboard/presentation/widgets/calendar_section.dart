@@ -6,51 +6,48 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 // CalendarSection — 대시보드 캘린더 섹션(월 캘린더 · 주간 스트립 · 오늘 아젠다)
 //
 // 앱 셸 내부의 대시보드 탭에 배치되는 BODY 전용 위젯이다. Scaffold/AppBar 없이
-// 스크롤 가능한 본문만 반환한다. 화면이 넓으면(>=600) 월 캘린더와 오늘 아젠다를
-// 좌우로, 좁으면 주간 스트립 + 아젠다를 세로로 쌓는다.
+// 스크롤 가능한 본문만 반환한다. 가용 폭이 넓으면(>=820) 월 캘린더와 오늘 아젠다를
+// 좌우로, 좁으면 주간 스트립 + 아젠다를 세로로 쌓는다(아젠다 폭 확보).
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CalendarSection extends StatelessWidget {
   const CalendarSection({super.key});
 
-  static const double _wideBreakpoint = 600;
+  // 셸 사이드바를 제외한 실제 가용 너비 기준. 좌우 배치 시 아젠다(flex 2)가
+  // 충분한 폭을 갖도록 창 전체가 아닌 LayoutBuilder 제약폭으로 판단한다.
+  static const double _wideBreakpoint = 820;
 
   @override
   Widget build(BuildContext context) {
-    final bool isWide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool isWide = constraints.maxWidth >= _wideBreakpoint;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      children: [
-        if (isWide)
-          const IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: _MonthCalendar(),
+        return ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            if (isWide)
+              const IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 3, child: _MonthCalendar()),
+                    SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      flex: 2,
+                      child: _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
+                    ),
+                  ],
                 ),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  flex: 2,
-                  child: _PanelCard(
-                    title: '오늘 아젠다',
-                    child: _TodayAgenda(),
-                  ),
-                ),
-              ],
-            ),
-          )
-        else ...const [
-          _WeekStrip(),
-          SizedBox(height: AppSpacing.md),
-          _PanelCard(
-            title: '오늘 아젠다',
-            child: _TodayAgenda(),
-          ),
-        ],
-      ],
+              )
+            else ...const [
+              _WeekStrip(),
+              SizedBox(height: AppSpacing.md),
+              _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -134,10 +131,10 @@ class _AgendaBlock {
   final _BlockKind kind;
 
   Color get accent => switch (kind) {
-        _BlockKind.review => AppColors.primary,
-        _BlockKind.note => AppColors.accent,
-        _BlockKind.community => AppColors.streak,
-      };
+    _BlockKind.review => AppColors.primary,
+    _BlockKind.note => AppColors.accent,
+    _BlockKind.community => AppColors.streak,
+  };
 }
 
 /// 복습 부하(0~1)에 따른 톤. surface2 ↔ primary 사이를 보간.
@@ -156,10 +153,10 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: AppColors.muted,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
-          ),
+        color: AppColors.muted,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.4,
+      ),
     );
   }
 }
@@ -215,17 +212,19 @@ class _WeekStrip extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text('복습 부하',
-                    style:
-                        textTheme.labelSmall?.copyWith(color: AppColors.muted)),
+                Text(
+                  '복습 부하',
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
                 const SizedBox(width: AppSpacing.sm),
                 _scaleSwatch(0.38),
                 _scaleSwatch(0.6),
                 _scaleSwatch(1.0),
                 const SizedBox(width: AppSpacing.xs),
-                Text('적음→많음',
-                    style:
-                        textTheme.labelSmall?.copyWith(color: AppColors.muted)),
+                Text(
+                  '적음→많음',
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ],
@@ -235,16 +234,16 @@ class _WeekStrip extends StatelessWidget {
   }
 
   Widget _scaleSwatch(double load) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 1.5),
-        child: Container(
-          width: 11,
-          height: 11,
-          decoration: BoxDecoration(
-            color: _loadColor(load),
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 1.5),
+    child: Container(
+      width: 11,
+      height: 11,
+      decoration: BoxDecoration(
+        color: _loadColor(load),
+        borderRadius: BorderRadius.circular(3),
+      ),
+    ),
+  );
 
   Widget _dayCell(TextTheme textTheme, _WeekDay d) {
     return Container(
@@ -302,7 +301,8 @@ class _TodayAgenda extends StatelessWidget {
         for (int i = 0; i < _kTodayAgenda.length; i++)
           Padding(
             padding: EdgeInsets.only(
-                bottom: i == _kTodayAgenda.length - 1 ? 0 : AppSpacing.sm),
+              bottom: i == _kTodayAgenda.length - 1 ? 0 : AppSpacing.sm,
+            ),
             child: _AgendaTile(block: _kTodayAgenda[i]),
           ),
       ],
@@ -328,12 +328,20 @@ class _AgendaTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(block.time,
-                    style: textTheme.labelMedium?.copyWith(
-                        color: AppColors.muted, fontWeight: FontWeight.w800)),
-                Text(block.duration,
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: AppColors.muted, fontSize: 10)),
+                Text(
+                  block.time,
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  block.duration,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.muted,
+                    fontSize: 10,
+                  ),
+                ),
               ],
             ),
           ),
@@ -363,36 +371,49 @@ class _AgendaTile extends StatelessWidget {
                   ),
                   margin: const EdgeInsets.only(left: 4),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm + 2,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
                           Expanded(
-                            child: Text(block.title,
-                                style: textTheme.bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w800)),
+                            child: Text(
+                              block.title,
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm, vertical: 3),
+                              horizontal: AppSpacing.sm,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: block.accent.withValues(alpha: 0.13),
                               borderRadius: BorderRadius.circular(999),
                             ),
-                            child: Text(block.badge,
-                                style: textTheme.labelSmall?.copyWith(
-                                    color: block.accent,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 10.5)),
+                            child: Text(
+                              block.badge,
+                              style: textTheme.labelSmall?.copyWith(
+                                color: block.accent,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10.5,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 3),
-                      Text(block.subtitle,
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: AppColors.muted)),
+                      Text(
+                        block.subtitle,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -559,17 +580,19 @@ class _CalDayCell extends StatelessWidget {
             if (cell.due > 0) ...[
               const SizedBox(height: 4),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(999),
                 ),
-                child: Text('복습 ${cell.due}',
-                    style: textTheme.labelSmall?.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 9.5)),
+                child: Text(
+                  '복습 ${cell.due}',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 9.5,
+                  ),
+                ),
               ),
             ],
             const Spacer(),

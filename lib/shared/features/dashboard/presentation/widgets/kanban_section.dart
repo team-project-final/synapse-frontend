@@ -65,20 +65,23 @@ const List<_KanbanColumn> _kBoardColumns = [
     addRoute: _kComposeRoute,
     cards: [
       _KanbanCard(
-          title: 'CAP 정리',
-          tag: '#아키텍처',
-          meta: '방금 캡처',
-          route: AppRoutes.notes),
+        title: 'CAP 정리',
+        tag: '#아키텍처',
+        meta: '방금 캡처',
+        route: AppRoutes.notes,
+      ),
       _KanbanCard(
-          title: 'Kubernetes',
-          tag: '#DevOps',
-          meta: '새 노트',
-          route: AppRoutes.notes),
+        title: 'Kubernetes',
+        tag: '#DevOps',
+        meta: '새 노트',
+        route: AppRoutes.notes,
+      ),
       _KanbanCard(
-          title: '동적 계획법',
-          tag: '#알고리즘',
-          meta: '웹 클리핑',
-          route: AppRoutes.notes),
+        title: '동적 계획법',
+        tag: '#알고리즘',
+        meta: '웹 클리핑',
+        route: AppRoutes.notes,
+      ),
     ],
   ),
   // 학습 중
@@ -89,20 +92,23 @@ const List<_KanbanColumn> _kBoardColumns = [
     addRoute: AppRoutes.aiCards,
     cards: [
       _KanbanCard(
-          title: '트랜스포머',
-          tag: '#딥러닝',
-          meta: '카드 4장 생성됨',
-          route: AppRoutes.notes),
+        title: '트랜스포머',
+        tag: '#딥러닝',
+        meta: '카드 4장 생성됨',
+        route: AppRoutes.notes,
+      ),
       _KanbanCard(
-          title: '어텐션 메커니즘',
-          tag: '#딥러닝',
-          meta: '읽는 중',
-          route: AppRoutes.notes),
+        title: '어텐션 메커니즘',
+        tag: '#딥러닝',
+        meta: '읽는 중',
+        route: AppRoutes.notes,
+      ),
       _KanbanCard(
-          title: 'REST API',
-          tag: '#백엔드',
-          meta: '초안',
-          route: AppRoutes.notes),
+        title: 'REST API',
+        tag: '#백엔드',
+        meta: '초안',
+        route: AppRoutes.notes,
+      ),
     ],
   ),
   // 복습 대기
@@ -111,23 +117,26 @@ const List<_KanbanColumn> _kBoardColumns = [
     stripColor: AppColors.columnReview,
     cards: [
       _KanbanCard(
-          title: 'ML 기초',
-          tag: '#머신러닝',
-          meta: '⏰ 오늘 8장',
-          metaStatus: _MetaStatus.warn,
-          route: AppRoutes.review),
+        title: 'ML 기초',
+        tag: '#머신러닝',
+        meta: '⏰ 오늘 8장',
+        metaStatus: _MetaStatus.warn,
+        route: AppRoutes.review,
+      ),
       _KanbanCard(
-          title: '프로그래밍',
-          tag: '#알고리즘',
-          meta: '⏰ 오늘 5장',
-          metaStatus: _MetaStatus.warn,
-          route: AppRoutes.review),
+        title: '프로그래밍',
+        tag: '#알고리즘',
+        meta: '⏰ 오늘 5장',
+        metaStatus: _MetaStatus.warn,
+        route: AppRoutes.review,
+      ),
       _KanbanCard(
-          title: 'AWS SAA',
-          tag: '#DevOps',
-          meta: '⏰ 오늘 5장',
-          metaStatus: _MetaStatus.warn,
-          route: AppRoutes.review),
+        title: 'AWS SAA',
+        tag: '#DevOps',
+        meta: '⏰ 오늘 5장',
+        metaStatus: _MetaStatus.warn,
+        route: AppRoutes.review,
+      ),
     ],
   ),
   // 완료
@@ -136,17 +145,19 @@ const List<_KanbanColumn> _kBoardColumns = [
     stripColor: AppColors.columnDone,
     cards: [
       _KanbanCard(
-          title: '과적합',
-          tag: '#머신러닝',
-          meta: '✓ 9일 뒤 재복습',
-          metaStatus: _MetaStatus.ok,
-          route: AppRoutes.notes),
+        title: '과적합',
+        tag: '#머신러닝',
+        meta: '✓ 9일 뒤 재복습',
+        metaStatus: _MetaStatus.ok,
+        route: AppRoutes.notes,
+      ),
       _KanbanCard(
-          title: '드롭아웃',
-          tag: '#머신러닝',
-          meta: '✓ 21일 뒤',
-          metaStatus: _MetaStatus.ok,
-          route: AppRoutes.notes),
+        title: '드롭아웃',
+        tag: '#머신러닝',
+        meta: '✓ 21일 뒤',
+        metaStatus: _MetaStatus.ok,
+        route: AppRoutes.notes,
+      ),
     ],
   ),
 ];
@@ -158,7 +169,11 @@ const List<_KanbanColumn> _kBoardColumns = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 class KanbanSection extends StatelessWidget {
-  const KanbanSection({super.key});
+  const KanbanSection({this.scrollable = true, super.key});
+
+  // false면 외부(세로) ListView가 자체 스크롤하지 않고 외부 스크롤 뷰가
+  // 담당한다(임베드 모드). 내부 _MobileBoard 가로 스크롤은 영향받지 않는다.
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +188,8 @@ class KanbanSection extends StatelessWidget {
         isMobile ? 0 : AppSpacing.lg,
         AppSpacing.lg,
       ),
+      shrinkWrap: !scrollable,
+      physics: scrollable ? null : const NeverScrollableScrollPhysics(),
       children: <Widget>[
         // ── 헤더 (모바일 전용; 데스크탑은 AppShell AppBar 사용) ──
         if (isMobile) ...<Widget>[
@@ -285,10 +302,7 @@ class _ProgressLine extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text(
-                  '38장 중 12 완료',
-                  style: textTheme.titleSmall,
-                ),
+                Text('38장 중 12 완료', style: textTheme.titleSmall),
               ],
             ),
             const SizedBox(height: 9),
@@ -300,16 +314,21 @@ class _ProgressLine extends StatelessWidget {
                 child: Row(
                   children: <Widget>[
                     Expanded(
-                        flex: 18,
-                        child: ColoredBox(color: AppColors.primary)),
+                      flex: 18,
+                      child: ColoredBox(color: AppColors.primary),
+                    ),
                     Expanded(
-                        flex: 30, child: ColoredBox(color: AppColors.streak)),
+                      flex: 30,
+                      child: ColoredBox(color: AppColors.streak),
+                    ),
                     Expanded(
-                        flex: 32,
-                        child: ColoredBox(color: AppColors.success)),
+                      flex: 32,
+                      child: ColoredBox(color: AppColors.success),
+                    ),
                     Expanded(
-                        flex: 20,
-                        child: ColoredBox(color: AppColors.surface2)),
+                      flex: 20,
+                      child: ColoredBox(color: AppColors.surface2),
+                    ),
                   ],
                 ),
               ),
@@ -405,7 +424,10 @@ class _MobileBoard extends StatelessWidget {
         children: <Widget>[
           for (int i = 0; i < columns.length; i++) ...<Widget>[
             if (i > 0) const SizedBox(width: AppSpacing.sm + AppSpacing.xs),
-            SizedBox(width: colWidth, child: _BoardColumn(column: columns[i])),
+            SizedBox(
+              width: colWidth,
+              child: _BoardColumn(column: columns[i]),
+            ),
             if (i == columns.length - 1) const SizedBox(width: AppSpacing.lg),
           ],
         ],
@@ -511,10 +533,10 @@ class _KanbanCardTile extends StatelessWidget {
   final _KanbanCard card;
 
   Color get _metaColor => switch (card.metaStatus) {
-        _MetaStatus.warn => AppColors.error,
-        _MetaStatus.ok => AppColors.success,
-        _MetaStatus.normal => AppColors.muted,
-      };
+    _MetaStatus.warn => AppColors.error,
+    _MetaStatus.ok => AppColors.success,
+    _MetaStatus.normal => AppColors.muted,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -547,8 +569,11 @@ class _KanbanCardTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Icon(Icons.drag_indicator,
-                      size: 16, color: AppColors.stone300),
+                  const Icon(
+                    Icons.drag_indicator,
+                    size: 16,
+                    color: AppColors.stone300,
+                  ),
                 ],
               ),
               const SizedBox(height: 8),

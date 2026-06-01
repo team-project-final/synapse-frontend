@@ -11,7 +11,11 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CalendarSection extends StatelessWidget {
-  const CalendarSection({super.key});
+  const CalendarSection({this.scrollable = true, super.key});
+
+  // false면 루트 ListView가 자체 스크롤하지 않고(shrinkWrap), 외부 스크롤 뷰가
+  // 스크롤을 담당한다(임베드 모드).
+  final bool scrollable;
 
   // 셸 사이드바를 제외한 실제 가용 너비 기준. 좌우 배치 시 아젠다(flex 2)가
   // 충분한 폭을 갖도록 창 전체가 아닌 LayoutBuilder 제약폭으로 판단한다.
@@ -25,6 +29,8 @@ class CalendarSection extends StatelessWidget {
 
         return ListView(
           padding: const EdgeInsets.all(AppSpacing.md),
+          shrinkWrap: !scrollable,
+          physics: scrollable ? null : const NeverScrollableScrollPhysics(),
           children: [
             if (isWide)
               // NOTE: IntrinsicHeight + GridView(shrinkWrap)는 그리드 intrinsic

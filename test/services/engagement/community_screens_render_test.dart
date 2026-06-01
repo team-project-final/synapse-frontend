@@ -45,12 +45,13 @@ void main() {
     });
   }
 
-  // v1 ⑪: 그룹 메타("승인제·8/20명·공유덱3") + 주간 랭킹(본인 강조)이 보이는지.
+  // v1 ⑪: 그룹 메타("승인제·8/20명·공유덱3") + 가입 상태 핀이 목록에 보이는지.
+  // board 디자인 통합(2026-06-01): 주간 랭킹은 그룹 상세 '공유 콘텐츠' 탭으로 이동
+  // (상세 화면 렌더는 위 파라미터 테스트가 커버).
   testWidgets('CommunityGroups v1 디테일 노출', (tester) async {
     await pump(tester, const CommunityGroupsScreen(), mobile);
+    expect(find.text('AWS 자격증 스터디'), findsOneWidget);
     expect(find.text('승인제 · 8/20명 · 공유덱 3'), findsOneWidget);
     expect(find.text('가입됨'), findsWidgets);
-    expect(find.textContaining('🥇'), findsOneWidget);
-    expect(find.textContaining('🥉 나'), findsOneWidget);
   });
 }

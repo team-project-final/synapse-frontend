@@ -39,26 +39,28 @@ class SideNav extends StatelessWidget {
 
   static const _topItems = [
     SideNavItem(icon: Icons.home_outlined, label: '홈', route: '/'),
-    SideNavItem(
-        icon: Icons.description_outlined, label: '노트', route: '/notes'),
+    SideNavItem(icon: Icons.description_outlined, label: '노트', route: '/notes'),
     SideNavItem(icon: Icons.refresh, label: '복습', route: '/decks'),
     SideNavItem(icon: Icons.hub_outlined, label: '그래프', route: '/graph'),
     SideNavItem(icon: Icons.search, label: '검색', route: '/search'),
     SideNavItem(
-        icon: Icons.groups_outlined,
-        label: '커뮤니티',
-        route: '/community/groups'),
+      icon: Icons.groups_outlined,
+      label: '커뮤니티',
+      route: '/community/groups',
+    ),
   ];
 
   static const _bottomItems = [
     SideNavItem(
-        icon: Icons.notifications_outlined,
-        label: '알림',
-        route: '/notifications'),
+      icon: Icons.notifications_outlined,
+      label: '알림',
+      route: '/notifications',
+    ),
     SideNavItem(
-        icon: Icons.settings_outlined,
-        label: '설정',
-        route: '/settings/profile'),
+      icon: Icons.settings_outlined,
+      label: '설정',
+      route: '/settings/profile',
+    ),
   ];
 
   // 최근 대화 — mock 데이터 (기능 없음, 디자인 시연용)
@@ -91,8 +93,7 @@ class SideNav extends StatelessWidget {
           _buildBrand(context),
           Expanded(
             child: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               children: [
                 for (final item in _topItems) _buildItem(context, item),
                 if (isExpanded) ...[
@@ -131,6 +132,34 @@ class SideNav extends StatelessWidget {
   }
 
   Widget _buildBrand(BuildContext context) {
+    // 접힌 상태: 세로로 orb(홈 이동) + 펼치기 버튼.
+    // (펼치기 버튼이 없으면 한 번 접은 뒤 다시 열 수 없다 — 폭 72px라 가로로는
+    // orb와 버튼이 같이 안 들어가므로 세로 배치한다.)
+    if (!isExpanded) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: () => onItemTap('/'),
+              customBorder: const CircleBorder(),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: SynapseOrb(size: 34, glyphScale: 0.52),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right, size: 20),
+              color: AppColors.muted,
+              onPressed: onToggle,
+              tooltip: '사이드바 펼치기',
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ),
+      );
+    }
+
     return InkWell(
       onTap: () => onItemTap('/'),
       child: Padding(
@@ -143,27 +172,25 @@ class SideNav extends StatelessWidget {
         child: Row(
           children: [
             const SynapseOrb(size: 34, glyphScale: 0.52),
-            if (isExpanded) ...[
-              const SizedBox(width: AppSpacing.sm + 2),
-              Expanded(
-                child: Text(
-                  'Synapse',
-                  overflow: TextOverflow.clip,
-                  softWrap: false,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: AppColors.text,
-                      ),
+            const SizedBox(width: AppSpacing.sm + 2),
+            Expanded(
+              child: Text(
+                'Synapse',
+                overflow: TextOverflow.clip,
+                softWrap: false,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: AppColors.text,
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.chevron_left, size: 20),
-                color: AppColors.muted,
-                onPressed: onToggle,
-                tooltip: '사이드바 접기',
-              ),
-            ],
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_left, size: 20),
+              color: AppColors.muted,
+              onPressed: onToggle,
+              tooltip: '사이드바 접기',
+            ),
           ],
         ),
       ),
@@ -207,9 +234,7 @@ class SideNav extends StatelessWidget {
                       Expanded(
                         child: Text(
                           item.label,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: active
                                     ? AppColors.primary
@@ -225,8 +250,9 @@ class SideNav extends StatelessWidget {
               }
 
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: AppSpacing.sm + 3),
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppSpacing.sm + 3,
+                ),
                 child: Center(child: iconWidget),
               );
             },
@@ -259,9 +285,9 @@ class SideNav extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.text,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppColors.text,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -296,18 +322,18 @@ class SideNav extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.text,
-                          ),
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.text,
+                      ),
                     ),
                     Text(
                       'Lv7 · 지식 탐험가',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -337,10 +363,10 @@ class _SideSection extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppColors.muted,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
-            ),
+          color: AppColors.muted,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.6,
+        ),
       ),
     );
   }

@@ -12,19 +12,19 @@
 
 ## 주요 기능 (화면)
 
-| 영역 | 화면 |
-|---|---|
-| **홈** | 편집 가능한 위젯 보드(오늘 복습·AI 추천·인사이트·스트릭·내 프로필·지식 그래프·AI 질문 등) |
-| **플래너** | 월 캘린더(연·월 헤더) + 선택 날짜의 칸반 보드(수집/학습/복습/완료) |
-| **노트** | 라이브러리(검색·태그 필터·Sliver) · 상세(위키링크) · 편집 · 버전 · 태그 관리 |
-| **복습/덱** | 덱 목록·생성, 카드 목록·편집, **AI 카드 생성**, SRS 복습·결과 |
-| **그래프** | 지식 그래프(중심성=노드 크기, 태그=색, 중앙 정렬) · 이웃 확장 · 클러스터 |
-| **검색** | 통합 검색 · AI Q&A |
-| **커뮤니티** | 그룹(목록·상세·생성) · 공유 덱/노트(목록·상세·검색) · 공유하기/공유받기·복사(fork)·공유 취소 · 신고 |
-| **게이미피케이션** | 내 프로필(XP·레벨·스트릭) · XP 이력 · 배지 갤러리 · 리더보드 |
-| **설정** | 프로필·보안(MFA)·알림·데이터·테넌트 · 로그아웃 |
-| **관리자(웹)** | 대시보드·테넌트·사용자·감사 로그·시스템 설정·신고 모더레이션·콘텐츠·그룹·게이미피케이션·데이터 요청 |
-| **기타** | 알림 센터 · 결제(요금제·사용량·내역) · 인증(로그인·회원가입·MFA·비밀번호 재설정·OAuth) |
+| 영역               | 화면                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------- |
+| **홈**             | 편집 가능한 위젯 보드(오늘 복습·AI 추천·인사이트·스트릭·내 프로필·지식 그래프·AI 질문 등)           |
+| **플래너**         | 월 캘린더(연·월 헤더) + 선택 날짜의 칸반 보드(수집/학습/복습/완료)                                  |
+| **노트**           | 라이브러리(검색·태그 필터·Sliver) · 상세(위키링크) · 편집 · 버전 · 태그 관리                        |
+| **복습/덱**        | 덱 목록·생성, 카드 목록·편집, **AI 카드 생성**, SRS 복습·결과                                       |
+| **그래프**         | 지식 그래프(중심성=노드 크기, 태그=색, 중앙 정렬) · 이웃 확장 · 클러스터                            |
+| **검색**           | 통합 검색 · AI Q&A                                                                                  |
+| **커뮤니티**       | 그룹(목록·상세·생성) · 공유 덱/노트(목록·상세·검색) · 공유하기/공유받기·복사(fork)·공유 취소 · 신고 |
+| **게이미피케이션** | 내 프로필(XP·레벨·스트릭) · XP 이력 · 배지 갤러리 · 리더보드                                        |
+| **설정**           | 프로필·보안(MFA)·알림·데이터·테넌트 · 로그아웃                                                      |
+| **관리자(웹)**     | 대시보드·테넌트·사용자·감사 로그·시스템 설정·신고 모더레이션·콘텐츠·그룹·게이미피케이션·데이터 요청 |
+| **기타**           | 알림 센터 · 결제(요금제·사용량·내역) · 인증(로그인·회원가입·MFA·비밀번호 재설정·OAuth)              |
 
 > 로그인 화면에서 **로그인 버튼만 누르면** 앱으로 진입합니다(개발용 바이패스, 실제 인증 미연동).
 
@@ -32,19 +32,19 @@
 
 ## 기술 스택
 
-| 영역 | 기술 |
-|---|---|
-| 프레임워크 | Flutter 3.x |
-| 언어 | Dart (`>=3.11.0 <4.0.0`) |
-| 상태 관리 | Riverpod 3 — **manual providers**(codegen 미사용) |
-| 라우팅 | GoRouter (해시 URL, ShellRoute + AppShell) |
-| HTTP | Dio |
-| 로컬 저장 | Hive · flutter_secure_storage |
-| 마크다운 | flutter_markdown |
-| 애니메이션 | lottie |
-| 타이포그래피 | Pretendard(번들 폰트) · google_fonts |
-| 테스트 | flutter_test · integration_test · mockito |
-| 린트 | flutter_lints (`analysis_options.yaml`) |
+| 영역         | 기술                                              |
+| ------------ | ------------------------------------------------- |
+| 프레임워크   | Flutter 3.x                                       |
+| 언어         | Dart (`>=3.11.0 <4.0.0`)                          |
+| 상태 관리    | Riverpod 3 — **manual providers**(codegen 미사용) |
+| 라우팅       | GoRouter (해시 URL, ShellRoute + AppShell)        |
+| HTTP         | Dio                                               |
+| 로컬 저장    | Hive · flutter_secure_storage                     |
+| 마크다운     | flutter_markdown                                  |
+| 애니메이션   | lottie                                            |
+| 타이포그래피 | Pretendard(번들 폰트) · google_fonts              |
+| 테스트       | flutter_test · integration_test · mockito         |
+| 린트         | flutter_lints (`analysis_options.yaml`)           |
 
 ---
 
@@ -55,13 +55,13 @@ feature는 `lib/services/<boundary>` 아래, 여러 경계를 가로지르는 �
 
 ### 서비스 경계
 
-| 프론트 경계 | 백엔드 서비스 | 도메인 |
-|---|---|---|
-| `platform` | platform-svc | auth · billing · notifications · settings · admin |
-| `learning` | learning-svc | cards · SRS · AI 카드 생성 |
-| `knowledge` | knowledge-svc | notes · graph · search |
-| `engagement` | engagement-svc | community · gamification |
-| `shared` | (공통) | dashboard(홈·플래너) · 공통 위젯 |
+| 프론트 경계  | 백엔드 서비스  | 도메인                                            |
+| ------------ | -------------- | ------------------------------------------------- |
+| `platform`   | platform-svc   | auth · billing · notifications · settings · admin |
+| `learning`   | learning-svc   | cards · SRS · AI 카드 생성                        |
+| `knowledge`  | knowledge-svc  | notes · graph · search                            |
+| `engagement` | engagement-svc | community · gamification                          |
+| `shared`     | (공통)         | dashboard(홈·플래너) · 공통 위젯                  |
 
 ### 설계 원칙 (Port/Adapter)
 
@@ -140,12 +140,12 @@ flutter run -d chrome
 
 Dio 클라이언트가 `--dart-define=APP_ENV` 값으로 base URL을 고릅니다(기본 `dev`).
 
-| APP_ENV | Base URL |
-|---|---|
-| `dev` (기본) | `http://localhost:8080` |
-| `platform-dev` | `http://localhost:8081` |
-| `staging` | `https://api-staging.synapse.app` |
-| `prod` | `https://api.synapse.app` |
+| APP_ENV        | Base URL                          |
+| -------------- | --------------------------------- |
+| `dev` (기본)   | `http://localhost:8080`           |
+| `platform-dev` | `http://localhost:8081`           |
+| `staging`      | `https://api-staging.synapse.app` |
+| `prod`         | `https://api.synapse.app`         |
 
 ```bash
 flutter run -d chrome --dart-define=APP_ENV=dev
@@ -160,20 +160,6 @@ flutter analyze        # 경고 0 유지
 flutter test           # 단위·위젯 테스트
 flutter build web --release
 ```
-
----
-
-## 디자인 프리뷰 (GitHub Pages)
-
-디자인 시안/통합본은 정적 갤러리로 배포됩니다.
-
-- 갤러리: <https://maoemong.github.io/synapse-design-preview/>
-- 통합본(현재 메인): `.../tutor-integrated/`
-- **컬러 팔레트 선택기**: `.../palette.html` — Primary/Accent/Due 등 토큰 15개를 실시간으로
-  바꿔 보고, 고른 색을 `AppColors` Dart 코드로 내보낼 수 있습니다(팀 색상 결정용).
-
-> 빌드 후 산출물을 `tutor-integrated/`에 복사해 배포합니다. 캐시 때문에 확인 시
-> 강력 새로고침(Ctrl+Shift+R)을 권장합니다.
 
 ---
 

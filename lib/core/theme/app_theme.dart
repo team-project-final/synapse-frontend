@@ -29,6 +29,17 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: AppColors.bg,
       canvasColor: AppColors.bg,
       textTheme: baseTextTheme,
+      // 페이지 전환: 기본 Zoom(끝에서 끊기는 느낌) 대신 M3 FadeForwards로 통일.
+      // 웹은 호스트 OS의 빌더를 쓰므로 전 플랫폼에 동일 지정.
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+        },
+      ),
       dividerColor: AppColors.border,
       dividerTheme: const DividerThemeData(
         color: AppColors.border,

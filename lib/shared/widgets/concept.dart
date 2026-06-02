@@ -27,10 +27,10 @@ class ConceptSectionLabel extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppColors.muted,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
+          color: AppColors.muted,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -356,9 +356,9 @@ class ConceptChatBubble extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isMe ? AppColors.primaryFg : AppColors.text,
-                  height: 1.5,
-                ),
+              color: isMe ? AppColors.primaryFg : AppColors.text,
+              height: 1.5,
+            ),
           ),
         ),
       ),
@@ -397,10 +397,10 @@ class ConceptAiComment extends StatelessWidget {
             ),
             child: Text(
               text,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.text, height: 1.55),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.text,
+                height: 1.55,
+              ),
             ),
           ),
         ),
@@ -489,6 +489,7 @@ class ConceptResponsiveGrid extends StatelessWidget {
     required this.isWide,
     required this.children,
     this.gap = AppSpacing.sm + 2,
+    this.minColumnWidth = 280,
     super.key,
   });
 
@@ -496,31 +497,66 @@ class ConceptResponsiveGrid extends StatelessWidget {
   final List<Widget> children;
   final double gap;
 
+  /// 한 열의 최소 폭. 가용 폭을 이 값으로 나눠 열 수를 정한다.
+  /// (예전엔 wide면 항목 전부를 한 행에 균등 배치 → 중간 폭에서 카드가
+  /// 과도하게 좁아져 헤더 정렬이 깨졌다. 최소 폭을 보장하며 줄바꿈한다.)
+  final double minColumnWidth;
+
+  Widget _singleColumn() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int i = 0; i < children.length; i++) ...[
+          if (i > 0) SizedBox(height: gap),
+          children[i],
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!isWide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int i = 0; i < children.length; i++) ...[
-            if (i > 0) SizedBox(height: gap),
-            children[i],
-          ],
-        ],
-      );
-    }
-    // 세로 스크롤 안에서 Row(stretch)는 unbounded height 크래시를 내므로
-    // IntrinsicHeight로 감싼다.
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int i = 0; i < children.length; i++) ...[
-            if (i > 0) SizedBox(width: gap),
-            Expanded(child: children[i]),
-          ],
-        ],
-      ),
+    if (!isWide) return _singleColumn();
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final int byWidth = (constraints.maxWidth / minColumnWidth).floor();
+        final int columns = byWidth < 1
+            ? 1
+            : (byWidth > children.length ? children.length : byWidth);
+
+        if (columns <= 1) return _singleColumn();
+
+        final List<Widget> rows = [];
+        for (int i = 0; i < children.length; i += columns) {
+          final List<Widget> cells = [];
+          for (int j = 0; j < columns; j++) {
+            if (j > 0) cells.add(SizedBox(width: gap));
+            final int idx = i + j;
+            cells.add(
+              Expanded(
+                child: idx < children.length
+                    ? children[idx]
+                    : const SizedBox.shrink(), // 마지막 행 빈 칸(카드 폭 유지)
+              ),
+            );
+          }
+          if (rows.isNotEmpty) rows.add(SizedBox(height: gap));
+          // 세로 스크롤 안 Row(stretch)는 unbounded height 크래시 → IntrinsicHeight.
+          rows.add(
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: cells,
+              ),
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: rows,
+        );
+      },
     );
   }
 }
@@ -616,20 +652,21 @@ class ConceptAiEntry extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 1),
                     Text(
                       subtitle,
-                      style: textTheme.labelSmall
-                          ?.copyWith(color: AppColors.muted),
+                      style: textTheme.labelSmall?.copyWith(
+                        color: AppColors.muted,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right,
-                  size: 20, color: AppColors.muted),
+              const Icon(Icons.chevron_right, size: 20, color: AppColors.muted),
             ],
           ),
         ),

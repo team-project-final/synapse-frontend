@@ -15,6 +15,7 @@ abstract final class AppRoutes {
   static const tags = '/tags';
 
   static const decks = '/decks';
+  static const deckNew = '/decks/new';
   static const deckCards = '/decks/:deckId/cards';
   static const cardNew = '/cards/new';
   static const aiCards = '/ai/cards';

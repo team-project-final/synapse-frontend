@@ -142,6 +142,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DeckListScreen(),
           ),
           GoRoute(
+            path: AppRoutes.deckNew,
+            builder: (context, state) => const DeckCreateScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.deckCards,
             builder: (context, state) =>
                 CardListScreen(deckId: state.pathParameters['deckId'] ?? ''),

@@ -921,6 +921,9 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
   static const _current = 7;
   static const _total = 18;
 
+  // 진행바·카드·평점 버튼을 동일 폭으로 중앙 정렬(웹 넓은 폭에서 정렬 흐트러짐 방지).
+  static const double _cardMaxWidth = 480;
+
   // TODO: 팀원 구현 — learning-svc 단계별 AI 힌트 API 연동
   static const _hints = [
     '힌트: 모델이 학습 데이터를 "외워버린" 상황을 떠올려 보세요. 새로운 데이터에서는 어떻게 될까요?',
@@ -935,41 +938,46 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 
     return Column(
       children: [
-        // Progress row
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.sm,
-            AppSpacing.md,
-            AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.close, color: AppColors.muted),
-                onPressed: () => context.go(AppRoutes.decks),
-                tooltip: '종료',
+        // Progress row — 카드와 동일 폭(480)으로 중앙 정렬
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: _cardMaxWidth + AppSpacing.lg * 2,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
               ),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                  child: const LinearProgressIndicator(
-                    value: _current / _total,
-                    minHeight: 7,
-                    backgroundColor: AppColors.surface2,
-                    color: AppColors.primary,
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.muted),
+                    onPressed: () => context.go(AppRoutes.decks),
+                    tooltip: '종료',
                   ),
-                ),
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      child: const LinearProgressIndicator(
+                        value: _current / _total,
+                        minHeight: 7,
+                        backgroundColor: AppColors.surface2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    '$_current / $_total',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                '$_current / $_total',
-                style: textTheme.labelLarge?.copyWith(
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
 
@@ -979,7 +987,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
+                constraints: const BoxConstraints(maxWidth: _cardMaxWidth),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1013,46 +1021,53 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           ),
         ),
 
-        // Difficulty buttons (SM-2 rating)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            0,
-            AppSpacing.lg,
-            AppSpacing.lg,
-          ),
-          child: Row(
-            children: [
-              _RateButton(
-                label: '다시',
-                sub: '<1분',
-                color: AppColors.error,
-                onTap: () {
-                  // TODO: 팀원 구현 — SM-2 rating API 호출
-                },
+        // Difficulty buttons (SM-2 rating) — 카드와 동일 폭(480)으로 중앙 정렬
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: _cardMaxWidth + AppSpacing.lg * 2,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              _RateButton(
-                label: '어려움',
-                sub: '4일',
-                color: AppColors.warning,
-                onTap: () {},
+              child: Row(
+                children: [
+                  _RateButton(
+                    label: '다시',
+                    sub: '<1분',
+                    color: AppColors.error,
+                    onTap: () {
+                      // TODO: 팀원 구현 — SM-2 rating API 호출
+                    },
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _RateButton(
+                    label: '어려움',
+                    sub: '4일',
+                    color: AppColors.warning,
+                    onTap: () {},
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _RateButton(
+                    label: '보통',
+                    sub: '9일',
+                    color: AppColors.success,
+                    onTap: () {},
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  _RateButton(
+                    label: '쉬움',
+                    sub: '21일',
+                    color: AppColors.accent,
+                    onTap: () {},
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              _RateButton(
-                label: '보통',
-                sub: '9일',
-                color: AppColors.success,
-                onTap: () {},
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              _RateButton(
-                label: '쉬움',
-                sub: '21일',
-                color: AppColors.accent,
-                onTap: () {},
-              ),
-            ],
+            ),
           ),
         ),
       ],

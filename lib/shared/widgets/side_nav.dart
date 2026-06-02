@@ -18,8 +18,8 @@ class SideNavItem {
 
 /// "AI Tutor" 컨셉 사이드바.
 ///
-/// 브랜드(✦ orb + Synapse) → 네비 → 최근 대화(mock) → 프로필 풋터.
-/// 활성 항목은 보라 12% 배경 + 보라 텍스트의 알약형 강조.
+/// 접기/펼치기 토글 → 네비 → 최근 활동(mock) → 프로필 풋터.
+/// (브랜드 ✦ orb + Synapse는 상단 앱바로 이동) 활성 항목은 보라 12% 배경 강조.
 class SideNav extends StatelessWidget {
   const SideNav({
     required this.currentRoute,

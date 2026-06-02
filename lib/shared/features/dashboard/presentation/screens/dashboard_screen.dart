@@ -30,35 +30,23 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 디자인 컨펌(2026-06-01): 4탭 → 2탭으로 통합.
-    //  · 홈    = 홈 대시보드를 위젯보드화 (HomeBoardSection)
-    //  · 플래너 = 캘린더(좌) + 칸반(우) (PlannerSection)
-    return const DefaultTabController(
-      length: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Material(
-            color: AppColors.surface,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: [
-                  Tab(text: '홈'),
-                  Tab(text: '플래너'),
-                ],
-              ),
-            ),
-          ),
-          Divider(height: 1, thickness: 1, color: AppColors.border),
-          Expanded(
-            child: TabBarView(children: [HomeBoardSection(), PlannerSection()]),
-          ),
-        ],
-      ),
-    );
+    // 디자인 컨펌(2026-06-01): 홈 대시보드를 위젯보드화.
+    // 플래너는 별도 사이드바 메뉴(/planner · PlannerScreen)로 분리.
+    return const HomeBoardSection();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PlannerScreen — 사이드바 '플래너' 메뉴(/planner) 본문
+//   캘린더(위) + 칸반(아래). AppShell 내부에서 렌더되는 BODY 화면.
+// ═══════════════════════════════════════════════════════════════════════════
+
+class PlannerScreen extends StatelessWidget {
+  const PlannerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const PlannerSection();
   }
 }
 

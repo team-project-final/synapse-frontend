@@ -110,6 +110,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DashboardStatsScreen(),
           ),
           GoRoute(
+            path: AppRoutes.planner,
+            builder: (context, state) => const PlannerScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.notes,
             builder: (context, state) => const NoteListScreen(),
           ),

@@ -54,6 +54,8 @@ abstract final class AppRoutes {
   static const dashboardHeatmap = '/dashboard/heatmap';
   static const dashboardStats = '/dashboard/stats';
 
+  static const planner = '/planner';
+
   static const communityGroups = '/community/groups';
   static const communityGroupDetail = '/community/groups/:groupId';
   static const communityGroupNew = '/community/groups/new';

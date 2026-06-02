@@ -39,6 +39,11 @@ class SideNav extends StatelessWidget {
 
   static const _topItems = [
     SideNavItem(icon: Icons.home_outlined, label: '홈', route: '/'),
+    SideNavItem(
+      icon: Icons.calendar_month_outlined,
+      label: '플래너',
+      route: '/planner',
+    ),
     SideNavItem(icon: Icons.description_outlined, label: '노트', route: '/notes'),
     SideNavItem(icon: Icons.refresh, label: '복습', route: '/decks'),
     SideNavItem(icon: Icons.hub_outlined, label: '그래프', route: '/graph'),

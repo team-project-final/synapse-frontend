@@ -11,9 +11,7 @@ enum _BoardKind {
   streak,
   level,
   graph,
-  recentChat,
   recentNotes,
-  onboarding,
   ranking,
 }
 
@@ -71,7 +69,7 @@ const List<_BoardSpec> _kCatalog = <_BoardSpec>[
   ),
   _BoardSpec(
     kind: _BoardKind.level,
-    label: 'Lv 7',
+    label: '내 프로필',
     emoji: '⭐',
     width: _TileWidth.half,
   ),
@@ -82,22 +80,10 @@ const List<_BoardSpec> _kCatalog = <_BoardSpec>[
     width: _TileWidth.half,
   ),
   _BoardSpec(
-    kind: _BoardKind.recentChat,
-    label: '최근 AI 대화',
-    emoji: '💬',
-    width: _TileWidth.full,
-  ),
-  _BoardSpec(
     kind: _BoardKind.recentNotes,
     label: '최근 노트',
     emoji: '📝',
     width: _TileWidth.half,
-  ),
-  _BoardSpec(
-    kind: _BoardKind.onboarding,
-    label: '시작하기',
-    emoji: '🚀',
-    width: _TileWidth.full,
   ),
   _BoardSpec(
     kind: _BoardKind.ranking,

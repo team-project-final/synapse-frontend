@@ -31,9 +31,7 @@ class _HomeBoardSectionState extends State<HomeBoardSection> {
     _BoardKind.streak,
     _BoardKind.level,
     _BoardKind.graph,
-    _BoardKind.recentChat,
     _BoardKind.recentNotes,
-    _BoardKind.onboarding,
     _BoardKind.ranking,
   ];
 

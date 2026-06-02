@@ -67,15 +67,13 @@ class _BoardTile extends StatelessWidget {
       case _BoardKind.streak:
         return _StreakContent(onTap: () => _go(context, AppRoutes.review));
       case _BoardKind.level:
-        return const _LevelContent();
+        return _LevelContent(
+          onTap: () => _go(context, AppRoutes.gamificationProfile),
+        );
       case _BoardKind.graph:
         return _GraphContent(onTap: () => _go(context, AppRoutes.graph));
-      case _BoardKind.recentChat:
-        return _RecentChatContent(onTap: () => _go(context, AppRoutes.qa));
       case _BoardKind.recentNotes:
         return _RecentNotesContent(onTap: () => _go(context, AppRoutes.notes));
-      case _BoardKind.onboarding:
-        return const OnboardingChecklist();
       case _BoardKind.ranking:
         return _RankingContent(
           onTap: () => _go(context, AppRoutes.communityGroups),
@@ -142,17 +140,6 @@ class _AskContent extends StatelessWidget {
                   ),
                   Row(
                     children: <Widget>[
-                      const Icon(
-                        Icons.mic_none,
-                        color: AppColors.muted,
-                        size: 22,
-                      ),
-                      const SizedBox(width: AppSpacing.sm + 2),
-                      const Icon(
-                        Icons.chat_bubble_outline,
-                        color: AppColors.muted,
-                        size: 20,
-                      ),
                       const Spacer(),
                       Container(
                         width: 38,
@@ -465,37 +452,43 @@ class _StreakContent extends StatelessWidget {
 // ── 타일 content: 레벨 (진행 바) ─────────────────────────────────────────────
 
 class _LevelContent extends StatelessWidget {
-  const _LevelContent();
+  const _LevelContent({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          '지식 탐험가',
-          style: textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.text,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            '지식 탐험가',
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.sm + 2),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          child: const LinearProgressIndicator(
-            value: 0.9,
-            minHeight: 8,
-            backgroundColor: AppColors.surface2,
-            color: AppColors.primary,
+          const SizedBox(height: AppSpacing.sm + 2),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: const LinearProgressIndicator(
+              value: 0.9,
+              minHeight: 8,
+              backgroundColor: AppColors.surface2,
+              color: AppColors.primary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Lv8까지 360 XP',
-          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Lv8까지 360 XP',
+            style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -516,115 +509,6 @@ class _GraphContent extends StatelessWidget {
         height: 150,
         width: double.infinity,
         child: CustomPaint(painter: _MiniGraphPainter()),
-      ),
-    );
-  }
-}
-
-// ── 타일 content: 최근 AI 대화 (_RecentChatCard 변형) ────────────────────────
-
-class _RecentChatContent extends StatelessWidget {
-  const _RecentChatContent({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            const SynapseOrb(size: 32, glyphScale: 0.47),
-            const SizedBox(width: AppSpacing.sm + 2),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'AI 튜터',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Text(
-                    '● 답변 완료',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        const _ChatBubble(text: '트랜스포머 노트로 복습 카드 만들어줘', isMe: true),
-        const SizedBox(height: AppSpacing.sm),
-        const _ChatBubble(
-          text: '「트랜스포머」 노트에서 핵심 4장을 만들었어요. 추가할 카드를 골라주세요 👇',
-          isMe: false,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: FilledButton(
-            onPressed: onTap,
-            style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('대화 이어가기', style: TextStyle(fontSize: 12.5)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ChatBubble extends StatelessWidget {
-  const _ChatBubble({required this.text, required this.isMe});
-
-  final String text;
-  final bool isMe;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.7,
-        ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md - 2,
-            vertical: AppSpacing.sm + 3,
-          ),
-          decoration: BoxDecoration(
-            color: isMe ? AppColors.primary : AppColors.bg,
-            border: isMe ? null : Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(AppRadius.lg),
-              topRight: const Radius.circular(AppRadius.lg),
-              bottomLeft: Radius.circular(isMe ? AppRadius.lg : 5),
-              bottomRight: Radius.circular(isMe ? 5 : AppRadius.lg),
-            ),
-          ),
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isMe ? AppColors.primaryFg : AppColors.text,
-              height: 1.5,
-            ),
-          ),
-        ),
       ),
     );
   }

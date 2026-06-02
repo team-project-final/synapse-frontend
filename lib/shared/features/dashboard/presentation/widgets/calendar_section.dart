@@ -11,11 +11,21 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CalendarSection extends StatelessWidget {
-  const CalendarSection({this.scrollable = true, super.key});
+  const CalendarSection({
+    this.scrollable = true,
+    this.selectedDate,
+    this.onDateSelected,
+    super.key,
+  });
 
   // false면 루트 ListView가 자체 스크롤하지 않고(shrinkWrap), 외부 스크롤 뷰가
   // 스크롤을 담당한다(임베드 모드).
   final bool scrollable;
+
+  // 선택된 날짜. 플래너에서 이 날짜를 강조하고, 날짜 탭 시 onDateSelected로
+  // 알린다. null이면 날짜 탭/선택 강조가 비활성된다.
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime>? onDateSelected;
 
   // 셸 사이드바를 제외한 실제 가용 너비 기준. 좌우 배치 시 아젠다(flex 2)가
   // 충분한 폭을 갖도록 창 전체가 아닌 LayoutBuilder 제약폭으로 판단한다.
@@ -36,21 +46,30 @@ class CalendarSection extends StatelessWidget {
               // NOTE: IntrinsicHeight + GridView(shrinkWrap)는 그리드 intrinsic
               // 높이를 0으로 보고해 달력이 짧은 아젠다 높이로 잘린다. 각 컬럼이
               // 자연 높이를 갖도록 IntrinsicHeight 없이 상단 정렬한다.
-              const Row(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 3, child: _MonthCalendar()),
-                  SizedBox(width: AppSpacing.md),
                   Expanded(
+                    flex: 3,
+                    child: _MonthCalendar(
+                      selectedDate: selectedDate,
+                      onDateSelected: onDateSelected,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  const Expanded(
                     flex: 2,
                     child: _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
                   ),
                 ],
               )
-            else ...const [
-              _WeekStrip(),
-              SizedBox(height: AppSpacing.md),
-              _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
+            else ...[
+              _WeekStrip(
+                selectedDate: selectedDate,
+                onDateSelected: onDateSelected,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
             ],
           ],
         );
@@ -149,6 +168,15 @@ Color _loadColor(double load) {
   return Color.lerp(AppColors.surface2, AppColors.primary, load.clamp(0, 1))!;
 }
 
+// 캘린더 그리드 기준 날짜(디자인 mock). 월 그리드는 4/26(일)부터 6주,
+// 주간 스트립은 5/28(월)부터 7일, 오늘은 5/29.
+// TODO: 팀원 구현 — 실제 달력은 DateTime.now() 기준으로 그리드를 생성한다.
+final DateTime _kMonthGridStart = DateTime(2026, 4, 26);
+final DateTime _kWeekStart = DateTime(2026, 5, 28);
+
+bool _isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 // ── 섹션 라벨 ───────────────────────────────────────────────────────────────
 
 class _SectionLabel extends StatelessWidget {
@@ -196,7 +224,10 @@ class _PanelCard extends StatelessWidget {
 // ── 주간 스트립(모바일) — 요일별 복습 부하 막대 ──────────────────────────────
 
 class _WeekStrip extends StatelessWidget {
-  const _WeekStrip();
+  const _WeekStrip({this.selectedDate, this.onDateSelected});
+
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime>? onDateSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -211,8 +242,14 @@ class _WeekStrip extends StatelessWidget {
           children: [
             Row(
               children: [
-                for (final _WeekDay d in _kWeekDays)
-                  Expanded(child: _dayCell(textTheme, d)),
+                for (int i = 0; i < _kWeekDays.length; i++)
+                  Expanded(
+                    child: _dayCell(
+                      textTheme,
+                      _kWeekDays[i],
+                      _kWeekStart.add(Duration(days: i)),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -252,45 +289,55 @@ class _WeekStrip extends StatelessWidget {
     ),
   );
 
-  Widget _dayCell(TextTheme textTheme, _WeekDay d) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: d.isToday ? AppColors.primary : Colors.transparent,
-        borderRadius: BorderRadius.circular(11),
-      ),
-      child: Column(
-        children: [
-          Text(
-            d.dow,
-            style: textTheme.labelSmall?.copyWith(
-              color: d.isToday ? AppColors.primaryFg : AppColors.muted,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${d.day}',
-            style: textTheme.titleSmall?.copyWith(
-              color: d.isToday ? AppColors.primaryFg : AppColors.text,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 부하 막대
-          Container(
-            width: 14,
-            height: 8 + 22 * d.load,
-            decoration: BoxDecoration(
-              color: d.isToday ? AppColors.primaryFg : _loadColor(d.load),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(4),
-                bottom: Radius.circular(2),
+  Widget _dayCell(TextTheme textTheme, _WeekDay d, DateTime date) {
+    final bool selected =
+        selectedDate != null && _isSameDay(date, selectedDate!);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onDateSelected == null ? null : () => onDateSelected!(date),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          // 선택되지 않은 오늘은 보더로 표시.
+          border: d.isToday && !selected
+              ? Border.all(color: AppColors.primary)
+              : null,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Column(
+          children: [
+            Text(
+              d.dow,
+              style: textTheme.labelSmall?.copyWith(
+                color: selected ? AppColors.primaryFg : AppColors.muted,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              '${d.day}',
+              style: textTheme.titleSmall?.copyWith(
+                color: selected ? AppColors.primaryFg : AppColors.text,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            // 부하 막대
+            Container(
+              width: 14,
+              height: 8 + 22 * d.load,
+              decoration: BoxDecoration(
+                color: selected ? AppColors.primaryFg : _loadColor(d.load),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                  bottom: Radius.circular(2),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -436,7 +483,10 @@ class _AgendaTile extends StatelessWidget {
 // ── 월 캘린더 그리드(데스크탑) ──────────────────────────────────────────────
 
 class _MonthCalendar extends StatelessWidget {
-  const _MonthCalendar();
+  const _MonthCalendar({this.selectedDate, this.onDateSelected});
+
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime>? onDateSelected;
 
   static const List<String> _dows = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -526,7 +576,13 @@ class _MonthCalendar extends StatelessWidget {
               childAspectRatio: 0.82,
               children: [
                 for (int i = 0; i < _cells.length; i++)
-                  _CalDayCell(cell: _cells[i], isSunday: i % 7 == 0),
+                  _CalDayCell(
+                    cell: _cells[i],
+                    isSunday: i % 7 == 0,
+                    date: _kMonthGridStart.add(Duration(days: i)),
+                    selectedDate: selectedDate,
+                    onDateSelected: onDateSelected,
+                  ),
               ],
             ),
           ],
@@ -552,73 +608,108 @@ class _CalCell {
 }
 
 class _CalDayCell extends StatelessWidget {
-  const _CalDayCell({required this.cell, required this.isSunday});
+  const _CalDayCell({
+    required this.cell,
+    required this.isSunday,
+    required this.date,
+    this.selectedDate,
+    this.onDateSelected,
+  });
   final _CalCell cell;
   final bool isSunday;
+  final DateTime date;
+  final DateTime? selectedDate;
+  final ValueChanged<DateTime>? onDateSelected;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
     final Color dayColor = isSunday ? AppColors.error : AppColors.text;
+    final bool selected =
+        selectedDate != null && _isSameDay(date, selectedDate!);
 
-    return Opacity(
-      opacity: cell.out ? 0.4 : 1,
-      child: Container(
-        padding: const EdgeInsets.all(7),
-        decoration: BoxDecoration(
-          color: cell.today
-              ? AppColors.primary.withValues(alpha: 0.10)
-              : AppColors.bg,
-          border: Border.all(
-            color: cell.today ? AppColors.primary : AppColors.border,
-          ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${cell.day}',
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: cell.today ? AppColors.primary : dayColor,
-              ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onDateSelected == null ? null : () => onDateSelected!(date),
+      child: Opacity(
+        opacity: cell.out ? 0.4 : 1,
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: selected
+                ? AppColors.primary.withValues(alpha: 0.14)
+                : AppColors.bg,
+            border: Border.all(
+              color: selected ? AppColors.primary : AppColors.border,
+              width: selected ? 1.5 : 1,
             ),
-            if (cell.due > 0) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '복습 ${cell.due}',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 9.5,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    '${cell.day}',
+                    style: textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: selected ? AppColors.primary : dayColor,
+                    ),
                   ),
-                ),
+                  // 오늘 표시 점(선택과 별개로 항상 노출)
+                  if (cell.today) ...[
+                    const SizedBox(width: 3),
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
-            const Spacer(),
-            if (cell.load > 0)
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Container(
-                  width: 18,
-                  height: 4 + 16 * cell.load,
+              if (cell.due > 0) ...[
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
-                    color: _loadColor(cell.load),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(3),
-                      bottom: Radius.circular(1),
+                    color: AppColors.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '복습 ${cell.due}',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 9.5,
                     ),
                   ),
                 ),
-              ),
-          ],
+              ],
+              const Spacer(),
+              if (cell.load > 0)
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Container(
+                    width: 18,
+                    height: 4 + 16 * cell.load,
+                    decoration: BoxDecoration(
+                      color: _loadColor(cell.load),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(3),
+                        bottom: Radius.circular(1),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

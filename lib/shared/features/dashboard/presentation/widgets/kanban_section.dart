@@ -169,11 +169,15 @@ const List<_KanbanColumn> _kBoardColumns = [
 // ═══════════════════════════════════════════════════════════════════════════
 
 class KanbanSection extends StatelessWidget {
-  const KanbanSection({this.scrollable = true, super.key});
+  const KanbanSection({this.scrollable = true, this.date, super.key});
 
   // false면 외부(세로) ListView가 자체 스크롤하지 않고 외부 스크롤 뷰가
   // 담당한다(임베드 모드). 내부 _MobileBoard 가로 스크롤은 영향받지 않는다.
   final bool scrollable;
+
+  // 플래너에서 선택된 날짜. 지정되면 보드 헤더에 해당 날짜를 표시한다.
+  // TODO: 팀원 구현 — learning-svc 연동 시 이 날짜의 카드만 로드한다.
+  final DateTime? date;
 
   @override
   Widget build(BuildContext context) {
@@ -191,8 +195,15 @@ class KanbanSection extends StatelessWidget {
       shrinkWrap: !scrollable,
       physics: scrollable ? null : const NeverScrollableScrollPhysics(),
       children: <Widget>[
-        // ── 헤더 (모바일 전용; 데스크탑은 AppShell AppBar 사용) ──
-        if (isMobile) ...<Widget>[
+        // ── 헤더 ──
+        // 날짜 지정(플래너) 시 날짜 헤더, 아니면 모바일 전용 기본 헤더.
+        if (date != null) ...<Widget>[
+          Padding(
+            padding: EdgeInsets.only(right: isMobile ? AppSpacing.lg : 0),
+            child: _DateBoardHeader(date: date!),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ] else if (isMobile) ...<Widget>[
           const Padding(
             padding: EdgeInsets.only(right: AppSpacing.lg),
             child: _BoardHeader(),
@@ -236,6 +247,42 @@ class _BoardHeader extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 '화요일 · 오늘 복습 18장 대기',
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+        _IconCircleButton(
+          icon: Icons.add,
+          onTap: () => context.go(_kComposeRoute),
+        ),
+      ],
+    );
+  }
+}
+
+/// 플래너에서 선택한 날짜의 보드 헤더(날짜 + 추가 버튼).
+class _DateBoardHeader extends StatelessWidget {
+  const _DateBoardHeader({required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                '${date.month}월 ${date.day}일 보드',
+                style: textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '선택한 날짜의 학습 보드 · 복습 18장 대기',
                 style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ],

@@ -170,6 +170,30 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
           },
           child: const Text('저장'),
         ),
+        const SizedBox(height: AppSpacing.lg),
+        const Divider(),
+        const SizedBox(height: AppSpacing.sm),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final ok = await ConfirmDialog.show(
+              context,
+              title: '로그아웃',
+              content: '로그아웃하시겠습니까?',
+              confirmLabel: '로그아웃',
+              isDestructive: true,
+            );
+            if (ok == true) {
+              // 상태가 unauthenticated가 되면 라우터 redirect가 /login으로 보낸다.
+              await ref.read(authNotifierProvider.notifier).logout();
+            }
+          },
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            side: const BorderSide(color: AppColors.error),
+          ),
+          icon: const Icon(Icons.logout, size: 18),
+          label: const Text('로그아웃'),
+        ),
       ],
     );
   }

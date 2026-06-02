@@ -25,8 +25,8 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
+      maxWidth: 560,
       children: [
         const ConceptViewHead(title: '데이터 관리'),
         const SizedBox(height: AppSpacing.xl),

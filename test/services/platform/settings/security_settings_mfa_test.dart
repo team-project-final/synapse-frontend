@@ -53,6 +53,10 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    // 폭(뷰포트)에 따라 버튼이 fold 경계에 걸려 중심 탭이 빗나갈 수 있어
+    // 완전히 보이도록 보정한 뒤 탭한다.
+    await tester.ensureVisible(verifyButton);
+    await tester.pumpAndSettle();
     await tester.tap(verifyButton);
     await tester.pumpAndSettle();
 

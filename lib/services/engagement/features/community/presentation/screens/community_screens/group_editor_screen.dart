@@ -45,8 +45,8 @@ class _CommunityGroupEditorScreenState
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
+      maxWidth: 560,
       children: [
         Text('그룹 만들기', style: textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.xl),

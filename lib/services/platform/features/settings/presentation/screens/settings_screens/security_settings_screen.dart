@@ -110,8 +110,8 @@ class _SecuritySettingsScreenState
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
+      maxWidth: 560,
       children: [
         const ConceptViewHead(title: '보안 설정'),
         const SizedBox(height: AppSpacing.xl),

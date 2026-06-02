@@ -54,8 +54,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
       ),
     ];
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
       children: [
         // Search bar
         StudySearchBar(

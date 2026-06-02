@@ -34,8 +34,7 @@ class _SharedDeckDetailScreenState
       '동적 프로그래밍과 분할 정복의 차이점은?',
     ];
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
       children: [
         // Header
         Text('알고리즘 기초 100제', style: textTheme.headlineSmall),

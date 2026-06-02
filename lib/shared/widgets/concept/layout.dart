@@ -191,19 +191,17 @@ class ConceptPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: padding,
-      children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: children,
-            ),
-          ),
+    // Center > ConstrainedBox > ListView: 각 항목이 정상 sliver로 남아 lazy
+    // 빌드/스크롤(scrollUntilVisible)·탭 히트테스트가 일반 ListView처럼 동작한다.
+    // (예전엔 ListView의 단일 자식 Column으로 감싸 스크롤 후 탭이 빗나갔다.)
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: ListView(
+          padding: padding,
+          children: children,
         ),
-      ],
+      ),
     );
   }
 }

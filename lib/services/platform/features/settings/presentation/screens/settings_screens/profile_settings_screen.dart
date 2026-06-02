@@ -32,8 +32,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
+      maxWidth: 560,
       children: [
         const ConceptViewHead(title: '프로필 설정'),
         const SizedBox(height: AppSpacing.xl),

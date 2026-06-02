@@ -39,8 +39,8 @@ class _NotificationSettingsScreenState
     final textTheme = Theme.of(context).textTheme;
 
     // TODO: 팀원 구현 — platform-svc 알림 설정 API 연동
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+    return ConceptPage(
+      maxWidth: 560,
       children: [
         const ConceptViewHead(title: '알림 설정'),
         const SizedBox(height: AppSpacing.lg),

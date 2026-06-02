@@ -20,6 +20,7 @@ class _MockDeck {
     required this.cardCount,
     required this.dueCount,
     required this.progress,
+    this.description = '',
   });
   final String id;
   final String name;
@@ -27,6 +28,7 @@ class _MockDeck {
   final int cardCount;
   final int dueCount;
   final double progress;
+  final String description;
 }
 
 const _mockDecks = [
@@ -37,6 +39,7 @@ const _mockDecks = [
     cardCount: 45,
     dueCount: 12,
     progress: 0.6,
+    description: '자료구조·언어 문법 등 기초 개념 정리 덱',
   ),
   _MockDeck(
     id: '2',
@@ -45,6 +48,7 @@ const _mockDecks = [
     cardCount: 80,
     dueCount: 5,
     progress: 0.75,
+    description: 'DP·그래프·정렬 등 핵심 알고리즘 모음',
   ),
   _MockDeck(
     id: '3',
@@ -53,6 +57,7 @@ const _mockDecks = [
     cardCount: 30,
     dueCount: 20,
     progress: 0.3,
+    description: 'SAA 대비 핵심 서비스 요약',
   ),
 ];
 
@@ -346,6 +351,16 @@ class _DeckCard extends StatelessWidget {
                 ),
               ],
             ),
+            // 덱 설명(생성 시 입력한 설명 표시)
+            if (deck.description.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                deck.description,
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             const SizedBox(height: AppSpacing.sm + 2),
             Wrap(
               spacing: AppSpacing.sm,
@@ -527,116 +542,150 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
       },
     ];
 
-    return ConceptPage(
+    return Stack(
       children: [
-        const ConceptViewHead(title: '카드', meta: '카드 4'),
-        ConceptSearchBar(hint: '카드 검색…', onTap: () {}),
-        const SizedBox(height: AppSpacing.md),
-        // Sort pills
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final s in sortOptions) ...[
-                ConceptFilterPill(
-                  label: s,
-                  selected: _selectedSort == s,
-                  onTap: () => setState(() => _selectedSort = s),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        // Type filter pills
-        Wrap(
-          spacing: AppSpacing.sm,
+        ConceptPage(
           children: [
-            for (final type in ['전체', 'Basic', 'Cloze'])
-              ConceptFilterPill(
-                label: type,
-                selected: _selectedType == type,
-                onTap: () => setState(() => _selectedType = type),
-              ),
-          ],
-        ),
-        if (_checkedCards.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.sm),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: () {
-                // TODO: 팀원 구현 — 선택 카드 삭제 API 연동
-                setState(() => _checkedCards.clear());
-              },
-              icon: const Icon(Icons.delete_outline, size: 18),
-              label: Text('선택 삭제 (${_checkedCards.length})'),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            ),
-          ),
-        ],
-        const ConceptSectionLabel('카드 목록', topGap: AppSpacing.md),
-        for (final entry in mockCards.asMap().entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: ConceptCard(
+            const ConceptViewHead(title: '카드', meta: '카드 4'),
+            ConceptSearchBar(hint: '카드 검색…', onTap: () {}),
+            const SizedBox(height: AppSpacing.md),
+            // Sort pills
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  Checkbox(
-                    value: _checkedCards.contains(entry.key),
-                    onChanged: (v) {
-                      setState(() {
-                        if (v == true) {
-                          _checkedCards.add(entry.key);
-                        } else {
-                          _checkedCards.remove(entry.key);
-                        }
-                      });
-                    },
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            ConceptTag(entry.value['type']!.toLowerCase()),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          entry.value['front']!,
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxs),
-                        Text(
-                          entry.value['back']!,
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                  for (final s in sortOptions) ...[
+                    ConceptFilterPill(
+                      label: s,
+                      selected: _selectedSort == s,
+                      onTap: () => setState(() => _selectedSort = s),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit_outlined,
-                      color: AppColors.muted,
-                      size: 20,
-                    ),
-                    onPressed: () => context.go(AppRoutes.cardNew),
-                    // TODO: 팀원 구현 — 카드 편집 화면 연동
-                  ),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
                 ],
               ),
             ),
+            const SizedBox(height: AppSpacing.sm),
+            // Type filter pills
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                for (final type in ['전체', 'Basic', 'Cloze'])
+                  ConceptFilterPill(
+                    label: type,
+                    selected: _selectedType == type,
+                    onTap: () => setState(() => _selectedType = type),
+                  ),
+              ],
+            ),
+            if (_checkedCards.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: () {
+                    // TODO: 팀원 구현 — 선택 카드 삭제 API 연동
+                    setState(() => _checkedCards.clear());
+                  },
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text('선택 삭제 (${_checkedCards.length})'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
+                ),
+              ),
+            ],
+            const ConceptSectionLabel('카드 목록', topGap: AppSpacing.md),
+            for (final entry in mockCards.asMap().entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ConceptCard(
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _checkedCards.contains(entry.key),
+                        onChanged: (v) {
+                          setState(() {
+                            if (v == true) {
+                              _checkedCards.add(entry.key);
+                            } else {
+                              _checkedCards.remove(entry.key);
+                            }
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                ConceptTag(entry.value['type']!.toLowerCase()),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              entry.value['front']!,
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xxs),
+                            Text(
+                              entry.value['back']!,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.muted,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: AppColors.muted,
+                          size: 20,
+                        ),
+                        onPressed: () => context.go(AppRoutes.cardNew),
+                        // TODO: 팀원 구현 — 카드 편집 화면 연동
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
+          ],
+        ),
+        Positioned(
+          right: AppSpacing.lg,
+          bottom: AppSpacing.lg,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // AI 카드 생성(보조)
+              FloatingActionButton.extended(
+                heroTag: 'aiCardFab',
+                onPressed: () => context.go(AppRoutes.aiCards),
+                backgroundColor: AppColors.surface,
+                foregroundColor: AppColors.primary,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('AI 생성'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // 직접 카드 작성(주)
+              FloatingActionButton.extended(
+                heroTag: 'newCardFab',
+                onPressed: () =>
+                    context.go(AppRoutes.deckCardNewPath(widget.deckId)),
+                icon: const Icon(Icons.add),
+                label: const Text('새 카드'),
+              ),
+            ],
           ),
-        const SizedBox(height: AppSpacing.xl),
+        ),
       ],
     );
   }
@@ -645,7 +694,10 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
 // ── CardEditorScreen (SCR-W-CARD-003) ──
 
 class CardEditorScreen extends ConsumerStatefulWidget {
-  const CardEditorScreen({super.key});
+  const CardEditorScreen({this.deckId, super.key});
+
+  /// 카드를 추가할 덱 id. null이면 폼에서 덱을 직접 선택.
+  final String? deckId;
 
   @override
   ConsumerState<CardEditorScreen> createState() => _CardEditorScreenState();
@@ -655,8 +707,20 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   final _frontController = TextEditingController();
   final _backController = TextEditingController();
   String _cardType = 'basic';
-  String? _selectedDeck = '프로그래밍 기초';
+  late String _selectedDeck;
   final Set<String> _selectedTags = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // 진입한 덱이 있으면 그 덱으로 고정, 없으면 첫 덱 기본 선택.
+    final id = widget.deckId;
+    _selectedDeck = id == null
+        ? _mockDecks.first.name
+        : _mockDecks
+              .firstWhere((d) => d.id == id, orElse: () => _mockDecks.first)
+              .name;
+  }
 
   @override
   void dispose() {
@@ -720,11 +784,13 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             border: _inputBorder,
             enabledBorder: _inputBorder,
           ),
-          items: const [
-            DropdownMenuItem(value: '프로그래밍 기초', child: Text('프로그래밍 기초')),
-            DropdownMenuItem(value: '알고리즘', child: Text('알고리즘')),
+          items: [
+            for (final d in _mockDecks)
+              DropdownMenuItem(value: d.name, child: Text(d.name)),
           ],
-          onChanged: (v) => setState(() => _selectedDeck = v),
+          onChanged: (v) => setState(() {
+            if (v != null) _selectedDeck = v;
+          }),
           // TODO: 팀원 구현 — learning-svc 덱 목록 API 연동
         ),
         const ConceptSectionLabel('태그'),
@@ -775,7 +841,10 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
         FilledButton(
           onPressed: () {
             // TODO: 팀원 구현 — learning-svc 카드 저장 API 연동
-            context.go(AppRoutes.decks);
+            final id = widget.deckId;
+            context.go(
+              id != null ? AppRoutes.deckCardsPath(id) : AppRoutes.decks,
+            );
           },
           child: const Text('저장'),
         ),

@@ -151,6 +151,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 CardListScreen(deckId: state.pathParameters['deckId'] ?? ''),
           ),
           GoRoute(
+            path: AppRoutes.deckCardNew,
+            builder: (context, state) =>
+                CardEditorScreen(deckId: state.pathParameters['deckId']),
+          ),
+          GoRoute(
             path: AppRoutes.cardNew,
             builder: (context, state) => const CardEditorScreen(),
           ),

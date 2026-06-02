@@ -75,11 +75,17 @@ class CommunityGroupsScreen extends ConsumerWidget {
                         actionLabel: '그룹 만들기',
                         onAction: () => context.go(AppRoutes.communityGroupNew),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        itemCount: mockGroups.length,
-                        itemBuilder: (context, i) =>
-                            _GroupCard(group: mockGroups[i]),
+                    : CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            sliver: SliverList.builder(
+                              itemCount: mockGroups.length,
+                              itemBuilder: (context, i) =>
+                                  _GroupCard(group: mockGroups[i]),
+                            ),
+                          ),
+                        ],
                       ),
                 // Explore tab — 공개 그룹 검색/탐색
                 const _ExploreTab(groups: _exploreGroups),
@@ -237,6 +243,7 @@ class _ExploreTabState extends State<_ExploreTab> {
             onChanged: (v) => setState(() => _query = v),
           ),
         ),
+        // 검색바는 고정, 목록만 Sliver로 스크롤(카드 목록 화면과 동일 패턴).
         Expanded(
           child: results.isEmpty
               ? _EmptyGroupList(
@@ -244,15 +251,22 @@ class _ExploreTabState extends State<_ExploreTab> {
                       ? '공개 그룹이 없습니다'
                       : '\'$_query\' 검색 결과가 없습니다',
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    0,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                  ),
-                  itemCount: results.length,
-                  itemBuilder: (context, i) => _GroupCard(group: results[i]),
+              : CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        0,
+                        AppSpacing.lg,
+                        AppSpacing.lg,
+                      ),
+                      sliver: SliverList.builder(
+                        itemCount: results.length,
+                        itemBuilder: (context, i) =>
+                            _GroupCard(group: results[i]),
+                      ),
+                    ),
+                  ],
                 ),
         ),
       ],

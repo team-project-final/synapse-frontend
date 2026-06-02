@@ -64,11 +64,15 @@ class _OAuthCallbackScreenState extends ConsumerState<OAuthCallbackScreen> {
               width: 22,
               height: 22,
               child: CircularProgressIndicator(
-                  strokeWidth: 2.5, color: AppColors.primary),
+                strokeWidth: 2.5,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Text('로그인 처리 중…',
-                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted)),
+            Text(
+              '로그인 처리 중…',
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+            ),
           ],
         ),
       ),

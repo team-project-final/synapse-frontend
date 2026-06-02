@@ -17,6 +17,9 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
   String? _selectedNodeId;
   final Set<String> _selectedTags = {'전체'};
   double _minLinks = 0;
+  // 그래프를 영역 중앙에 맞추는 오프셋. LayoutBuilder에서 매 빌드 갱신,
+  // 페인터와 탭 히트테스트가 같은 값을 공유한다.
+  Offset _graphOffset = Offset.zero;
 
   static const List<String> _filterTags = ['전체', '머신러닝', '딥러닝', '통계'];
 
@@ -40,7 +43,7 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
       details.localPosition,
     );
 
-    final hit = _hitTestNode(_filteredNodes, localPosition);
+    final hit = _hitTestNode(_filteredNodes, localPosition - _graphOffset);
     setState(() {
       _selectedNodeId = hit?.id;
     });
@@ -48,6 +51,24 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
 
   void _resetView() {
     _transformController.value = Matrix4.identity();
+  }
+
+  /// 노드 묶음의 중심을 그래프 영역 중앙에 맞추는 오프셋(좌측 쏠림 방지).
+  Offset _centerOffset(Size size) {
+    final ns = _filteredNodes;
+    if (ns.isEmpty) return Offset.zero;
+    var minX = double.infinity, maxX = -double.infinity;
+    var minY = double.infinity, maxY = -double.infinity;
+    for (final n in ns) {
+      minX = math.min(minX, n.x);
+      maxX = math.max(maxX, n.x);
+      minY = math.min(minY, n.y);
+      maxY = math.max(maxY, n.y);
+    }
+    return Offset(
+      size.width / 2 - (minX + maxX) / 2,
+      size.height / 2 - (minY + maxY) / 2,
+    );
   }
 
   @override
@@ -135,24 +156,30 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
             const _GraphLegend(),
             // Graph area
             Expanded(
-              child: InteractiveViewer(
-                transformationController: _transformController,
-                minScale: 0.5,
-                maxScale: 3.0,
-                boundaryMargin: const EdgeInsets.all(100),
-                child: GestureDetector(
-                  onTapDown: _onTapDown,
-                  child: SizedBox.expand(
-                    child: CustomPaint(
-                      painter: _GraphPainter(
-                        nodes: _filteredNodes,
-                        edges: _mockEdges,
-                        clusterColors: _clusterColors,
-                        selectedNodeId: _selectedNodeId,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  _graphOffset = _centerOffset(constraints.biggest);
+                  return InteractiveViewer(
+                    transformationController: _transformController,
+                    minScale: 0.5,
+                    maxScale: 3.0,
+                    boundaryMargin: const EdgeInsets.all(100),
+                    child: GestureDetector(
+                      onTapDown: _onTapDown,
+                      child: SizedBox.expand(
+                        child: CustomPaint(
+                          painter: _GraphPainter(
+                            nodes: _filteredNodes,
+                            edges: _mockEdges,
+                            clusterColors: _clusterColors,
+                            selectedNodeId: _selectedNodeId,
+                            offset: _graphOffset,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],

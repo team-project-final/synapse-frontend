@@ -11,6 +11,7 @@ class _GraphPainter extends CustomPainter {
     this.dimmedClusters = const {},
     this.highlightNodeId,
     this.highlightRadius = 30.0,
+    this.offset = Offset.zero,
   });
 
   final List<_MockGraphNode> nodes;
@@ -20,6 +21,9 @@ class _GraphPainter extends CustomPainter {
   final Set<int> dimmedClusters;
   final String? highlightNodeId;
   final double highlightRadius;
+
+  /// 그래프 전체를 영역 중앙으로 평행이동하는 오프셋(넓은 화면 중앙 정렬).
+  final Offset offset;
 
   static const double _defaultNodeRadius = 20.0;
   // PageRank → 반지름 매핑 범위 (v1: 노드 크기 = PageRank).
@@ -36,6 +40,9 @@ class _GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 노드 좌표는 고정값이라, 전체를 오프셋만큼 옮겨 영역 중앙에 맞춘다.
+    canvas.translate(offset.dx, offset.dy);
+
     final Map<String, _MockGraphNode> nodeMap = {
       for (final n in nodes) n.id: n,
     };
@@ -126,7 +133,8 @@ class _GraphPainter extends CustomPainter {
     return oldDelegate.selectedNodeId != selectedNodeId ||
         oldDelegate.dimmedClusters != dimmedClusters ||
         oldDelegate.nodes != nodes ||
-        oldDelegate.highlightNodeId != highlightNodeId;
+        oldDelegate.highlightNodeId != highlightNodeId ||
+        oldDelegate.offset != offset;
   }
 }
 

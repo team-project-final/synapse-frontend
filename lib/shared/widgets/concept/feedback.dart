@@ -1,6 +1,6 @@
 part of '../concept.dart';
 
-/// 한 줄 채팅 말풍선. 대시보드 `_ChatBubble`과 동일 스타일.
+/// 한 줄 채팅 말풍선. isMe로 좌/우 정렬과 색을 구분한다.
 class ConceptChatBubble extends StatelessWidget {
   const ConceptChatBubble({required this.text, required this.isMe, super.key});
 

@@ -3,11 +3,11 @@ import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// CalendarSection — 대시보드 캘린더 섹션(월 캘린더 · 주간 스트립 · 오늘 아젠다)
+// CalendarSection — 대시보드 캘린더 섹션(월 캘린더 · 주간 스트립)
 //
 // 앱 셸 내부의 대시보드 탭에 배치되는 BODY 전용 위젯이다. Scaffold/AppBar 없이
-// 스크롤 가능한 본문만 반환한다. 가용 폭이 넓으면(>=820) 월 캘린더와 오늘 아젠다를
-// 좌우로, 좁으면 주간 스트립 + 아젠다를 세로로 쌓는다(아젠다 폭 확보).
+// 스크롤 가능한 본문만 반환한다. 가용 폭이 넓으면(>=820) 월 캘린더를,
+// 좁으면 주간 스트립을 표시한다.
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CalendarSection extends StatelessWidget {
@@ -27,8 +27,8 @@ class CalendarSection extends StatelessWidget {
   final DateTime? selectedDate;
   final ValueChanged<DateTime>? onDateSelected;
 
-  // 셸 사이드바를 제외한 실제 가용 너비 기준. 좌우 배치 시 아젠다(flex 2)가
-  // 충분한 폭을 갖도록 창 전체가 아닌 LayoutBuilder 제약폭으로 판단한다.
+  // 월 캘린더/주간 스트립 분기 기준 폭. 창 전체가 아닌 LayoutBuilder
+  // 제약폭(셸 사이드바 제외 실제 가용 너비)으로 판단한다.
   static const double _wideBreakpoint = 820;
 
   @override

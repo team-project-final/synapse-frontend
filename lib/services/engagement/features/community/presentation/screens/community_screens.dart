@@ -55,45 +55,64 @@ class CommunityGroupsScreen extends ConsumerWidget {
       ),
     ];
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          const TabBar(
-            tabs: [
-              Tab(text: '내 그룹'),
-              Tab(text: '탐색'),
+    return Stack(
+      children: [
+        DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              const TabBar(
+                tabs: [
+                  Tab(text: '내 그룹'),
+                  Tab(text: '탐색'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    // My groups tab
+                    mockGroups.isEmpty
+                        ? _EmptyGroupList(
+                            message: '가입한 그룹이 없습니다',
+                            actionLabel: '그룹 만들기',
+                            onAction: () =>
+                                context.go(AppRoutes.communityGroupNew),
+                          )
+                        : CustomScrollView(
+                            slivers: [
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.lg,
+                                  AppSpacing.lg,
+                                  AppSpacing.lg,
+                                  AppSpacing.xxl + AppSpacing.xxl,
+                                ),
+                                sliver: SliverList.builder(
+                                  itemCount: mockGroups.length,
+                                  itemBuilder: (context, i) =>
+                                      _GroupCard(group: mockGroups[i]),
+                                ),
+                              ),
+                            ],
+                          ),
+                    // Explore tab — 공개 그룹 검색/탐색
+                    const _ExploreTab(groups: _exploreGroups),
+                  ],
+                ),
+              ),
             ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                // My groups tab
-                mockGroups.isEmpty
-                    ? _EmptyGroupList(
-                        message: '가입한 그룹이 없습니다',
-                        actionLabel: '그룹 만들기',
-                        onAction: () => context.go(AppRoutes.communityGroupNew),
-                      )
-                    : CustomScrollView(
-                        slivers: [
-                          SliverPadding(
-                            padding: const EdgeInsets.all(AppSpacing.lg),
-                            sliver: SliverList.builder(
-                              itemCount: mockGroups.length,
-                              itemBuilder: (context, i) =>
-                                  _GroupCard(group: mockGroups[i]),
-                            ),
-                          ),
-                        ],
-                      ),
-                // Explore tab — 공개 그룹 검색/탐색
-                const _ExploreTab(groups: _exploreGroups),
-              ],
-            ),
+        ),
+        Positioned(
+          right: AppSpacing.lg,
+          bottom: AppSpacing.lg,
+          child: FloatingActionButton.extended(
+            onPressed: () => context.go(AppRoutes.communityGroupNew),
+            icon: const Icon(Icons.add),
+            label: const Text('그룹 만들기'),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -258,7 +277,7 @@ class _ExploreTabState extends State<_ExploreTab> {
                         AppSpacing.lg,
                         0,
                         AppSpacing.lg,
-                        AppSpacing.lg,
+                        AppSpacing.xxl + AppSpacing.xxl,
                       ),
                       sliver: SliverList.builder(
                         itemCount: results.length,

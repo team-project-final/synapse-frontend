@@ -46,34 +46,15 @@ class CalendarSection extends StatelessWidget {
           physics: scrollable ? null : const NeverScrollableScrollPhysics(),
           children: [
             if (isWide)
-              // NOTE: IntrinsicHeight + GridView(shrinkWrap)는 그리드 intrinsic
-              // 높이를 0으로 보고해 달력이 짧은 아젠다 높이로 잘린다. 각 컬럼이
-              // 자연 높이를 갖도록 IntrinsicHeight 없이 상단 정렬한다.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _MonthCalendar(
-                      selectedDate: selectedDate,
-                      onDateSelected: onDateSelected,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  const Expanded(
-                    flex: 2,
-                    child: _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
-                  ),
-                ],
+              _MonthCalendar(
+                selectedDate: selectedDate,
+                onDateSelected: onDateSelected,
               )
-            else ...[
+            else
               _WeekStrip(
                 selectedDate: selectedDate,
                 onDateSelected: onDateSelected,
               ),
-              const SizedBox(height: AppSpacing.md),
-              const _PanelCard(title: '오늘 아젠다', child: _TodayAgenda()),
-            ],
           ],
         );
       },
@@ -96,74 +77,12 @@ const List<_WeekDay> _kWeekDays = <_WeekDay>[
   _WeekDay('일', 3, 0.42, false),
 ];
 
-/// 오늘 아젠다(타임블록) mock
-const List<_AgendaBlock> _kTodayAgenda = <_AgendaBlock>[
-  _AgendaBlock(
-    time: '09:00',
-    duration: '30분',
-    title: 'ML 기초 복습',
-    subtitle: '간격반복 예정 · 정규화/과적합 카드',
-    badge: '8장 due',
-    kind: _BlockKind.review,
-  ),
-  _AgendaBlock(
-    time: '14:00',
-    duration: '45분',
-    title: '새 노트 정리',
-    subtitle: '「트랜스포머」 어텐션 메커니즘 정리',
-    badge: '노트',
-    kind: _BlockKind.note,
-  ),
-  _AgendaBlock(
-    time: '20:00',
-    duration: '20분',
-    title: 'AWS SAA 복습',
-    subtitle: '간격반복 예정 · 자격증 덱',
-    badge: '5장 due',
-    kind: _BlockKind.review,
-  ),
-  // v1 미배치 블록 — 시간 미지정, 탭하여 시간 지정 (아젠다 시그니처)
-  _AgendaBlock(
-    time: '--:--',
-    duration: '미배치',
-    title: '프로그래밍 복습',
-    subtitle: '미배치 · 탭하여 시간 지정',
-    badge: '5장',
-    kind: _BlockKind.note,
-  ),
-];
-
-enum _BlockKind { review, note, community }
-
 class _WeekDay {
   const _WeekDay(this.dow, this.day, this.load, this.isToday);
   final String dow;
   final int day;
   final double load; // 0~1
   final bool isToday;
-}
-
-class _AgendaBlock {
-  const _AgendaBlock({
-    required this.time,
-    required this.duration,
-    required this.title,
-    required this.subtitle,
-    required this.badge,
-    required this.kind,
-  });
-  final String time;
-  final String duration;
-  final String title;
-  final String subtitle;
-  final String badge;
-  final _BlockKind kind;
-
-  Color get accent => switch (kind) {
-    _BlockKind.review => AppColors.primary,
-    _BlockKind.note => AppColors.accent,
-    _BlockKind.community => AppColors.streak,
-  };
 }
 
 /// 복습 부하(0~1)에 따른 톤. surface2 ↔ primary 사이를 보간.
@@ -179,50 +98,6 @@ final DateTime _kWeekStart = DateTime(2026, 5, 28);
 
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
-
-// ── 섹션 라벨 ───────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: AppColors.muted,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 0.4,
-      ),
-    );
-  }
-}
-
-// ── 패널 카드(아젠다 컨테이너) ──────────────────────────────────────────────
-
-class _PanelCard extends StatelessWidget {
-  const _PanelCard({required this.title, required this.child});
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _SectionLabel(title),
-            const SizedBox(height: AppSpacing.sm),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ── 주간 스트립(모바일) — 요일별 복습 부하 막대 ──────────────────────────────
 
@@ -342,141 +217,6 @@ class _WeekStrip extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── 오늘 아젠다(타임블록 타임라인) ──────────────────────────────────────────
-
-class _TodayAgenda extends StatelessWidget {
-  const _TodayAgenda();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (int i = 0; i < _kTodayAgenda.length; i++)
-          Padding(
-            padding: EdgeInsets.only(
-              bottom: i == _kTodayAgenda.length - 1 ? 0 : AppSpacing.sm,
-            ),
-            child: _AgendaTile(block: _kTodayAgenda[i]),
-          ),
-      ],
-    );
-  }
-}
-
-class _AgendaTile extends StatelessWidget {
-  const _AgendaTile({required this.block});
-  final _AgendaBlock block;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 시간 컬럼
-        SizedBox(
-          width: 46,
-          child: Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  block.time,
-                  style: textTheme.labelMedium?.copyWith(
-                    color: AppColors.muted,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  block.duration,
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        // 본문 카드(좌측 컬러 보더)
-        // NOTE: 비균일 색 Border(left만 accent)에 borderRadius를 주면 paint 시
-        // 'borderRadius can only be given on borders with uniform colors' 단언으로
-        // 크래시한다. 둥근 모서리는 균일 Border.all로 그리고, 좌측 컬러 스트립은
-        // ClipRRect 안의 별도 레이어(Stack)로 렌더한다.
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(width: 4, color: block.accent),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  margin: const EdgeInsets.only(left: 4),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm + 2,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              block.title,
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: block.accent.withValues(alpha: 0.13),
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.pill,
-                              ),
-                            ),
-                            child: Text(
-                              block.badge,
-                              style: textTheme.labelSmall?.copyWith(
-                                color: block.accent,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        block.subtitle,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

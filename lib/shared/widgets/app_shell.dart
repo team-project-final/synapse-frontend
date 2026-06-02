@@ -134,11 +134,14 @@ class AppShell extends ConsumerWidget {
               ),
             ),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: () => context.go('/search'),
-                tooltip: '검색',
-              ),
+              // 모바일(좁은 폭)에선 검색 아이콘을 숨겨 앱 이름이 잘리지 않게 한다.
+              // 검색은 좌측 '더보기' 드로어에서 접근 가능.
+              if (!isMobile)
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => context.go('/search'),
+                  tooltip: '검색',
+                ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () => context.go('/notifications'),

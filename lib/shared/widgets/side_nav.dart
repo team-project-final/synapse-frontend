@@ -273,7 +273,9 @@ class SideNav extends StatelessWidget {
 
   Widget _buildProfile(BuildContext context) {
     return InkWell(
-      onTap: () => onItemTap('/settings/profile'),
+      // 하단 프로필(이름·Lv)은 게이미피케이션 프로필(XP/배지/리더보드)로.
+      // 계정 설정은 '설정' 메뉴로 따로 간다.
+      onTap: () => onItemTap('/gamification/profile'),
       child: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: AppColors.border)),

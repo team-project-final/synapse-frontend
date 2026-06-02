@@ -561,6 +561,73 @@ class ConceptResponsiveGrid extends StatelessWidget {
   }
 }
 
+/// 이모지 아이콘 선택기 — 후보 이모지를 타일로 보여주고 선택 항목을 강조한다.
+/// 덱/그룹 생성 등에서 아이콘을 고를 때 공통으로 사용.
+class ConceptEmojiPicker extends StatelessWidget {
+  const ConceptEmojiPicker({
+    required this.emojis,
+    required this.selected,
+    required this.onSelected,
+    super.key,
+  });
+
+  final List<String> emojis;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: [
+        for (final e in emojis)
+          _ConceptEmojiTile(
+            emoji: e,
+            selected: e == selected,
+            onTap: () => onSelected(e),
+          ),
+      ],
+    );
+  }
+}
+
+class _ConceptEmojiTile extends StatelessWidget {
+  const _ConceptEmojiTile({
+    required this.emoji,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Container(
+        width: 48,
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(emoji, style: const TextStyle(fontSize: 22)),
+      ),
+    );
+  }
+}
+
 /// 빈 상태 플레이스홀더 (아이콘/이모지 + 제목 + 설명 + 선택적 액션).
 class ConceptEmptyState extends StatelessWidget {
   const ConceptEmptyState({

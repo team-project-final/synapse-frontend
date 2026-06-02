@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/report_dialog.dart';
 import 'package:synapse_frontend/shared/widgets/study_board_kit.dart';
 import 'package:synapse_frontend/shared/widgets/toast.dart';
@@ -846,27 +847,33 @@ class CommunityGroupEditorScreen extends ConsumerStatefulWidget {
 
 class _CommunityGroupEditorScreenState
     extends ConsumerState<CommunityGroupEditorScreen> {
+  // 그룹 카드가 이모지 아이콘을 쓰므로, 생성 시 아이콘을 직접 고른다.
+  static const List<String> _emojiChoices = [
+    '📚',
+    '🧮',
+    '💻',
+    '🧠',
+    '📰',
+    '☁️',
+    '🔬',
+    '🎯',
+    '💼',
+    '🟨',
+    '📊',
+    '🗣️',
+  ];
+
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
-  final _tagController = TextEditingController();
   String _joinType = 'open';
   double _maxMembers = 20;
-  final List<String> _tags = ['학습', '프로그래밍'];
+  String _emoji = _emojiChoices.first;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
-    _tagController.dispose();
     super.dispose();
-  }
-
-  void _addTag(String tag) {
-    final trimmed = tag.trim();
-    if (trimmed.isNotEmpty && !_tags.contains(trimmed)) {
-      setState(() => _tags.add(trimmed));
-      _tagController.clear();
-    }
   }
 
   @override
@@ -939,32 +946,13 @@ class _CommunityGroupEditorScreenState
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Tags
-        Text('태그', style: textTheme.bodyMedium),
+        // 아이콘 선택(그룹 카드에 표시되는 이모지)
+        Text('아이콘', style: textTheme.bodyMedium),
         const SizedBox(height: AppSpacing.xs),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            ..._tags.map(
-              (tag) => InputChip(
-                label: Text(tag),
-                onDeleted: () => setState(() => _tags.remove(tag)),
-              ),
-            ),
-            SizedBox(
-              width: 120,
-              child: TextField(
-                controller: _tagController,
-                decoration: const InputDecoration(
-                  hintText: '태그 추가',
-                  isDense: true,
-                  border: InputBorder.none,
-                ),
-                onSubmitted: _addTag,
-              ),
-            ),
-          ],
+        ConceptEmojiPicker(
+          emojis: _emojiChoices,
+          selected: _emoji,
+          onSelected: (e) => setState(() => _emoji = e),
         ),
         const SizedBox(height: AppSpacing.md),
 

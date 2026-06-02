@@ -176,17 +176,10 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                 // 아이콘(이모지) 선택
                 Text('아이콘', style: textTheme.bodyMedium),
                 const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [
-                    for (final e in _emojiChoices)
-                      _EmojiChoice(
-                        emoji: e,
-                        selected: e == _emoji,
-                        onTap: () => setState(() => _emoji = e),
-                      ),
-                  ],
+                ConceptEmojiPicker(
+                  emojis: _emojiChoices,
+                  selected: _emoji,
+                  onSelected: (e) => setState(() => _emoji = e),
                 ),
                 const SizedBox(height: AppSpacing.md),
 
@@ -252,42 +245,6 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// 덱 아이콘(이모지) 선택 칩.
-class _EmojiChoice extends StatelessWidget {
-  const _EmojiChoice({
-    required this.emoji,
-    required this.selected,
-    required this.onTap,
-  });
-  final String emoji;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Container(
-        width: 48,
-        height: 48,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-          border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Text(emoji, style: const TextStyle(fontSize: 22)),
-      ),
     );
   }
 }

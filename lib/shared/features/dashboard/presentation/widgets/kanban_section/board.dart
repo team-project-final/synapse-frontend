@@ -93,6 +93,10 @@ class _BoardHeader extends StatelessWidget {
   }
 }
 
+/// 한국어 요일(월~일). DateTime.weekday: 월=1 … 일=7.
+String _weekdayKo(DateTime d) =>
+    const <String>['월', '화', '수', '목', '금', '토', '일'][d.weekday - 1];
+
 /// 플래너에서 선택한 날짜의 보드 헤더(날짜 + 추가 버튼).
 class _DateBoardHeader extends StatelessWidget {
   const _DateBoardHeader({required this.date});
@@ -109,7 +113,7 @@ class _DateBoardHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                '${date.month}월 ${date.day}일 보드',
+                '${date.year}년 ${date.month}월 ${date.day}일 (${_weekdayKo(date)}) 보드',
                 style: textTheme.headlineSmall,
               ),
               const SizedBox(height: AppSpacing.xxs),

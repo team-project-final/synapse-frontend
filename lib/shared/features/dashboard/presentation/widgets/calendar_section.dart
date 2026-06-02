@@ -289,6 +289,23 @@ class _MonthCalendar extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
+            // 월 헤더 — 현재 표시 중인 달(YYYY년 M월)
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: AppSpacing.sm,
+                left: 2,
+                right: 2,
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${_kWeekStart.year}년 ${_kWeekStart.month}월',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
             // 요일 헤더
             Row(
               children: [

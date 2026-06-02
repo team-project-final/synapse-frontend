@@ -70,22 +70,27 @@ class CommunityGroupsScreen extends ConsumerWidget {
                             onAction: () =>
                                 context.go(AppRoutes.communityGroupNew),
                           )
-                        : CustomScrollView(
-                            slivers: [
-                              SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  AppSpacing.lg,
-                                  AppSpacing.lg,
-                                  AppSpacing.lg,
-                                  AppSpacing.xxl + AppSpacing.xxl,
-                                ),
-                                sliver: SliverList.builder(
-                                  itemCount: mockGroups.length,
-                                  itemBuilder: (context, i) =>
-                                      _GroupCard(group: mockGroups[i]),
-                                ),
+                        : Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 760),
+                              child: CustomScrollView(
+                                slivers: [
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      AppSpacing.lg,
+                                      AppSpacing.lg,
+                                      AppSpacing.lg,
+                                      AppSpacing.xxl + AppSpacing.xxl,
+                                    ),
+                                    sliver: SliverList.builder(
+                                      itemCount: mockGroups.length,
+                                      itemBuilder: (context, i) =>
+                                          _GroupCard(group: mockGroups[i]),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                     // Explore tab — 공개 그룹 검색/탐색
                     const _ExploreTab(groups: _exploreGroups),
@@ -136,49 +141,54 @@ class _ExploreTabState extends State<_ExploreTab> {
         ? widget.groups
         : widget.groups.where((g) => g.name.toLowerCase().contains(q)).toList();
 
-    return Column(
-      children: [
-        // 검색바(고정)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.sm,
-          ),
-          child: StudySearchBar(
-            hint: '공개 그룹 검색…',
-            controller: _searchController,
-            onChanged: (v) => setState(() => _query = v),
-          ),
-        ),
-        // 검색바는 고정, 목록만 Sliver로 스크롤(카드 목록 화면과 동일 패턴).
-        Expanded(
-          child: results.isEmpty
-              ? _EmptyGroupList(
-                  message: q.isEmpty
-                      ? '공개 그룹이 없습니다'
-                      : '\'$_query\' 검색 결과가 없습니다',
-                )
-              : CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        0,
-                        AppSpacing.lg,
-                        AppSpacing.xxl + AppSpacing.xxl,
-                      ),
-                      sliver: SliverList.builder(
-                        itemCount: results.length,
-                        itemBuilder: (context, i) =>
-                            _GroupCard(group: results[i]),
-                      ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Column(
+          children: [
+            // 검색바(고정)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.sm,
+              ),
+              child: StudySearchBar(
+                hint: '공개 그룹 검색…',
+                controller: _searchController,
+                onChanged: (v) => setState(() => _query = v),
+              ),
+            ),
+            // 검색바는 고정, 목록만 Sliver로 스크롤(카드 목록 화면과 동일 패턴).
+            Expanded(
+              child: results.isEmpty
+                  ? _EmptyGroupList(
+                      message: q.isEmpty
+                          ? '공개 그룹이 없습니다'
+                          : '\'$_query\' 검색 결과가 없습니다',
+                    )
+                  : CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.lg,
+                            0,
+                            AppSpacing.lg,
+                            AppSpacing.xxl + AppSpacing.xxl,
+                          ),
+                          sliver: SliverList.builder(
+                            itemCount: results.length,
+                            itemBuilder: (context, i) =>
+                                _GroupCard(group: results[i]),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

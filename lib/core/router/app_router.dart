@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/auth/auth_notifier.dart';
@@ -234,13 +235,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.communityGroupDetail,
-            builder: (context, state) => CommunityGroupDetailScreen(
-              groupId: state.pathParameters['groupId'] ?? '',
+            builder: (context, state) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: CommunityGroupDetailScreen(
+                  groupId: state.pathParameters['groupId'] ?? '',
+                ),
+              ),
             ),
           ),
           GoRoute(
             path: AppRoutes.communitySharedDecks,
-            builder: (context, state) => const SharedDecksScreen(),
+            builder: (context, state) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: const SharedDecksScreen(),
+              ),
+            ),
           ),
           GoRoute(
             path: AppRoutes.communitySharedDeckDetail,

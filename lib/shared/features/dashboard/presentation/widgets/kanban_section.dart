@@ -436,18 +436,45 @@ class _DesktopBoard extends StatelessWidget {
 
   final List<_KanbanColumn> columns;
 
+  // 컬럼 최소 폭. 가용 폭이 이보다 좁아지면 컬럼을 찌그러뜨리지 않고
+  // 가로 스크롤로 전환한다(웹↔모바일 사이 애매한 폭에서 찌그러짐 방지).
+  static const double _minColWidth = 250;
+  static const double _gap = AppSpacing.sm + AppSpacing.xs;
+
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          for (int i = 0; i < columns.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(width: AppSpacing.sm + AppSpacing.xs),
-            Expanded(child: _BoardColumn(column: columns[i])),
-          ],
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final int n = columns.length;
+        final double needed = n * _minColWidth + (n - 1) * _gap;
+        final bool fits = constraints.maxWidth >= needed;
+
+        final Widget row = IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              for (int i = 0; i < n; i++) ...<Widget>[
+                if (i > 0) const SizedBox(width: _gap),
+                // 충분하면 Expanded로 꽉 채우고, 부족하면 최소 폭 고정.
+                if (fits)
+                  Expanded(child: _BoardColumn(column: columns[i]))
+                else
+                  SizedBox(
+                    width: _minColWidth,
+                    child: _BoardColumn(column: columns[i]),
+                  ),
+              ],
+            ],
+          ),
+        );
+
+        if (fits) return row;
+        // 폭 부족 → 가로 스크롤(마우스 드래그 포함, 앱 전역 scrollBehavior).
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: row,
+        );
+      },
     );
   }
 }

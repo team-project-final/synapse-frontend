@@ -38,7 +38,10 @@ class CalendarSection extends StatelessWidget {
         final bool isWide = constraints.maxWidth >= _wideBreakpoint;
 
         return ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           shrinkWrap: !scrollable,
           physics: scrollable ? null : const NeverScrollableScrollPhysics(),
           children: [
@@ -304,7 +307,7 @@ class _WeekStrip extends StatelessWidget {
           border: d.isToday && !selected
               ? Border.all(color: AppColors.primary)
               : null,
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Column(
           children: [
@@ -315,7 +318,7 @@ class _WeekStrip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               '${d.day}',
               style: textTheme.titleSmall?.copyWith(
@@ -323,7 +326,7 @@ class _WeekStrip extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.sm),
             // 부하 막대
             Container(
               width: 14,
@@ -391,10 +394,7 @@ class _AgendaTile extends StatelessWidget {
                 ),
                 Text(
                   block.duration,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: AppColors.muted,
-                    fontSize: 10,
-                  ),
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
@@ -448,14 +448,15 @@ class _AgendaTile extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: block.accent.withValues(alpha: 0.13),
-                              borderRadius: BorderRadius.circular(999),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
                             ),
                             child: Text(
                               block.badge,
                               style: textTheme.labelSmall?.copyWith(
                                 color: block.accent,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 10.5,
                               ),
                             ),
                           ),
@@ -634,7 +635,7 @@ class _CalDayCell extends StatelessWidget {
       child: Opacity(
         opacity: cell.out ? 0.4 : 1,
         child: Container(
-          padding: const EdgeInsets.all(7),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
             color: selected
                 ? AppColors.primary.withValues(alpha: 0.14)
@@ -643,7 +644,7 @@ class _CalDayCell extends StatelessWidget {
               color: selected ? AppColors.primary : AppColors.border,
               width: selected ? 1.5 : 1,
             ),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -672,21 +673,23 @@ class _CalDayCell extends StatelessWidget {
                 ],
               ),
               if (cell.due > 0) ...[
-                const SizedBox(height: 4),
+                const SizedBox(height: AppSpacing.xs),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 2,
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xxs,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Text(
                     '복습 ${cell.due}',
                     style: textTheme.labelSmall?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
+                      // 컴팩트한 달력 셀 — labelSmall(11)로 키우면 좁은 셀에서
+                      // 넘칠 수 있어 9.5 유지.
                       fontSize: 9.5,
                     ),
                   ),

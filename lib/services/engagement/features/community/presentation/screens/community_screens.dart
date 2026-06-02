@@ -60,7 +60,10 @@ class CommunityGroupsScreen extends ConsumerWidget {
       child: Column(
         children: [
           const TabBar(
-            tabs: [Tab(text: '내 그룹'), Tab(text: '탐색')],
+            tabs: [
+              Tab(text: '내 그룹'),
+              Tab(text: '탐색'),
+            ],
           ),
           Expanded(
             child: TabBarView(
@@ -70,19 +73,16 @@ class CommunityGroupsScreen extends ConsumerWidget {
                     ? _EmptyGroupList(
                         message: '가입한 그룹이 없습니다',
                         actionLabel: '그룹 만들기',
-                        onAction: () =>
-                            context.go(AppRoutes.communityGroupNew),
+                        onAction: () => context.go(AppRoutes.communityGroupNew),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(AppSpacing.md),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         itemCount: mockGroups.length,
                         itemBuilder: (context, i) =>
                             _GroupCard(group: mockGroups[i]),
                       ),
                 // Explore tab
-                const _EmptyGroupList(
-                  message: '공개 그룹이 없습니다',
-                ),
+                const _EmptyGroupList(message: '공개 그룹이 없습니다'),
               ],
             ),
           ),
@@ -129,7 +129,7 @@ class _GroupCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm + AppSpacing.xxs),
       child: StudyCard(
         onTap: () => context.go(AppRoutes.communityGroupDetailPath(group.id)),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
             // gico — 그룹 이모지 박스 (v1 .gico)
@@ -138,28 +138,33 @@ class _GroupCard extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: Color.alphaBlend(
-                    AppColors.primary.withValues(alpha: 0.14),
-                    AppColors.surface),
-                borderRadius: BorderRadius.circular(13),
+                  AppColors.primary.withValues(alpha: 0.14),
+                  AppColors.surface,
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               alignment: Alignment.center,
-              child: Text(group.emoji, style: const TextStyle(fontSize: 21)),
+              child: Text(group.emoji, style: const TextStyle(fontSize: 20)),
             ),
-            const SizedBox(width: 11),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(group.name,
-                      style: textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    group.name,
+                    style: textTheme.titleSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '${group.accessLabel} · ${group.memberCount}/${group.maxMembers}명 '
                     '· 공유덱 ${group.sharedDeckCount}',
                     style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted, fontWeight: FontWeight.w600),
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -183,16 +188,16 @@ class _JoinPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: joined ? AppColors.surface2 : AppColors.primary,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         joined ? '가입됨' : '가입',
-        style: TextStyle(
-          fontSize: 11.5,
+        style: textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w800,
           color: joined ? AppColors.muted : AppColors.primaryFg,
         ),
@@ -219,17 +224,19 @@ class _EmptyGroupList extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.groups_outlined, size: 64, color: AppColors.stone300),
+          const Icon(
+            Icons.groups_outlined,
+            size: 64,
+            color: AppColors.stone300,
+          ),
           const SizedBox(height: AppSpacing.md),
-          Text(message,
-              style: textTheme.bodyLarge
-                  ?.copyWith(color: AppColors.stone400)),
+          Text(
+            message,
+            style: textTheme.bodyLarge?.copyWith(color: AppColors.stone400),
+          ),
           if (actionLabel != null) ...[
             const SizedBox(height: AppSpacing.md),
-            OutlinedButton(
-              onPressed: onAction,
-              child: Text(actionLabel!),
-            ),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
           ],
         ],
       ),
@@ -259,10 +266,26 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
 
     final mockActivities = [
       {'icon': Icons.person_add, 'text': '이러닝 님이 그룹에 참여했습니다', 'time': '2시간 전'},
-      {'icon': Icons.style_outlined, 'text': '김시냅스 님이 새 덱을 공유했습니다', 'time': '3시간 전'},
-      {'icon': Icons.chat_outlined, 'text': '박지식 님이 댓글을 남겼습니다', 'time': '5시간 전'},
-      {'icon': Icons.edit_outlined, 'text': '최코딩 님이 노트를 수정했습니다', 'time': '1일 전'},
-      {'icon': Icons.star_outlined, 'text': '이러닝 님이 덱에 별점을 남겼습니다', 'time': '2일 전'},
+      {
+        'icon': Icons.style_outlined,
+        'text': '김시냅스 님이 새 덱을 공유했습니다',
+        'time': '3시간 전',
+      },
+      {
+        'icon': Icons.chat_outlined,
+        'text': '박지식 님이 댓글을 남겼습니다',
+        'time': '5시간 전',
+      },
+      {
+        'icon': Icons.edit_outlined,
+        'text': '최코딩 님이 노트를 수정했습니다',
+        'time': '1일 전',
+      },
+      {
+        'icon': Icons.star_outlined,
+        'text': '이러닝 님이 덱에 별점을 남겼습니다',
+        'time': '2일 전',
+      },
     ];
 
     // v1 ⑫ 공유 덱 / 주간 랭킹
@@ -296,26 +319,32 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                       height: 52,
                       decoration: BoxDecoration(
                         color: Color.alphaBlend(
-                            AppColors.primary.withValues(alpha: 0.14),
-                            AppColors.surface),
-                        borderRadius: BorderRadius.circular(15),
+                          AppColors.primary.withValues(alpha: 0.14),
+                          AppColors.surface,
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       alignment: Alignment.center,
-                      child: const Text('📜', style: TextStyle(fontSize: 25)),
+                      child: const Text('📜', style: TextStyle(fontSize: 24)),
                     ),
-                    const SizedBox(width: 13),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('AWS 자격증 스터디',
-                              style: textTheme.headlineSmall,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis),
+                          Text(
+                            'AWS 자격증 스터디',
+                            style: textTheme.headlineSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           const SizedBox(height: 2),
-                          Text('승인제 · 8/20명 · 가입됨',
-                              style: textTheme.bodyMedium
-                                  ?.copyWith(color: AppColors.stone500)),
+                          Text(
+                            '승인제 · 8/20명 · 가입됨',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: AppColors.stone500,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -353,7 +382,11 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
             ),
           ),
           const TabBar(
-              tabs: [Tab(text: '멤버'), Tab(text: '공유 콘텐츠')]),
+            tabs: [
+              Tab(text: '멤버'),
+              Tab(text: '공유 콘텐츠'),
+            ],
+          ),
           Expanded(
             child: TabBarView(
               children: [
@@ -361,41 +394,49 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                 ListView(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
-                    ...mockMembers.map((member) => ListTile(
-                          leading: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: colorScheme.primaryContainer,
-                            child: Text(
-                              (member['name'] as String).substring(0, 1),
-                              style: TextStyle(
-                                  color: colorScheme.primary, fontSize: 14),
+                    ...mockMembers.map(
+                      (member) => ListTile(
+                        leading: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: colorScheme.primaryContainer,
+                          child: Text(
+                            (member['name'] as String).substring(0, 1),
+                            style: TextStyle(
+                              color: colorScheme.primary,
+                              fontSize: 14,
                             ),
                           ),
-                          title: Text(member['name'] as String,
-                              style: textTheme.bodyMedium),
-                          trailing: Chip(
-                            label: Text(
-                              member['role'] as String,
-                              style: textTheme.labelSmall?.copyWith(
-                                color: member['role'] == '소유자'
-                                    ? AppColors.primaryAmber
-                                    : AppColors.stone500,
-                              ),
+                        ),
+                        title: Text(
+                          member['name'] as String,
+                          style: textTheme.bodyMedium,
+                        ),
+                        trailing: Chip(
+                          label: Text(
+                            member['role'] as String,
+                            style: textTheme.labelSmall?.copyWith(
+                              color: member['role'] == '소유자'
+                                  ? AppColors.primaryAmber
+                                  : AppColors.stone500,
                             ),
-                            backgroundColor: member['role'] == '소유자'
-                                ? AppColors.primaryAmber.withValues(alpha: 0.1)
-                                : AppColors.stone100,
-                            side: BorderSide.none,
-                            visualDensity: VisualDensity.compact,
                           ),
-                        )),
+                          backgroundColor: member['role'] == '소유자'
+                              ? AppColors.primaryAmber.withValues(alpha: 0.1)
+                              : AppColors.stone100,
+                          side: BorderSide.none,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: AppSpacing.lg),
                     // 공유 덱 (v1 ⑫ .sharedeck)
                     SectionLabel('공유 덱 ${sharedDecks.length}'),
                     const SizedBox(height: AppSpacing.sm),
                     StudyCard(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
                       child: Column(
                         children: [
                           for (var i = 0; i < sharedDecks.length; i++)
@@ -414,7 +455,9 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                     const SizedBox(height: AppSpacing.sm),
                     StudyCard(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
                       child: Column(
                         children: [
                           for (var i = 0; i < rankings.length; i++)
@@ -432,26 +475,33 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                     // Activity log
                     const SectionLabel('활동 로그'),
                     const SizedBox(height: AppSpacing.sm),
-                    ...mockActivities.map((activity) => Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: AppSpacing.sm),
-                          child: Row(
-                            children: [
-                              Icon(activity['icon'] as IconData,
-                                  size: 18, color: AppColors.stone400),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  activity['text'] as String,
-                                  style: textTheme.bodySmall,
-                                ),
+                    ...mockActivities.map(
+                      (activity) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Row(
+                          children: [
+                            Icon(
+                              activity['icon'] as IconData,
+                              size: 18,
+                              color: AppColors.stone400,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Text(
+                                activity['text'] as String,
+                                style: textTheme.bodySmall,
                               ),
-                              Text(activity['time'] as String,
-                                  style: textTheme.bodySmall
-                                      ?.copyWith(color: AppColors.stone400)),
-                            ],
-                          ),
-                        )),
+                            ),
+                            Text(
+                              activity['time'] as String,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.stone400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 // Shared content tab
@@ -459,12 +509,18 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.folder_outlined,
-                          size: 48, color: AppColors.stone300),
+                      const Icon(
+                        Icons.folder_outlined,
+                        size: 48,
+                        color: AppColors.stone300,
+                      ),
                       const SizedBox(height: AppSpacing.md),
-                      Text('공유된 콘텐츠가 없습니다',
-                          style: textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.stone400)),
+                      Text(
+                        '공유된 콘텐츠가 없습니다',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.stone400,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -497,29 +553,38 @@ class _SharedDeckRow extends StatelessWidget {
     return Container(
       decoration: showDivider
           ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.border)))
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            )
           : null,
-      padding: const EdgeInsets.symmetric(vertical: 11),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
-          const Text('📦', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 10),
+          const Text('📦', style: TextStyle(fontSize: 16)),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
-                    style: textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
-                Text(sharer,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.muted, fontSize: 11)),
+                Text(
+                  name,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  sharer,
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ),
-          Text(count,
-              style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.muted, fontWeight: FontWeight.w600)),
+          Text(
+            count,
+            style: textTheme.bodySmall?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -547,9 +612,10 @@ class _RankRow extends StatelessWidget {
     return Container(
       decoration: showDivider
           ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.border)))
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            )
           : null,
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           Container(
@@ -560,24 +626,32 @@ class _RankRow extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Text('$pos',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: top ? Colors.white : AppColors.muted,
-                )),
+            child: Text(
+              '$pos',
+              style: textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: top ? Colors.white : AppColors.muted,
+              ),
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(name,
-                style: textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-          ),
-          Text(xp,
+            child: Text(
+              name,
               style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.success, fontWeight: FontWeight.w800)),
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            xp,
+            style: textTheme.bodyMedium?.copyWith(
+              color: AppColors.success,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
@@ -636,7 +710,7 @@ class _CommunityGroupEditorScreenState
             labelText: '그룹 이름',
             hintText: '그룹 이름을 입력하세요',
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
           ),
           // TODO: 팀원 구현 — 그룹 이름 입력
@@ -651,7 +725,7 @@ class _CommunityGroupEditorScreenState
             labelText: '설명',
             hintText: '그룹에 대해 설명해주세요',
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
           ),
           // TODO: 팀원 구현 — 그룹 설명 입력
@@ -696,11 +770,12 @@ class _CommunityGroupEditorScreenState
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: [
-            ..._tags.map((tag) => InputChip(
-                  label: Text(tag),
-                  onDeleted: () =>
-                      setState(() => _tags.remove(tag)),
-                )),
+            ..._tags.map(
+              (tag) => InputChip(
+                label: Text(tag),
+                onDeleted: () => setState(() => _tags.remove(tag)),
+              ),
+            ),
             SizedBox(
               width: 120,
               child: TextField(
@@ -722,9 +797,12 @@ class _CommunityGroupEditorScreenState
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('최대 멤버 수', style: textTheme.bodyMedium),
-            Text('${_maxMembers.toInt()}명',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.primaryAmber)),
+            Text(
+              '${_maxMembers.toInt()}명',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.primaryAmber,
+              ),
+            ),
           ],
         ),
         Slider(
@@ -814,7 +892,11 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.sm,
+          ),
           child: StudySearchBar(
             hint: '공유 덱 검색…',
             controller: _searchController,
@@ -858,8 +940,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
                 width: 1,
                 height: 24,
                 color: AppColors.border,
-                margin: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm),
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               ),
               ...difficulties.map((d) {
                 return Padding(
@@ -878,8 +959,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
         Expanded(
           child: GridView.builder(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            gridDelegate:
-                const SliverGridDelegateWithMaxCrossAxisExtent(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               // 좁은 폭에서 셀이 과하게 작아져 카드 내용이 세로로 넘치지 않도록
               // 최대 폭을 고정하고 종횡비를 충분히 길게(0.72) 둔다.
               maxCrossAxisExtent: 220,
@@ -888,8 +968,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
               childAspectRatio: 0.72,
             ),
             itemCount: mockDecks.length,
-            itemBuilder: (context, i) =>
-                _SharedDeckCard(deck: mockDecks[i]),
+            itemBuilder: (context, i) => _SharedDeckCard(deck: mockDecks[i]),
           ),
         ),
       ],
@@ -923,25 +1002,31 @@ class _SharedDeckCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        onTap: () => context.go(
-            AppRoutes.communitySharedDeckDetailPath(deck.id)),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        onTap: () =>
+            context.go(AppRoutes.communitySharedDeckDetailPath(deck.id)),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.style_outlined,
-                  size: 32, color: AppColors.primaryAmber),
+              const Icon(
+                Icons.style_outlined,
+                size: 32,
+                color: AppColors.primaryAmber,
+              ),
               const SizedBox(height: AppSpacing.sm),
-              Text(deck.name,
-                  style: textTheme.titleSmall,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                deck.name,
+                style: textTheme.titleSmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: AppSpacing.xs),
-              Text(deck.creator,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone400)),
+              Text(
+                deck.creator,
+                style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+              ),
               const Spacer(),
               // Star rating row
               Row(
@@ -958,15 +1043,23 @@ class _SharedDeckCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xxs),
               Row(
                 children: [
-                  Text(deck.rating.toStringAsFixed(1),
-                      style: textTheme.bodySmall),
+                  Text(
+                    deck.rating.toStringAsFixed(1),
+                    style: textTheme.bodySmall,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
-                  const Icon(Icons.download_outlined,
-                      size: 14, color: AppColors.stone400),
+                  const Icon(
+                    Icons.download_outlined,
+                    size: 14,
+                    color: AppColors.stone400,
+                  ),
                   const SizedBox(width: AppSpacing.xxs),
-                  Text('${deck.downloads}회',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                  Text(
+                    '${deck.downloads}회',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.stone400,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -978,7 +1071,8 @@ class _SharedDeckCard extends StatelessWidget {
                   },
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
-                        vertical: AppSpacing.xs),
+                      vertical: AppSpacing.xs,
+                    ),
                     visualDensity: VisualDensity.compact,
                   ),
                   child: const Text('복사하기'),
@@ -1034,25 +1128,34 @@ class _SharedDeckDetailScreenState
         const SizedBox(height: AppSpacing.xs),
         Row(
           children: [
-            const Icon(Icons.person_outline,
-                size: 14, color: AppColors.stone400),
+            const Icon(
+              Icons.person_outline,
+              size: 14,
+              color: AppColors.stone400,
+            ),
             const SizedBox(width: AppSpacing.xxs),
-            Text('김알고',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone400)),
+            Text(
+              '김알고',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+            ),
             const SizedBox(width: AppSpacing.md),
             const Icon(Icons.star, size: 14, color: AppColors.warning),
             const SizedBox(width: AppSpacing.xxs),
-            Text('4.5',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone500)),
+            Text(
+              '4.5',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.stone500),
+            ),
             const SizedBox(width: AppSpacing.md),
-            const Icon(Icons.download_outlined,
-                size: 14, color: AppColors.stone400),
+            const Icon(
+              Icons.download_outlined,
+              size: 14,
+              color: AppColors.stone400,
+            ),
             const SizedBox(width: AppSpacing.xxs),
-            Text('234',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone400)),
+            Text(
+              '234',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1076,14 +1179,9 @@ class _SharedDeckDetailScreenState
             const SizedBox(width: AppSpacing.sm),
             TextButton(
               onPressed: () {
-                ReportDialog.show(
-                  context,
-                  targetTitle: '알고리즘 기초 100제',
-                );
+                ReportDialog.show(context, targetTitle: '알고리즘 기초 100제');
               },
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
               child: const Text('신고'),
             ),
           ],
@@ -1100,15 +1198,17 @@ class _SharedDeckDetailScreenState
             itemCount: mockCards.length,
             itemBuilder: (context, i) {
               return Card(
-                margin: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs),
+                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.quiz_outlined,
-                          color: AppColors.stone400, size: 28),
+                      const Icon(
+                        Icons.quiz_outlined,
+                        color: AppColors.stone400,
+                        size: 28,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         mockCards[i],
@@ -1118,8 +1218,9 @@ class _SharedDeckDetailScreenState
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         '${i + 1} / ${mockCards.length}',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.stone400,
+                        ),
                       ),
                     ],
                   ),
@@ -1224,7 +1325,8 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
         tags: ['AWS', '클라우드'],
         rating: 4.3,
         timeAgo: '3일 전',
-        preview: 'Well-Architected Framework의 5가지 기둥을 기반으로 실제 아키텍처 설계 사례를 다룹니다.',
+        preview:
+            'Well-Architected Framework의 5가지 기둥을 기반으로 실제 아키텍처 설계 사례를 다룹니다.',
       ),
     ];
 
@@ -1247,8 +1349,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
                 child: Row(
                   children: filters.map((f) {
                     return Padding(
-                      padding:
-                          const EdgeInsets.only(right: AppSpacing.sm),
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
                       child: StudyPill(
                         label: f,
                         selected: _selectedFilter == f,
@@ -1262,16 +1363,12 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
             DropdownButton<String>(
               value: _sortOrder,
               underline: const SizedBox.shrink(),
-              style: textTheme.labelLarge
-                  ?.copyWith(color: AppColors.text),
+              style: textTheme.labelLarge?.copyWith(color: AppColors.text),
               items: const [
-                DropdownMenuItem(
-                    value: '최신순', child: Text('최신순')),
-                DropdownMenuItem(
-                    value: '인기순', child: Text('인기순')),
+                DropdownMenuItem(value: '최신순', child: Text('최신순')),
+                DropdownMenuItem(value: '인기순', child: Text('인기순')),
               ],
-              onChanged: (v) =>
-                  setState(() => _sortOrder = v ?? '최신순'),
+              onChanged: (v) => setState(() => _sortOrder = v ?? '최신순'),
             ),
           ],
         ),
@@ -1314,7 +1411,7 @@ class _SharedNoteItem extends StatelessWidget {
         onTap: () {
           // TODO: 팀원 구현 — 공유 노트 상세 화면 연동
         },
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -1322,33 +1419,47 @@ class _SharedNoteItem extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.article_outlined,
-                      size: 16, color: AppColors.primaryAmber),
+                  const Icon(
+                    Icons.article_outlined,
+                    size: 16,
+                    color: AppColors.primaryAmber,
+                  ),
                   const SizedBox(width: AppSpacing.xs),
                   Expanded(
-                    child: Text(note.title,
-                        style: textTheme.titleSmall),
+                    child: Text(note.title, style: textTheme.titleSmall),
                   ),
-                  Text(note.timeAgo,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                  Text(
+                    note.timeAgo,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.stone400,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               Row(
                 children: [
-                  const Icon(Icons.person_outline,
-                      size: 12, color: AppColors.stone400),
+                  const Icon(
+                    Icons.person_outline,
+                    size: 12,
+                    color: AppColors.stone400,
+                  ),
                   const SizedBox(width: AppSpacing.xxs),
-                  Text(note.author,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone400)),
+                  Text(
+                    note.author,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.stone400,
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   const Icon(Icons.star, size: 12, color: AppColors.warning),
                   const SizedBox(width: AppSpacing.xxs),
-                  Text(note.rating.toStringAsFixed(1),
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone500)),
+                  Text(
+                    note.rating.toStringAsFixed(1),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.stone500,
+                    ),
+                  ),
                 ],
               ),
               // Preview text
@@ -1356,16 +1467,17 @@ class _SharedNoteItem extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   note.preview,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: AppColors.stone500),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.stone500,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
               Wrap(
-                spacing: 5,
-                runSpacing: 5,
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
                 children: note.tags
                     .map((tag) => StudyTag(label: '#$tag'))
                     .toList(),

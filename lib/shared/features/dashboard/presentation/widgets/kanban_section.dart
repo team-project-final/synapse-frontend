@@ -186,11 +186,11 @@ class KanbanSection extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.fromLTRB(
         AppSpacing.lg,
-        AppSpacing.lg,
+        AppSpacing.md,
         // 모바일에서 보드는 화면 끝까지 가로 스크롤되므로
         // 가로 패딩을 보드가 직접 관리한다.
         isMobile ? 0 : AppSpacing.lg,
-        AppSpacing.lg,
+        AppSpacing.md,
       ),
       shrinkWrap: !scrollable,
       physics: scrollable ? null : const NeverScrollableScrollPhysics(),
@@ -244,7 +244,7 @@ class _BoardHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text('내 학습 보드', style: textTheme.headlineSmall),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 '화요일 · 오늘 복습 18장 대기',
                 style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -280,7 +280,7 @@ class _DateBoardHeader extends StatelessWidget {
                 '${date.month}월 ${date.day}일 보드',
                 style: textTheme.headlineSmall,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 '선택한 날짜의 학습 보드 · 복습 18장 대기',
                 style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -333,7 +333,7 @@ class _ProgressLine extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
-          vertical: 14,
+          vertical: AppSpacing.md,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,10 +352,10 @@ class _ProgressLine extends StatelessWidget {
                 Text('38장 중 12 완료', style: textTheme.titleSmall),
               ],
             ),
-            const SizedBox(height: 9),
+            const SizedBox(height: AppSpacing.sm),
             // 세그먼트 진행 바: 학습/복습/완료
             ClipRRect(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
               child: const SizedBox(
                 height: 10,
                 child: Row(
@@ -380,7 +380,7 @@ class _ProgressLine extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 9),
+            const SizedBox(height: AppSpacing.sm),
             const Wrap(
               spacing: AppSpacing.md,
               children: <Widget>[
@@ -418,8 +418,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 11,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.muted,
           ),
@@ -533,7 +532,12 @@ class _BoardColumn extends StatelessWidget {
           Container(height: 4, color: column.stripColor),
           // 헤더
           Padding(
-            padding: const EdgeInsets.fromLTRB(13, 12, 13, 9),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.sm,
+            ),
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -545,11 +549,11 @@ class _BoardColumn extends StatelessWidget {
           ),
           // 카드들
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 11),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             child: Column(
               children: <Widget>[
                 for (int i = 0; i < column.cards.length; i++) ...<Widget>[
-                  if (i > 0) const SizedBox(height: 9),
+                  if (i > 0) const SizedBox(height: AppSpacing.sm),
                   _KanbanCardTile(card: column.cards[i]),
                 ],
               ],
@@ -558,13 +562,18 @@ class _BoardColumn extends StatelessWidget {
           // 추가 버튼 (있을 때만)
           if (column.addLabel != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(11, 9, 11, 0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                0,
+              ),
               child: _MiniAddButton(
                 label: column.addLabel!,
                 onTap: () => context.go(column.addRoute!),
               ),
             ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
         ],
       ),
     );
@@ -580,17 +589,19 @@ class _WipBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(minWidth: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.border),
       ),
       child: Text(
         '$count',
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w800,
           color: AppColors.muted,
         ),
@@ -614,6 +625,7 @@ class _KanbanCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(AppRadius.sm - 2),
@@ -625,6 +637,8 @@ class _KanbanCardTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadius.sm - 2),
             border: Border.all(color: AppColors.border),
           ),
+          // 컴팩트 칸반 카드 — 토큰(md/sm)으로 올리면 카드가 눈에 띄게
+          // 헐거워져 12/11 유지.
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -635,8 +649,7 @@ class _KanbanCardTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       card.title,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         height: 1.35,
                         color: AppColors.text,
@@ -650,13 +663,12 @@ class _KanbanCardTile extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _Tag(label: card.tag),
-              const SizedBox(height: 9),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 card.meta,
-                style: TextStyle(
-                  fontSize: 11,
+                style: textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: _metaColor,
                 ),
@@ -677,16 +689,18 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 3,
+      ),
       decoration: BoxDecoration(
         // primary 14% 틴트
         color: AppColors.primary.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w700,
           color: AppColors.primary,
         ),
@@ -708,12 +722,11 @@ class _MiniAddButton extends StatelessWidget {
       onTap: onTap,
       child: _DottedBorderBox(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 9),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: AppColors.muted,
             ),

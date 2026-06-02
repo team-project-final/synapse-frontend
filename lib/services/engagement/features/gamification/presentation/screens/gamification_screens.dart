@@ -42,14 +42,20 @@ class GamificationProfileScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('개발자 김시냅스',
-                      style: textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 2),
-                  Text('레벨 7 · 지식 탐험가',
-                      style: textTheme.labelLarge?.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    '개발자 김시냅스',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    '레벨 7 · 지식 탐험가',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -60,12 +66,20 @@ class GamificationProfileScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('XP 3,240',
-                style: textTheme.labelMedium?.copyWith(
-                    color: AppColors.muted, fontWeight: FontWeight.w700)),
-            Text('Lv 8까지 360',
-                style: textTheme.labelMedium?.copyWith(
-                    color: AppColors.muted, fontWeight: FontWeight.w700)),
+            Text(
+              'XP 3,240',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            Text(
+              'Lv 8까지 360',
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -100,15 +114,22 @@ class GamificationProfileScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🔥', style: TextStyle(fontSize: 18)),
+              const Text('🔥', style: TextStyle(fontSize: 16)),
               const SizedBox(width: AppSpacing.sm),
-              Text('14일',
-                  style: textTheme.titleMedium?.copyWith(
-                      color: AppColors.streak, fontWeight: FontWeight.w800)),
-              const SizedBox(width: 6),
-              Text('연속 · 최고 21일',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                '14일',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.streak,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '연속 · 최고 21일',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ),
@@ -125,30 +146,48 @@ class GamificationProfileScreen extends ConsumerWidget {
         // 정답률 행 (full-width stat)
         ConceptCard(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md, vertical: AppSpacing.md - 3),
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md - 3,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('정답률',
-                  style: textTheme.labelMedium?.copyWith(
-                      color: AppColors.muted, fontWeight: FontWeight.w600)),
-              Text('94%',
-                  style: textTheme.headlineSmall?.copyWith(
-                      color: AppColors.success, fontWeight: FontWeight.w800)),
+              Text(
+                '정답률',
+                style: textTheme.labelMedium?.copyWith(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '94%',
+                style: textTheme.headlineSmall?.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
         ),
         // 배지 갤러리
         Padding(
-          padding: const EdgeInsets.fromLTRB(2, AppSpacing.xl, 2, AppSpacing.sm + 2),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xxs,
+            AppSpacing.xl,
+            AppSpacing.xxs,
+            AppSpacing.sm + 2,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('배지 $acquired / ${_badges.length}',
-                  style: textTheme.labelLarge?.copyWith(
-                      color: AppColors.muted,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5)),
+              Text(
+                '배지 $acquired / ${_badges.length}',
+                style: textTheme.labelLarge?.copyWith(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
               TextButton(
                 onPressed: () => context.go(AppRoutes.gamificationBadges),
                 style: TextButton.styleFrom(
@@ -234,7 +273,9 @@ class _ProfileBadgeTile extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: textTheme.labelSmall?.copyWith(
-                color: AppColors.muted, fontWeight: FontWeight.w700),
+              color: AppColors.muted,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ],
@@ -248,8 +289,7 @@ class BadgeGalleryScreen extends ConsumerStatefulWidget {
   const BadgeGalleryScreen({super.key});
 
   @override
-  ConsumerState<BadgeGalleryScreen> createState() =>
-      _BadgeGalleryScreenState();
+  ConsumerState<BadgeGalleryScreen> createState() => _BadgeGalleryScreenState();
 }
 
 class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
@@ -262,20 +302,92 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
 
     // TODO: 팀원 구현 — engagement-svc 배지 갤러리 API 연동
     const acquiredBadges = [
-      _Badge(name: '첫 노트', icon: Icons.article_outlined, acquired: true, condition: '첫 번째 노트 작성', progress: 1.0),
-      _Badge(name: '첫 복습', icon: Icons.refresh, acquired: true, condition: '첫 번째 복습 완료', progress: 1.0),
-      _Badge(name: '7일 연속', icon: Icons.local_fire_department, acquired: true, condition: '7일 연속 학습', progress: 1.0),
-      _Badge(name: '노트 마스터', icon: Icons.star, acquired: true, condition: '노트 50개 작성', progress: 1.0),
-      _Badge(name: '지식 탐험가', icon: Icons.explore, acquired: true, condition: '레벨 7 달성', progress: 1.0),
-      _Badge(name: 'AI 활용', icon: Icons.auto_awesome, acquired: true, condition: 'AI 카드 생성 10회', progress: 1.0),
+      _Badge(
+        name: '첫 노트',
+        icon: Icons.article_outlined,
+        acquired: true,
+        condition: '첫 번째 노트 작성',
+        progress: 1.0,
+      ),
+      _Badge(
+        name: '첫 복습',
+        icon: Icons.refresh,
+        acquired: true,
+        condition: '첫 번째 복습 완료',
+        progress: 1.0,
+      ),
+      _Badge(
+        name: '7일 연속',
+        icon: Icons.local_fire_department,
+        acquired: true,
+        condition: '7일 연속 학습',
+        progress: 1.0,
+      ),
+      _Badge(
+        name: '노트 마스터',
+        icon: Icons.star,
+        acquired: true,
+        condition: '노트 50개 작성',
+        progress: 1.0,
+      ),
+      _Badge(
+        name: '지식 탐험가',
+        icon: Icons.explore,
+        acquired: true,
+        condition: '레벨 7 달성',
+        progress: 1.0,
+      ),
+      _Badge(
+        name: 'AI 활용',
+        icon: Icons.auto_awesome,
+        acquired: true,
+        condition: 'AI 카드 생성 10회',
+        progress: 1.0,
+      ),
     ];
     const lockedBadges = [
-      _Badge(name: '30일 연속', icon: Icons.military_tech, acquired: false, condition: '30일 연속 학습', progress: 0.47),
-      _Badge(name: '카드 100장', icon: Icons.style, acquired: false, condition: '카드 100장 생성', progress: 0.72),
-      _Badge(name: '그룹 참여', icon: Icons.groups, acquired: false, condition: '그룹 3개 참여', progress: 0.33),
-      _Badge(name: '공유 왕', icon: Icons.share, acquired: false, condition: '덱 5개 공유', progress: 0.2),
-      _Badge(name: '레벨 10', icon: Icons.emoji_events, acquired: false, condition: '레벨 10 달성', progress: 0.7),
-      _Badge(name: '1000 XP', icon: Icons.workspace_premium, acquired: false, condition: '1000 XP 달성', progress: 0.65),
+      _Badge(
+        name: '30일 연속',
+        icon: Icons.military_tech,
+        acquired: false,
+        condition: '30일 연속 학습',
+        progress: 0.47,
+      ),
+      _Badge(
+        name: '카드 100장',
+        icon: Icons.style,
+        acquired: false,
+        condition: '카드 100장 생성',
+        progress: 0.72,
+      ),
+      _Badge(
+        name: '그룹 참여',
+        icon: Icons.groups,
+        acquired: false,
+        condition: '그룹 3개 참여',
+        progress: 0.33,
+      ),
+      _Badge(
+        name: '공유 왕',
+        icon: Icons.share,
+        acquired: false,
+        condition: '덱 5개 공유',
+        progress: 0.2,
+      ),
+      _Badge(
+        name: '레벨 10',
+        icon: Icons.emoji_events,
+        acquired: false,
+        condition: '레벨 10 달성',
+        progress: 0.7,
+      ),
+      _Badge(
+        name: '1000 XP',
+        icon: Icons.workspace_premium,
+        acquired: false,
+        condition: '1000 XP 달성',
+        progress: 0.65,
+      ),
     ];
 
     List<_Badge> filteredBadges;
@@ -289,15 +401,16 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         Row(
           children: [
             Text('배지 갤러리', style: textTheme.titleLarge),
             const Spacer(),
-            Text('12/30 획득',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.muted)),
+            Text(
+              '12/30 획득',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -310,8 +423,7 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
             return ChoiceChip(
               label: Text(label),
               selected: selected,
-              onSelected: (_) =>
-                  setState(() => _filterSelection = label),
+              onSelected: (_) => setState(() => _filterSelection = label),
             );
           }).toList(),
         ),
@@ -329,8 +441,7 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
           itemCount: filteredBadges.length,
           itemBuilder: (context, i) => _BadgeTile(
             badge: filteredBadges[i],
-            onTap: () =>
-                _showBadgeBottomSheet(context, filteredBadges[i]),
+            onTap: () => _showBadgeBottomSheet(context, filteredBadges[i]),
           ),
         ),
       ],
@@ -347,11 +458,11 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(badge.icon,
-                  size: 48,
-                  color: badge.acquired
-                      ? AppColors.primary
-                      : AppColors.muted),
+              Icon(
+                badge.icon,
+                size: 48,
+                color: badge.acquired ? AppColors.primary : AppColors.muted,
+              ),
               const SizedBox(height: AppSpacing.md),
               Text(
                 badge.acquired ? badge.name : '잠김',
@@ -360,8 +471,7 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
               const SizedBox(height: AppSpacing.sm),
               Text(
                 '조건: ${badge.condition}',
-                style: textTheme.bodyMedium
-                    ?.copyWith(color: AppColors.muted),
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: AppSpacing.md),
               // Progress indicator
@@ -374,8 +484,7 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
                       color: badge.acquired
                           ? AppColors.success
                           : AppColors.primary,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.xs),
+                      borderRadius: BorderRadius.circular(AppSpacing.xs),
                       minHeight: 8,
                     ),
                   ),
@@ -383,7 +492,8 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
                   Text(
                     '${(badge.progress * 100).toInt()}%',
                     style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.muted),
+                      color: AppColors.muted,
+                    ),
                   ),
                 ],
               ),
@@ -431,9 +541,8 @@ class _BadgeTile extends StatelessWidget {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color:
-                    badge.acquired ? AppColors.surface2 : AppColors.bg,
-                borderRadius: BorderRadius.circular(AppSpacing.md),
+                color: badge.acquired ? AppColors.surface2 : AppColors.bg,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(
                   color: badge.acquired
                       ? AppColors.primary.withValues(alpha: 0.3)
@@ -443,9 +552,7 @@ class _BadgeTile extends StatelessWidget {
               child: Icon(
                 badge.icon,
                 size: 32,
-                color: badge.acquired
-                    ? AppColors.primary
-                    : AppColors.muted,
+                color: badge.acquired ? AppColors.primary : AppColors.muted,
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
@@ -471,8 +578,7 @@ class LeaderboardScreen extends ConsumerStatefulWidget {
   const LeaderboardScreen({super.key});
 
   @override
-  ConsumerState<LeaderboardScreen> createState() =>
-      _LeaderboardScreenState();
+  ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
 }
 
 class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
@@ -524,7 +630,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
             children: List.generate(
               4,
               (_) => ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 itemCount: mockEntries.length,
                 itemBuilder: (context, i) {
                   final entry = mockEntries[i];
@@ -563,15 +669,17 @@ class _LeaderboardRow extends StatelessWidget {
     final rankColor = entry.rank == 1
         ? AppColors.warning
         : entry.rank == 2
-            ? AppColors.muted
-            : entry.rank == 3
-                ? const Color(0xFFCD7F32) // bronze
-                : null;
+        ? AppColors.muted
+        : entry.rank == 3
+        ? const Color(0xFFCD7F32) // bronze
+        : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.xs),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: entry.isMe
             ? AppColors.primary.withValues(alpha: 0.10) // highlight my row
@@ -587,18 +695,12 @@ class _LeaderboardRow extends StatelessWidget {
           SizedBox(
             width: 32,
             child: entry.rank <= 3
-                ? Icon(
-                    Icons.emoji_events,
-                    color: rankColor,
-                    size: 22,
-                  )
+                ? Icon(Icons.emoji_events, color: rankColor, size: 22)
                 : Text(
                     '${entry.rank}',
                     style: textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: entry.isMe
-                          ? AppColors.primary
-                          : AppColors.muted,
+                      color: entry.isMe ? AppColors.primary : AppColors.muted,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -631,9 +733,7 @@ class _LeaderboardRow extends StatelessWidget {
           Text(
             '${entry.xp} XP',
             style: textTheme.bodyMedium?.copyWith(
-              color: entry.isMe
-                  ? AppColors.primary
-                  : AppColors.muted,
+              color: entry.isMe ? AppColors.primary : AppColors.muted,
               fontWeight: entry.isMe ? FontWeight.bold : null,
             ),
           ),

@@ -296,9 +296,7 @@ class _PlanCard extends StatelessWidget {
                     Icon(
                       f.available ? Icons.check_circle : Icons.cancel,
                       size: 16,
-                      color: f.available
-                          ? AppColors.success
-                          : AppColors.muted,
+                      color: f.available ? AppColors.success : AppColors.muted,
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     Expanded(
@@ -321,7 +319,7 @@ class _PlanCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: AppColors.surface2,
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                   border: Border.all(color: AppColors.border),
                 ),
                 child: Center(
@@ -405,9 +403,7 @@ class BillingReturnScreen extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.muted,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
               ),
             ],
           ),
@@ -625,16 +621,12 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Free 플랜은 결제 이력이 없습니다',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: AppColors.muted,
-                  ),
+                  style: textTheme.bodyLarge?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Free 플랜을 사용 중입니다',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.muted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(

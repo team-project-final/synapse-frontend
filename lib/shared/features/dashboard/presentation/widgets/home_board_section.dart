@@ -277,11 +277,10 @@ class _BoardHeader extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSpacing.xxs),
               Text(
                 editing ? '보드 편집' : '내 보드',
-                style: const TextStyle(
-                  fontSize: 26,
+                style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   color: AppColors.text,
@@ -583,7 +582,7 @@ class _TodayReviewContent extends StatelessWidget {
               color: AppColors.text,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             '복습 대기 12 · 학습 중 4 · 새 카드 2',
             style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -645,7 +644,7 @@ class _SuggestContent extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.16),
             ),
             alignment: Alignment.center,
-            child: const Text('🩺', style: TextStyle(fontSize: 18)),
+            child: const Text('🩺', style: TextStyle(fontSize: 20)),
           ),
           const SizedBox(width: AppSpacing.sm + 4),
           Expanded(
@@ -658,7 +657,7 @@ class _SuggestContent extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   '최근 3번 중 2번 틀렸어요. 관련 노트 3개로 미니 퀴즈를 만들어 드릴까요?',
                   style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -783,7 +782,7 @@ class _InsightStat extends StatelessWidget {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             label,
             style: textTheme.labelSmall?.copyWith(
@@ -821,7 +820,7 @@ class _StreakContent extends StatelessWidget {
               color: AppColors.streak,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             '최고 $_kStreakBest일',
             style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
@@ -981,10 +980,10 @@ class _ChatBubble extends StatelessWidget {
             color: isMe ? AppColors.primary : AppColors.bg,
             border: isMe ? null : Border.all(color: AppColors.border),
             borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: Radius.circular(isMe ? 16 : 5),
-              bottomRight: Radius.circular(isMe ? 5 : 16),
+              topLeft: const Radius.circular(AppRadius.lg),
+              topRight: const Radius.circular(AppRadius.lg),
+              bottomLeft: Radius.circular(isMe ? AppRadius.lg : 5),
+              bottomRight: Radius.circular(isMe ? 5 : AppRadius.lg),
             ),
           ),
           child: Text(
@@ -1017,7 +1016,7 @@ class _RecentNotesContent extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(AppRadius.sm - 4),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 7),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               decoration: BoxDecoration(
                 border: i < _kMockNotes.length - 1
                     ? const Border(bottom: BorderSide(color: AppColors.border))
@@ -1078,9 +1077,9 @@ class _RankingContent extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm,
-                vertical: 7,
+                vertical: AppSpacing.sm,
               ),
-              margin: const EdgeInsets.only(bottom: 4),
+              margin: const EdgeInsets.only(bottom: AppSpacing.xs),
               decoration: BoxDecoration(
                 color: row.highlight
                     ? AppColors.accent.withValues(alpha: 0.10)
@@ -1199,7 +1198,7 @@ class _AddWidgetBar extends StatelessWidget {
               color: AppColors.text,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             '보드에 올릴 위젯을 골라보세요',
             style: textTheme.bodySmall?.copyWith(
@@ -1249,6 +1248,7 @@ class _AddItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
     final BorderRadius radius = BorderRadius.circular(AppRadius.sm);
     return Material(
       color: Colors.transparent,
@@ -1282,24 +1282,22 @@ class _AddItem extends StatelessWidget {
                 alignment: Alignment.center,
                 child: item.kind == _BoardKind.ask
                     ? const SynapseOrb(size: 26, glyphScale: 0.5)
-                    : Text(item.emoji, style: const TextStyle(fontSize: 21)),
+                    : Text(item.emoji, style: const TextStyle(fontSize: 20)),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 item.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12,
+                style: textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.text,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              const SizedBox(height: AppSpacing.sm),
+              Text(
                 '＋ 추가',
-                style: TextStyle(
-                  fontSize: 11,
+                style: textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
                 ),

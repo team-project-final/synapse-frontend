@@ -31,26 +31,29 @@ class _MockDeck {
 
 const _mockDecks = [
   _MockDeck(
-      id: '1',
-      name: '프로그래밍 기초',
-      emoji: '💻',
-      cardCount: 45,
-      dueCount: 12,
-      progress: 0.6),
+    id: '1',
+    name: '프로그래밍 기초',
+    emoji: '💻',
+    cardCount: 45,
+    dueCount: 12,
+    progress: 0.6,
+  ),
   _MockDeck(
-      id: '2',
-      name: '알고리즘 & 자료구조',
-      emoji: '🧩',
-      cardCount: 80,
-      dueCount: 5,
-      progress: 0.75),
+    id: '2',
+    name: '알고리즘 & 자료구조',
+    emoji: '🧩',
+    cardCount: 80,
+    dueCount: 5,
+    progress: 0.75,
+  ),
   _MockDeck(
-      id: '3',
-      name: 'AWS 자격증',
-      emoji: '☁️',
-      cardCount: 30,
-      dueCount: 20,
-      progress: 0.3),
+    id: '3',
+    name: 'AWS 자격증',
+    emoji: '☁️',
+    cardCount: 30,
+    dueCount: 20,
+    progress: 0.3,
+  ),
 ];
 
 // ── DeckListScreen (SCR-W-CARD-001) ──
@@ -66,7 +69,9 @@ class DeckListScreen extends ConsumerWidget {
       children: [
         Row(
           children: [
-            const Expanded(child: ConceptViewHead(title: '내 덱', meta: '덱 3')),
+            const Expanded(
+              child: ConceptViewHead(title: '내 덱', meta: '덱 3'),
+            ),
             FilledButton.icon(
               onPressed: () {
                 // TODO: 팀원 구현 — 새 덱 생성 다이얼로그/화면
@@ -113,14 +118,15 @@ class _DeckCard extends StatelessWidget {
                     color: AppColors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Text(deck.emoji, style: const TextStyle(fontSize: 22)),
+                  child: Text(deck.emoji, style: const TextStyle(fontSize: 20)),
                 ),
                 const SizedBox(width: AppSpacing.sm + 2),
                 Expanded(
                   child: Text(
                     deck.name,
-                    style: textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
                 // Mastery circular indicator
@@ -138,8 +144,9 @@ class _DeckCard extends StatelessWidget {
                       ),
                       Text(
                         '${(deck.progress * 100).toInt()}%',
-                        style: textTheme.labelSmall
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                        style: textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
@@ -196,19 +203,27 @@ class _DeckCard extends StatelessWidget {
             ),
             // Sub-decks
             Theme(
-              data: Theme.of(context)
-                  .copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                title: Text('하위 덱',
-                    style: textTheme.labelMedium?.copyWith(
-                        color: AppColors.muted, fontWeight: FontWeight.w700)),
+                title: Text(
+                  '하위 덱',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 children: [
                   _SubDeckTile(
-                      name: '${deck.name} - 기본', count: deck.cardCount ~/ 2),
+                    name: '${deck.name} - 기본',
+                    count: deck.cardCount ~/ 2,
+                  ),
                   _SubDeckTile(
-                      name: '${deck.name} - 심화',
-                      count: deck.cardCount - deck.cardCount ~/ 2),
+                    name: '${deck.name} - 심화',
+                    count: deck.cardCount - deck.cardCount ~/ 2,
+                  ),
                 ],
               ),
             ),
@@ -230,11 +245,16 @@ class _SubDeckTile extends StatelessWidget {
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.folder_outlined,
-          size: 18, color: AppColors.muted),
+      leading: const Icon(
+        Icons.folder_outlined,
+        size: 18,
+        color: AppColors.muted,
+      ),
       title: Text(name, style: textTheme.bodySmall),
-      trailing: Text('$count장',
-          style: textTheme.labelSmall?.copyWith(color: AppColors.muted)),
+      trailing: Text(
+        '$count장',
+        style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+      ),
     );
   }
 }
@@ -257,9 +277,13 @@ class _CountChip extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: color),
         const SizedBox(width: AppSpacing.xxs),
-        Text(label,
-            style: textTheme.labelMedium
-                ?.copyWith(color: color, fontWeight: FontWeight.w700)),
+        Text(
+          label,
+          style: textTheme.labelMedium?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ],
     );
   }
@@ -388,21 +412,30 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                           ],
                         ),
                         const SizedBox(height: AppSpacing.xs),
-                        Text(entry.value['front']!,
-                            style: textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(
+                          entry.value['front']!,
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: AppSpacing.xxs),
-                        Text(entry.value['back']!,
-                            style: textTheme.bodySmall
-                                ?.copyWith(color: AppColors.muted),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis),
+                        Text(
+                          entry.value['back']!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.muted,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined,
-                        color: AppColors.muted, size: 20),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      color: AppColors.muted,
+                      size: 20,
+                    ),
                     onPressed: () => context.go(AppRoutes.cardNew),
                     // TODO: 팀원 구현 — 카드 편집 화면 연동
                   ),
@@ -440,9 +473,9 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   }
 
   OutlineInputBorder get _inputBorder => OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        borderSide: const BorderSide(color: AppColors.border),
-      );
+    borderRadius: BorderRadius.circular(AppRadius.md),
+    borderSide: const BorderSide(color: AppColors.border),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -525,15 +558,22 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: AppColors.border),
           ),
-          child: const Center(
+          child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.add_photo_alternate_outlined,
-                    size: 32, color: AppColors.muted),
-                SizedBox(height: AppSpacing.xs),
-                Text('이미지 추가',
-                    style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                const Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 32,
+                  color: AppColors.muted,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '이미지 추가',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ),
@@ -573,7 +613,11 @@ class _AiCardGenerationScreenState
 
   // TODO: 팀원 구현 — learning-svc AI 카드 생성 API 연동(대화형)
   static const _generated = <_GenCard>[
-    _GenCard(type: 'basic', q: '트랜스포머의 핵심 메커니즘은?', a: '어텐션 메커니즘 — 입력의 어느 부분에 집중할지 학습'),
+    _GenCard(
+      type: 'basic',
+      q: '트랜스포머의 핵심 메커니즘은?',
+      a: '어텐션 메커니즘 — 입력의 어느 부분에 집중할지 학습',
+    ),
     _GenCard(type: 'cloze', q: '트랜스포머는 ___ 방지를 위해 드롭아웃을 쓴다', a: '과적합'),
     _GenCard(type: 'basic', q: '트랜스포머가 표준인 분야는?', a: 'NLP와 Vision'),
     _GenCard(type: 'basic', q: '어텐션과 RNN의 차이는?', a: '병렬 처리 가능, 장거리 의존성에 강함'),
@@ -595,7 +639,9 @@ class _AiCardGenerationScreenState
         // 대화 헤더 (orb + 이름 + ●답변 중)
         Container(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
           decoration: const BoxDecoration(
             color: AppColors.surface,
             border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -607,13 +653,19 @@ class _AiCardGenerationScreenState
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AI 튜터',
-                      style: textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w800)),
-                  Text('● 답변 중',
-                      style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w700)),
+                  Text(
+                    'AI 튜터',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    '● 답변 중',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -656,22 +708,34 @@ class _AiCardGenerationScreenState
             constraints: const BoxConstraints(maxWidth: 760),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+                AppSpacing.md,
+                0,
+                AppSpacing.md,
+                AppSpacing.sm,
+              ),
               child: ConceptCard(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md - 2, vertical: AppSpacing.sm + 2),
+                  horizontal: AppSpacing.md - 2,
+                  vertical: AppSpacing.sm + 2,
+                ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('$count장 선택됨',
-                              style: textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800)),
-                          Text('덱: $_deckName · +${count * _xpPerCard} XP',
-                              style: textTheme.labelSmall
-                                  ?.copyWith(color: AppColors.muted)),
+                          Text(
+                            '$count장 선택됨',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '덱: $_deckName · +${count * _xpPerCard} XP',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.muted,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -692,8 +756,12 @@ class _AiCardGenerationScreenState
         ),
         // 채팅 입력 바
         Container(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm,
-              AppSpacing.md, AppSpacing.sm),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
           decoration: const BoxDecoration(
             color: AppColors.surface,
             border: Border(top: BorderSide(color: AppColors.border)),
@@ -703,16 +771,21 @@ class _AiCardGenerationScreenState
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm + 2),
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm + 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.surface2,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
-                  child: Text('더 물어보거나 카드를 수정하세요…',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.muted)),
+                  child: Text(
+                    '더 물어보거나 카드를 수정하세요…',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -782,13 +855,20 @@ class _GenCardTile extends StatelessWidget {
                 children: [
                   _CardTypeBadge(card.type),
                   const SizedBox(height: AppSpacing.xs + 1),
-                  Text('Q. ${card.q}',
-                      style: textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w700)),
+                  Text(
+                    'Q. ${card.q}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                   const SizedBox(height: 3),
-                  Text('A. ${card.a}',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.muted, height: 1.45)),
+                  Text(
+                    'A. ${card.a}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.muted,
+                      height: 1.45,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -806,16 +886,19 @@ class _CardTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs,
+      ),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.sm - 6),
       ),
       child: Text(
         type,
-        style: const TextStyle(
-          fontSize: 10,
+        style: textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w800,
           color: AppColors.primary,
         ),
@@ -855,7 +938,11 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         // Progress row
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
           child: Row(
             children: [
               IconButton(
@@ -875,9 +962,13 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              Text('$_current / $_total',
-                  style: textTheme.labelLarge?.copyWith(
-                      color: AppColors.muted, fontWeight: FontWeight.w700)),
+              Text(
+                '$_current / $_total',
+                style: textTheme.labelLarge?.copyWith(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ),
@@ -913,9 +1004,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                     ],
                     if (_hintLevel < _hints.length) ...[
                       const SizedBox(height: AppSpacing.md),
-                      _HintButton(
-                        onTap: () => setState(() => _hintLevel++),
-                      ),
+                      _HintButton(onTap: () => setState(() => _hintLevel++)),
                     ],
                   ],
                 ),
@@ -927,34 +1016,42 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         // Difficulty buttons (SM-2 rating)
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
           child: Row(
             children: [
               _RateButton(
-                  label: '다시',
-                  sub: '<1분',
-                  color: AppColors.error,
-                  onTap: () {
-                    // TODO: 팀원 구현 — SM-2 rating API 호출
-                  }),
+                label: '다시',
+                sub: '<1분',
+                color: AppColors.error,
+                onTap: () {
+                  // TODO: 팀원 구현 — SM-2 rating API 호출
+                },
+              ),
               const SizedBox(width: AppSpacing.sm),
               _RateButton(
-                  label: '어려움',
-                  sub: '4일',
-                  color: AppColors.warning,
-                  onTap: () {}),
+                label: '어려움',
+                sub: '4일',
+                color: AppColors.warning,
+                onTap: () {},
+              ),
               const SizedBox(width: AppSpacing.sm),
               _RateButton(
-                  label: '보통',
-                  sub: '9일',
-                  color: AppColors.success,
-                  onTap: () {}),
+                label: '보통',
+                sub: '9일',
+                color: AppColors.success,
+                onTap: () {},
+              ),
               const SizedBox(width: AppSpacing.sm),
               _RateButton(
-                  label: '쉬움',
-                  sub: '21일',
-                  color: AppColors.accent,
-                  onTap: () {}),
+                label: '쉬움',
+                sub: '21일',
+                color: AppColors.accent,
+                onTap: () {},
+              ),
             ],
           ),
         ),
@@ -964,11 +1061,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
 }
 
 class _FlashFace extends StatelessWidget {
-  const _FlashFace({
-    required this.label,
-    this.hint,
-    this.highlighted = false,
-  });
+  const _FlashFace({required this.label, this.hint, this.highlighted = false});
 
   final String label;
   final String? hint;
@@ -992,16 +1085,20 @@ class _FlashFace extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label,
-                style: textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
-                textAlign: TextAlign.center),
+            Text(
+              label,
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+              textAlign: TextAlign.center,
+            ),
             // TODO: 팀원 구현 — learning-svc 카드 데이터 연동
             if (hint != null) ...[
               const SizedBox(height: AppSpacing.lg),
-              Text(hint!,
-                  style:
-                      textTheme.bodySmall?.copyWith(color: AppColors.muted)),
+              Text(
+                hint!,
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
             ],
           ],
         ),
@@ -1036,17 +1133,23 @@ class _RateButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 4),
             child: Column(
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(sub,
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600)),
+                Text(
+                  sub,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.85),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1077,9 +1180,9 @@ class _HintButton extends StatelessWidget {
               child: Text(
                 '💡 한 단계 더 힌트 받기',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -1155,18 +1258,28 @@ class ReviewResultScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.md),
         // 결과 orb
         const Center(
-          child: SynapseOrb(size: 84, glyph: '🎉', glyphScale: 0.48, shadow: true),
+          child: SynapseOrb(
+            size: 84,
+            glyph: '🎉',
+            glyphScale: 0.48,
+            shadow: true,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         Center(
-          child: Text('복습 완료!',
-              style: textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w800)),
+          child: Text(
+            '복습 완료!',
+            style: textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xs),
         Center(
-          child: Text('오늘 25장을 모두 끝냈어요',
-              style: textTheme.bodyMedium?.copyWith(color: AppColors.muted)),
+          child: Text(
+            '오늘 25장을 모두 끝냈어요',
+            style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         // Streak bar
@@ -1180,15 +1293,22 @@ class ReviewResultScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🔥', style: TextStyle(fontSize: 18)),
+              const Text('🔥', style: TextStyle(fontSize: 16)),
               const SizedBox(width: AppSpacing.sm),
-              Text('14일',
-                  style: textTheme.titleMedium?.copyWith(
-                      color: AppColors.streak, fontWeight: FontWeight.w800)),
-              const SizedBox(width: 6),
-              Text('연속 학습 중!',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                '14일',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.streak,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                '연속 학습 중!',
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ],
           ),
         ),
@@ -1204,7 +1324,8 @@ class ReviewResultScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.md),
         // AI comment
         const ConceptAiComment(
-          text: '정답률이 지난주보다 6%p 올랐어요! 다만 「과적합」 관련 카드에서 막혔으니, 내일은 그 노트를 한 번 더 보면 좋겠어요. 🙌',
+          text:
+              '정답률이 지난주보다 6%p 올랐어요! 다만 「과적합」 관련 카드에서 막혔으니, 내일은 그 노트를 한 번 더 보면 좋겠어요. 🙌',
         ),
         // Accuracy donut chart
         const ConceptSectionLabel('정확도'),
@@ -1219,9 +1340,12 @@ class ReviewResultScreen extends ConsumerWidget {
                 incorrectColor: AppColors.surface2,
               ),
               child: Center(
-                child: Text('78%',
-                    style: textTheme.titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800)),
+                child: Text(
+                  '78%',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1235,14 +1359,23 @@ class ReviewResultScreen extends ConsumerWidget {
               for (int i = 0; i < _kNextReviews.length; i++) ...[
                 if (i > 0) const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.schedule,
-                      size: 18, color: AppColors.muted),
-                  title: Text(_kNextReviews[i]['title']!,
-                      style: textTheme.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
-                  trailing: Text(_kNextReviews[i]['date']!,
-                      style: textTheme.labelSmall
-                          ?.copyWith(color: AppColors.muted)),
+                  leading: const Icon(
+                    Icons.schedule,
+                    size: 18,
+                    color: AppColors.muted,
+                  ),
+                  title: Text(
+                    _kNextReviews[i]['title']!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: Text(
+                    _kNextReviews[i]['date']!,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
+                  ),
                 ),
               ],
             ],

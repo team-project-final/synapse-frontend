@@ -8,9 +8,9 @@ import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
 
 /// 컨셉 입력 필드 보더 (큰 radius + 토큰 색).
 OutlineInputBorder _conceptBorder() => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      borderSide: const BorderSide(color: AppColors.border),
-    );
+  borderRadius: BorderRadius.circular(AppRadius.md),
+  borderSide: const BorderSide(color: AppColors.border),
+);
 
 // ── ProfileSettingsScreen (SCR-W-SETTINGS-001) ──
 
@@ -387,23 +387,17 @@ class _SecuritySettingsScreenState
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(AppSpacing.sm),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.qr_code_2,
-                  size: 64,
-                  color: AppColors.muted,
-                ),
+                const Icon(Icons.qr_code_2, size: 64, color: AppColors.muted),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'QR 코드 영역',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.muted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
@@ -657,16 +651,12 @@ class _NotificationSettingsScreenState
           children: [
             Text(
               _formatHour(_quietHours.start),
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.primary,
-              ),
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.primary),
             ),
             Text('~', style: textTheme.bodyMedium),
             Text(
               _formatHour(_quietHours.end),
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.primary,
-              ),
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.primary),
             ),
           ],
         ),
@@ -805,7 +795,7 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
         // Danger zone
         Card(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.sm),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             side: const BorderSide(color: AppColors.error),
           ),
           child: Padding(
@@ -822,9 +812,7 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '계정을 삭제하면 모든 노트, 카드, 학습 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.muted,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
@@ -906,7 +894,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                       labelText: '이메일 주소',
                       hintText: 'user@example.com',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.sm),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                     ),
                   ),
@@ -916,7 +904,7 @@ class _TenantSettingsScreenState extends ConsumerState<TenantSettingsScreen> {
                     decoration: InputDecoration(
                       labelText: '역할',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.sm),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                     ),
                     items: const [

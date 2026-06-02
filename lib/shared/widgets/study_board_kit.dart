@@ -14,18 +14,18 @@ enum BoardPhase { collect, learn, review, done }
 
 extension BoardPhaseStyle on BoardPhase {
   String get label => switch (this) {
-        BoardPhase.collect => '수집함',
-        BoardPhase.learn => '학습 중',
-        BoardPhase.review => '복습 대기',
-        BoardPhase.done => '완료',
-      };
+    BoardPhase.collect => '수집함',
+    BoardPhase.learn => '학습 중',
+    BoardPhase.review => '복습 대기',
+    BoardPhase.done => '완료',
+  };
 
   Color get color => switch (this) {
-        BoardPhase.collect => AppColors.columnCollect,
-        BoardPhase.learn => AppColors.columnLearn,
-        BoardPhase.review => AppColors.columnReview,
-        BoardPhase.done => AppColors.columnDone,
-      };
+    BoardPhase.collect => AppColors.columnCollect,
+    BoardPhase.learn => AppColors.columnLearn,
+    BoardPhase.review => AppColors.columnReview,
+    BoardPhase.done => AppColors.columnDone,
+  };
 }
 
 /// 목업 `.tag` — primary 14% 틴트 스타디움 칩.
@@ -44,15 +44,11 @@ class StudyTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: c,
-        ),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: c),
       ),
     );
   }
@@ -71,15 +67,11 @@ class PhasePin extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: Text(
         phase.label,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: c,
-        ),
+        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: c),
       ),
     );
   }
@@ -146,7 +138,7 @@ class StudySearchBar extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(color: AppColors.border),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 2),
@@ -247,11 +239,7 @@ class StudyCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       borderRadius: radius,
-      child: InkWell(
-        borderRadius: radius,
-        onTap: onTap,
-        child: content,
-      ),
+      child: InkWell(borderRadius: radius, onTap: onTap, child: content),
     );
   }
 }
@@ -325,7 +313,11 @@ class SemanticBanner extends StatelessWidget {
 
 /// 목업 `.statgrid .s` — 3분할 통계 셀.
 class StatCell {
-  const StatCell({required this.value, required this.label, this.accent = false});
+  const StatCell({
+    required this.value,
+    required this.label,
+    this.accent = false,
+  });
   final String value;
   final String label;
   final bool accent;
@@ -413,7 +405,7 @@ class XpBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final clamped = progress.clamp(0.0, 1.0);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
         height: height,
         color: AppColors.surface2,
@@ -490,13 +482,15 @@ class WikiText extends StatelessWidget {
         spans.add(TextSpan(text: text.substring(last, m.start)));
       }
       final label = m.group(1)!;
-      spans.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: WikiLinkChip(
-          label: label,
-          onTap: onLinkTap == null ? null : () => onLinkTap!(label),
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: WikiLinkChip(
+            label: label,
+            onTap: onLinkTap == null ? null : () => onLinkTap!(label),
+          ),
         ),
-      ));
+      );
       last = m.end;
     }
     if (last < text.length) {
@@ -528,8 +522,7 @@ class BacklinkRow extends StatelessWidget {
       child: Container(
         decoration: showDivider
             ? const BoxDecoration(
-                border:
-                    Border(bottom: BorderSide(color: AppColors.border)),
+                border: Border(bottom: BorderSide(color: AppColors.border)),
               )
             : null,
         padding: const EdgeInsets.symmetric(vertical: 9),
@@ -565,8 +558,10 @@ class BacklinkRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            const Text('↗',
-                style: TextStyle(fontSize: 14, color: AppColors.muted)),
+            const Text(
+              '↗',
+              style: TextStyle(fontSize: 14, color: AppColors.muted),
+            ),
           ],
         ),
       ),
@@ -579,9 +574,9 @@ enum GenCardType { basic, cloze }
 
 extension GenCardTypeStyle on GenCardType {
   String get label => switch (this) {
-        GenCardType.basic => 'BASIC',
-        GenCardType.cloze => 'CLOZE',
-      };
+    GenCardType.basic => 'BASIC',
+    GenCardType.cloze => 'CLOZE',
+  };
 }
 
 /// 목업 `.gencard` — AI 생성 카드(체크박스 + 타입 배지 + Q/A).
@@ -623,8 +618,7 @@ class GenCard extends StatelessWidget {
               ),
             ),
             child: selected
-                ? const Icon(Icons.check,
-                    size: 14, color: AppColors.primaryFg)
+                ? const Icon(Icons.check, size: 14, color: AppColors.primaryFg)
                 : null,
           ),
           const SizedBox(width: 11),
@@ -716,7 +710,9 @@ class RateButtons extends StatelessWidget {
                 onTap: () => onRate(i),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 12),
+                    horizontal: 4,
+                    vertical: 12,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -772,9 +768,10 @@ class BadgeTile extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: Color.alphaBlend(
-                  AppColors.primary.withValues(alpha: 0.12),
-                  AppColors.surface),
-              borderRadius: BorderRadius.circular(16),
+                AppColors.primary.withValues(alpha: 0.12),
+                AppColors.surface,
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.border),
             ),
             alignment: Alignment.center,

@@ -37,14 +37,78 @@ class _MockGraphEdge {
 // ── Mock data ──
 
 const List<_MockGraphNode> _mockNodes = [
-  _MockGraphNode(id: '1', label: '정규화 기법', x: 350, y: 200, cluster: 0, linkCount: 6, pageRank: 0.85),
-  _MockGraphNode(id: '2', label: '드롭아웃', x: 200, y: 120, cluster: 0, linkCount: 4, pageRank: 0.62),
-  _MockGraphNode(id: '3', label: '배치 정규화', x: 480, y: 140, cluster: 0, linkCount: 3, pageRank: 0.55),
-  _MockGraphNode(id: '4', label: '과적합 방지', x: 150, y: 300, cluster: 1, linkCount: 5, pageRank: 0.78),
-  _MockGraphNode(id: '5', label: '교차 검증', x: 280, y: 380, cluster: 1, linkCount: 3, pageRank: 0.50),
-  _MockGraphNode(id: '6', label: '학습률 스케줄링', x: 550, y: 280, cluster: 1, linkCount: 2, pageRank: 0.40),
-  _MockGraphNode(id: '7', label: '합성곱 신경망', x: 500, y: 420, cluster: 2, linkCount: 4, pageRank: 0.72),
-  _MockGraphNode(id: '8', label: '순환 신경망', x: 650, y: 350, cluster: 2, linkCount: 3, pageRank: 0.58),
+  _MockGraphNode(
+    id: '1',
+    label: '정규화 기법',
+    x: 350,
+    y: 200,
+    cluster: 0,
+    linkCount: 6,
+    pageRank: 0.85,
+  ),
+  _MockGraphNode(
+    id: '2',
+    label: '드롭아웃',
+    x: 200,
+    y: 120,
+    cluster: 0,
+    linkCount: 4,
+    pageRank: 0.62,
+  ),
+  _MockGraphNode(
+    id: '3',
+    label: '배치 정규화',
+    x: 480,
+    y: 140,
+    cluster: 0,
+    linkCount: 3,
+    pageRank: 0.55,
+  ),
+  _MockGraphNode(
+    id: '4',
+    label: '과적합 방지',
+    x: 150,
+    y: 300,
+    cluster: 1,
+    linkCount: 5,
+    pageRank: 0.78,
+  ),
+  _MockGraphNode(
+    id: '5',
+    label: '교차 검증',
+    x: 280,
+    y: 380,
+    cluster: 1,
+    linkCount: 3,
+    pageRank: 0.50,
+  ),
+  _MockGraphNode(
+    id: '6',
+    label: '학습률 스케줄링',
+    x: 550,
+    y: 280,
+    cluster: 1,
+    linkCount: 2,
+    pageRank: 0.40,
+  ),
+  _MockGraphNode(
+    id: '7',
+    label: '합성곱 신경망',
+    x: 500,
+    y: 420,
+    cluster: 2,
+    linkCount: 4,
+    pageRank: 0.72,
+  ),
+  _MockGraphNode(
+    id: '8',
+    label: '순환 신경망',
+    x: 650,
+    y: 350,
+    cluster: 2,
+    linkCount: 3,
+    pageRank: 0.58,
+  ),
 ];
 
 const List<_MockGraphEdge> _mockEdges = [
@@ -96,7 +160,8 @@ class _GraphPainter extends CustomPainter {
   /// PageRank(0~1 가정)를 반지름으로 선형 매핑. 데이터가 없으면 기본값.
   double _radiusFor(_MockGraphNode node) {
     if (node.pageRank <= 0) return _defaultNodeRadius;
-    final r = _minRadius + (_maxRadius - _minRadius) * node.pageRank.clamp(0.0, 1.0);
+    final r =
+        _minRadius + (_maxRadius - _minRadius) * node.pageRank.clamp(0.0, 1.0);
     return r;
   }
 
@@ -135,7 +200,9 @@ class _GraphPainter extends CustomPainter {
       final radius = isHighlight ? highlightRadius : _radiusFor(node);
 
       final clusterColor = clusterColors[node.cluster % clusterColors.length];
-      final color = isDimmed ? clusterColor.withValues(alpha: 0.2) : clusterColor;
+      final color = isDimmed
+          ? clusterColor.withValues(alpha: 0.2)
+          : clusterColor;
 
       // Selection highlight ring
       if (isSelected) {
@@ -196,7 +263,11 @@ class _GraphPainter extends CustomPainter {
 
 // ── Helper: hit-test node ──
 
-_MockGraphNode? _hitTestNode(List<_MockGraphNode> nodes, Offset position, {double threshold = 25.0}) {
+_MockGraphNode? _hitTestNode(
+  List<_MockGraphNode> nodes,
+  Offset position, {
+  double threshold = 25.0,
+}) {
   for (final node in nodes) {
     final dx = node.x - position.dx;
     final dy = node.y - position.dy;
@@ -219,7 +290,8 @@ class GraphViewScreen extends ConsumerStatefulWidget {
 }
 
 class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
-  final TransformationController _transformController = TransformationController();
+  final TransformationController _transformController =
+      TransformationController();
   String? _selectedNodeId;
   final Set<String> _selectedTags = {'전체'};
   double _minLinks = 0;
@@ -241,7 +313,10 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
     if (renderBox == null) return;
 
     final matrix = _transformController.value.clone()..invert();
-    final localPosition = MatrixUtils.transformPoint(matrix, details.localPosition);
+    final localPosition = MatrixUtils.transformPoint(
+      matrix,
+      details.localPosition,
+    );
 
     final hit = _hitTestNode(_filteredNodes, localPosition);
     setState(() {
@@ -266,14 +341,21 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
           children: [
             // Filter panel
             Theme(
-              data: Theme.of(context)
-                  .copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                title: Text('필터',
-                    style: textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w800)),
-                leading: const Icon(Icons.filter_list,
-                    size: 20, color: AppColors.primary),
+                title: Text(
+                  '필터',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                leading: const Icon(
+                  Icons.filter_list,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
                 childrenPadding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md,
                   vertical: AppSpacing.sm,
@@ -302,9 +384,12 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     children: [
-                      Text('최소 연결 수: ${_minLinks.toInt()}',
-                          style: textTheme.bodySmall
-                              ?.copyWith(color: AppColors.muted)),
+                      Text(
+                        '최소 연결 수: ${_minLinks.toInt()}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                        ),
+                      ),
                       Expanded(
                         child: Slider(
                           value: _minLinks,
@@ -357,7 +442,8 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
             right: AppSpacing.sm,
             bottom: AppSpacing.sm,
             child: ConceptAiComment(
-              text: '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). '
+              text:
+                  '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). '
                   '「신경망 구조」 클러스터는 다른 노트와 연결이 적으니 위키링크를 더 만들어 보세요.',
             ),
           ),
@@ -385,21 +471,24 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                   Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: _clusterColors[
-                            selectedNode.cluster % _clusterColors.length],
+                        backgroundColor:
+                            _clusterColors[selectedNode.cluster %
+                                _clusterColors.length],
                         radius: 8,
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
-                        child: Text(selectedNode.label,
-                            style: textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        child: Text(
+                          selectedNode.label,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, size: 18),
                         color: AppColors.muted,
-                        onPressed: () =>
-                            setState(() => _selectedNodeId = null),
+                        onPressed: () => setState(() => _selectedNodeId = null),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                       ),
@@ -408,8 +497,9 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     '연결 ${selectedNode.linkCount}개 · PageRank ${selectedNode.pageRank.toStringAsFixed(2)}',
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.muted),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Wrap(
@@ -417,8 +507,9 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                     runSpacing: AppSpacing.xs,
                     children: [
                       OutlinedButton.icon(
-                        onPressed: () => context
-                            .go(AppRoutes.noteDetailPath(selectedNode.id)),
+                        onPressed: () => context.go(
+                          AppRoutes.noteDetailPath(selectedNode.id),
+                        ),
                         icon: const Icon(Icons.article_outlined, size: 16),
                         label: const Text('노트 열기'),
                       ),
@@ -428,8 +519,9 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
                         label: const Text('AI 카드 생성'),
                       ),
                       OutlinedButton.icon(
-                        onPressed: () => context
-                            .go(AppRoutes.graphNotePath(selectedNode.id)),
+                        onPressed: () => context.go(
+                          AppRoutes.graphNotePath(selectedNode.id),
+                        ),
                         icon: const Icon(Icons.hub_outlined, size: 16),
                         label: const Text('이웃 확장'),
                       ),
@@ -456,7 +548,11 @@ class _GraphLegend extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       child: Wrap(
         spacing: AppSpacing.sm + 2,
         runSpacing: AppSpacing.xs,
@@ -473,10 +569,14 @@ class _GraphLegend extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Text(_labels[i],
-                    style: textTheme.labelSmall?.copyWith(
-                        color: AppColors.muted, fontWeight: FontWeight.w700)),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  _labels[i],
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
         ],
@@ -498,7 +598,8 @@ class GraphNoteScreen extends ConsumerStatefulWidget {
 }
 
 class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
-  final TransformationController _transformController = TransformationController();
+  final TransformationController _transformController =
+      TransformationController();
   double _depth = 1;
 
   _MockGraphNode? get _centerNode {
@@ -550,8 +651,10 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
 
     if (centerNode == null) {
       return Center(
-        child: Text('노트를 찾을 수 없습니다 (ID: ${widget.noteId})',
-            style: textTheme.bodyLarge),
+        child: Text(
+          '노트를 찾을 수 없습니다 (ID: ${widget.noteId})',
+          style: textTheme.bodyLarge,
+        ),
       );
     }
 
@@ -578,13 +681,17 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(centerNode.label,
-                            style: textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w800)),
+                        Text(
+                          centerNode.label,
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                         Text(
                           '이웃 그래프 · ${neighborNodes.length - 1}개 연결 노드',
-                          style: textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.muted),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: AppColors.muted,
+                          ),
                         ),
                       ],
                     ),
@@ -595,9 +702,12 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
               // Depth slider
               Row(
                 children: [
-                  Text('탐색 깊이: ${_depth.toInt()}홉',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.muted)),
+                  Text(
+                    '탐색 깊이: ${_depth.toInt()}홉',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
+                  ),
                   Expanded(
                     child: Slider(
                       value: _depth,
@@ -650,7 +760,8 @@ class GraphClustersScreen extends ConsumerStatefulWidget {
   const GraphClustersScreen({super.key});
 
   @override
-  ConsumerState<GraphClustersScreen> createState() => _GraphClustersScreenState();
+  ConsumerState<GraphClustersScreen> createState() =>
+      _GraphClustersScreenState();
 }
 
 class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
@@ -699,9 +810,10 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
     final clusterList = ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('클러스터',
-            style:
-                textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+        Text(
+          '클러스터',
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: AppSpacing.sm),
         ..._clusterGroups.entries.map((entry) {
           final clusterId = entry.key;
@@ -733,18 +845,27 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name,
-                            style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w700)),
-                        Text('${nodes.length}개 노드',
-                            style: textTheme.labelSmall
-                                ?.copyWith(color: AppColors.muted)),
+                        Text(
+                          name,
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '${nodes.length}개 노드',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: AppColors.muted,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   if (isSelected)
-                    const Icon(Icons.check_circle,
-                        size: 18, color: AppColors.primary),
+                    const Icon(
+                      Icons.check_circle,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                 ],
               ),
             ),
@@ -756,12 +877,16 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
             return ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.circle,
-                  size: 8,
-                  color: _clusterColors[node.cluster % _clusterColors.length]),
+              leading: Icon(
+                Icons.circle,
+                size: 8,
+                color: _clusterColors[node.cluster % _clusterColors.length],
+              ),
               title: Text(node.label, style: textTheme.bodySmall),
-              subtitle: Text('연결 ${node.linkCount}개',
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted)),
+              subtitle: Text(
+                '연결 ${node.linkCount}개',
+                style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+              ),
               onTap: () => context.go(AppRoutes.graphNotePath(node.id)),
             );
           }),
@@ -769,7 +894,8 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
         // AI 허브 분석 (목업 ai-comment)
         const SizedBox(height: AppSpacing.md),
         const ConceptAiComment(
-          text: '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). 「신경망 구조」 클러스터는 다른 노트와 연결이 적으니 위키링크를 더 만들어 보세요.',
+          text:
+              '「정규화 기법」이 가장 중요한 허브예요(PageRank 1위). 「신경망 구조」 클러스터는 다른 노트와 연결이 적으니 위키링크를 더 만들어 보세요.',
         ),
       ],
     );
@@ -819,10 +945,7 @@ class _GraphClustersScreenState extends ConsumerState<GraphClustersScreen> {
     // Desktop: side panel + graph
     return Row(
       children: [
-        SizedBox(
-          width: 280,
-          child: clusterList,
-        ),
+        SizedBox(width: 280, child: clusterList),
         const VerticalDivider(width: 1),
         Expanded(child: graphWidget),
       ],

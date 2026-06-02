@@ -21,10 +21,30 @@ class AdminDashboardScreen extends ConsumerWidget {
 
     // TODO: 팀원 구현 — platform-svc KPI API 연동
     const kpiCards = [
-      _KpiData(label: 'DAU', value: '1,240', icon: Icons.person_outline, color: AppColors.info),
-      _KpiData(label: 'MAU', value: '8,920', icon: Icons.groups_outlined, color: AppColors.info),
-      _KpiData(label: 'MRR', value: '\$4,820', icon: Icons.attach_money, color: AppColors.success),
-      _KpiData(label: '신규 가입', value: '67/일', icon: Icons.person_add_outlined, color: AppColors.primary),
+      _KpiData(
+        label: 'DAU',
+        value: '1,240',
+        icon: Icons.person_outline,
+        color: AppColors.info,
+      ),
+      _KpiData(
+        label: 'MAU',
+        value: '8,920',
+        icon: Icons.groups_outlined,
+        color: AppColors.info,
+      ),
+      _KpiData(
+        label: 'MRR',
+        value: '\$4,820',
+        icon: Icons.attach_money,
+        color: AppColors.success,
+      ),
+      _KpiData(
+        label: '신규 가입',
+        value: '67/일',
+        icon: Icons.person_add_outlined,
+        color: AppColors.primary,
+      ),
     ];
 
     // TODO: 팀원 구현 — platform-svc 시스템 사용량 API 연동
@@ -34,11 +54,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       _UsageGauge(label: 'Kafka lag', value: 0.05, display: '정상'),
     ];
 
-    const pendingItems = [
-      '신고 8건 (P0: 2건)',
-      'GDPR 요청 3건',
-      'AI 할당량 초과 5건',
-    ];
+    const pendingItems = ['신고 8건 (P0: 2건)', 'GDPR 요청 3건', 'AI 할당량 초과 5건'];
 
     // TODO: 팀원 구현 — platform-svc 최근 활동 API 연동
     const recentActivity = [
@@ -69,12 +85,14 @@ class AdminDashboardScreen extends ConsumerWidget {
         else
           Row(
             children: kpiCards
-                .map((k) => Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.md),
-                        child: _KpiCard(data: k),
-                      ),
-                    ))
+                .map(
+                  (k) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.md),
+                      child: _KpiCard(data: k),
+                    ),
+                  ),
+                )
                 .toList(),
           ),
 
@@ -92,7 +110,10 @@ class AdminDashboardScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Row(
                     children: [
-                      SizedBox(width: 80, child: Text(g.label, style: textTheme.bodySmall)),
+                      SizedBox(
+                        width: 80,
+                        child: Text(g.label, style: textTheme.bodySmall),
+                      ),
                       Expanded(
                         child: LinearProgressIndicator(
                           value: g.value,
@@ -100,8 +121,8 @@ class AdminDashboardScreen extends ConsumerWidget {
                           color: g.value > 0.8
                               ? AppColors.error
                               : g.value > 0.6
-                                  ? AppColors.warning
-                                  : AppColors.success,
+                              ? AppColors.warning
+                              : AppColors.success,
                           minHeight: 8,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -109,7 +130,11 @@ class AdminDashboardScreen extends ConsumerWidget {
                       const SizedBox(width: AppSpacing.sm),
                       SizedBox(
                         width: 48,
-                        child: Text(g.display, style: textTheme.bodySmall, textAlign: TextAlign.end),
+                        child: Text(
+                          g.display,
+                          style: textTheme.bodySmall,
+                          textAlign: TextAlign.end,
+                        ),
                       ),
                     ],
                   ),
@@ -130,11 +155,16 @@ class AdminDashboardScreen extends ConsumerWidget {
               return Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.warning_amber, size: 20, color: AppColors.error),
+                    leading: const Icon(
+                      Icons.warning_amber,
+                      size: 20,
+                      color: AppColors.error,
+                    ),
                     title: Text(entry.$2, style: textTheme.bodySmall),
                     dense: true,
                   ),
-                  if (entry.$1 < pendingItems.length - 1) const Divider(height: 1),
+                  if (entry.$1 < pendingItems.length - 1)
+                    const Divider(height: 1),
                 ],
               );
             }).toList(),
@@ -152,11 +182,16 @@ class AdminDashboardScreen extends ConsumerWidget {
               return Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.circle, size: 8, color: AppColors.muted),
+                    leading: const Icon(
+                      Icons.circle,
+                      size: 8,
+                      color: AppColors.muted,
+                    ),
                     title: Text(entry.$2, style: textTheme.bodySmall),
                     dense: true,
                   ),
-                  if (entry.$1 < recentActivity.length - 1) const Divider(height: 1),
+                  if (entry.$1 < recentActivity.length - 1)
+                    const Divider(height: 1),
                 ],
               );
             }).toList(),
@@ -256,9 +291,15 @@ class _KpiCard extends StatelessWidget {
           children: [
             Icon(data.icon, color: data.color, size: 20),
             const SizedBox(height: AppSpacing.sm),
-            Text(data.value, style: textTheme.headlineSmall?.copyWith(color: data.color)),
+            Text(
+              data.value,
+              style: textTheme.headlineSmall?.copyWith(color: data.color),
+            ),
             const SizedBox(height: AppSpacing.xxs),
-            Text(data.label, style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
+            Text(
+              data.label,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
           ],
         ),
       ),
@@ -267,7 +308,11 @@ class _KpiCard extends StatelessWidget {
 }
 
 class _UsageGauge {
-  const _UsageGauge({required this.label, required this.value, required this.display});
+  const _UsageGauge({
+    required this.label,
+    required this.value,
+    required this.display,
+  });
   final String label;
   final double value;
   final String display;
@@ -294,11 +339,41 @@ class _MockTenant {
 
 // TODO: 팀원 구현 — platform-svc 테넌트 목록 API 연동
 const _mockTenants = [
-  _MockTenant(name: '스터디그룹A', plan: 'Pro', members: 25, status: '활성', createdAt: '2025-11-01'),
-  _MockTenant(name: '대학교 동아리', plan: 'Enterprise', members: 120, status: '활성', createdAt: '2025-08-15'),
-  _MockTenant(name: '개인 프로젝트', plan: 'Free', members: 1, status: '활성', createdAt: '2026-01-20'),
-  _MockTenant(name: '시험 준비반', plan: 'Pro', members: 42, status: '정지됨', createdAt: '2025-06-10'),
-  _MockTenant(name: '회사 교육팀', plan: 'Enterprise', members: 85, status: '활성', createdAt: '2025-03-22'),
+  _MockTenant(
+    name: '스터디그룹A',
+    plan: 'Pro',
+    members: 25,
+    status: '활성',
+    createdAt: '2025-11-01',
+  ),
+  _MockTenant(
+    name: '대학교 동아리',
+    plan: 'Enterprise',
+    members: 120,
+    status: '활성',
+    createdAt: '2025-08-15',
+  ),
+  _MockTenant(
+    name: '개인 프로젝트',
+    plan: 'Free',
+    members: 1,
+    status: '활성',
+    createdAt: '2026-01-20',
+  ),
+  _MockTenant(
+    name: '시험 준비반',
+    plan: 'Pro',
+    members: 42,
+    status: '정지됨',
+    createdAt: '2025-06-10',
+  ),
+  _MockTenant(
+    name: '회사 교육팀',
+    plan: 'Enterprise',
+    members: 85,
+    status: '활성',
+    createdAt: '2025-03-22',
+  ),
 ];
 
 class AdminTenantScreen extends ConsumerWidget {
@@ -330,9 +405,9 @@ class AdminTenantScreen extends ConsumerWidget {
                 return DataRow(
                   onSelectChanged: (_) {
                     // TODO: 팀원 구현 — 테넌트 상세 사이드 시트
-                    Scaffold.of(context).showBottomSheet(
-                      (_) => _TenantDetailSheet(tenant: t),
-                    );
+                    Scaffold.of(
+                      context,
+                    ).showBottomSheet((_) => _TenantDetailSheet(tenant: t));
                   },
                   cells: [
                     DataCell(Text(t.name)),
@@ -401,7 +476,7 @@ class _PlanChip extends StatelessWidget {
         color = AppColors.muted;
     }
     return Chip(
-      label: Text(plan, style: const TextStyle(fontSize: 12)),
+      label: Text(plan, style: Theme.of(context).textTheme.bodySmall),
       backgroundColor: color.withValues(alpha: 0.15),
       side: BorderSide.none,
       padding: EdgeInsets.zero,
@@ -456,11 +531,41 @@ class _MockUser {
 
 // TODO: 팀원 구현 — platform-svc 사용자 목록 API 연동
 const _mockUsers = [
-  _MockUser(email: 'admin@synapse.io', name: '김관리', role: 'ADMIN', status: '활성', joinedAt: '2025-01-10'),
-  _MockUser(email: 'user1@example.com', name: '이학생', role: 'USER', status: '활성', joinedAt: '2025-03-22'),
-  _MockUser(email: 'user2@example.com', name: '박선생', role: 'MODERATOR', status: '활성', joinedAt: '2025-05-15'),
-  _MockUser(email: 'banned@test.com', name: '최정지', role: 'USER', status: '정지', joinedAt: '2025-06-01'),
-  _MockUser(email: 'deleted@old.com', name: '정탈퇴', role: 'USER', status: '삭제됨', joinedAt: '2024-12-01'),
+  _MockUser(
+    email: 'admin@synapse.io',
+    name: '김관리',
+    role: 'ADMIN',
+    status: '활성',
+    joinedAt: '2025-01-10',
+  ),
+  _MockUser(
+    email: 'user1@example.com',
+    name: '이학생',
+    role: 'USER',
+    status: '활성',
+    joinedAt: '2025-03-22',
+  ),
+  _MockUser(
+    email: 'user2@example.com',
+    name: '박선생',
+    role: 'MODERATOR',
+    status: '활성',
+    joinedAt: '2025-05-15',
+  ),
+  _MockUser(
+    email: 'banned@test.com',
+    name: '최정지',
+    role: 'USER',
+    status: '정지',
+    joinedAt: '2025-06-01',
+  ),
+  _MockUser(
+    email: 'deleted@old.com',
+    name: '정탈퇴',
+    role: 'USER',
+    status: '삭제됨',
+    joinedAt: '2024-12-01',
+  ),
 ];
 
 class AdminUserScreen extends ConsumerWidget {
@@ -578,11 +683,41 @@ class _MockAuditLog {
 
 // TODO: 팀원 구현 — platform-svc 감사 로그 API 연동
 const _mockAuditLogs = [
-  _MockAuditLog(timestamp: '2026-05-21 09:12', actor: 'admin@synapse.io', action: 'LOGIN', target: '-', ip: '192.168.1.10'),
-  _MockAuditLog(timestamp: '2026-05-21 09:15', actor: 'admin@synapse.io', action: 'UPDATE', target: '테넌트: 스터디그룹A', ip: '192.168.1.10'),
-  _MockAuditLog(timestamp: '2026-05-21 10:00', actor: 'user1@example.com', action: 'CREATE', target: '덱: 알고리즘 기초', ip: '10.0.0.55'),
-  _MockAuditLog(timestamp: '2026-05-21 10:30', actor: 'admin@synapse.io', action: 'DELETE', target: '사용자: deleted@old.com', ip: '192.168.1.10'),
-  _MockAuditLog(timestamp: '2026-05-21 11:00', actor: 'user2@example.com', action: 'LOGIN', target: '-', ip: '172.16.0.3'),
+  _MockAuditLog(
+    timestamp: '2026-05-21 09:12',
+    actor: 'admin@synapse.io',
+    action: 'LOGIN',
+    target: '-',
+    ip: '192.168.1.10',
+  ),
+  _MockAuditLog(
+    timestamp: '2026-05-21 09:15',
+    actor: 'admin@synapse.io',
+    action: 'UPDATE',
+    target: '테넌트: 스터디그룹A',
+    ip: '192.168.1.10',
+  ),
+  _MockAuditLog(
+    timestamp: '2026-05-21 10:00',
+    actor: 'user1@example.com',
+    action: 'CREATE',
+    target: '덱: 알고리즘 기초',
+    ip: '10.0.0.55',
+  ),
+  _MockAuditLog(
+    timestamp: '2026-05-21 10:30',
+    actor: 'admin@synapse.io',
+    action: 'DELETE',
+    target: '사용자: deleted@old.com',
+    ip: '192.168.1.10',
+  ),
+  _MockAuditLog(
+    timestamp: '2026-05-21 11:00',
+    actor: 'user2@example.com',
+    action: 'LOGIN',
+    target: '-',
+    ip: '172.16.0.3',
+  ),
 ];
 
 class AdminAuditLogScreen extends ConsumerWidget {
@@ -622,13 +757,15 @@ class AdminAuditLogScreen extends ConsumerWidget {
                 DataColumn(label: Text('IP')),
               ],
               rows: _mockAuditLogs.map((l) {
-                return DataRow(cells: [
-                  DataCell(Text(l.timestamp)),
-                  DataCell(Text(l.actor)),
-                  DataCell(_ActionChip(action: l.action)),
-                  DataCell(Text(l.target)),
-                  DataCell(Text(l.ip)),
-                ]);
+                return DataRow(
+                  cells: [
+                    DataCell(Text(l.timestamp)),
+                    DataCell(Text(l.actor)),
+                    DataCell(_ActionChip(action: l.action)),
+                    DataCell(Text(l.target)),
+                    DataCell(Text(l.ip)),
+                  ],
+                );
               }).toList(),
             ),
           ),
@@ -658,7 +795,10 @@ class _ActionChip extends StatelessWidget {
         color = AppColors.muted;
     }
     return Chip(
-      label: Text(action, style: TextStyle(fontSize: 11, color: color)),
+      label: Text(
+        action,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+      ),
       backgroundColor: color.withValues(alpha: 0.1),
       side: BorderSide.none,
       padding: EdgeInsets.zero,
@@ -675,10 +815,12 @@ class AdminSystemSettingsScreen extends ConsumerStatefulWidget {
   const AdminSystemSettingsScreen({super.key});
 
   @override
-  ConsumerState<AdminSystemSettingsScreen> createState() => _AdminSystemSettingsScreenState();
+  ConsumerState<AdminSystemSettingsScreen> createState() =>
+      _AdminSystemSettingsScreenState();
 }
 
-class _AdminSystemSettingsScreenState extends ConsumerState<AdminSystemSettingsScreen>
+class _AdminSystemSettingsScreenState
+    extends ConsumerState<AdminSystemSettingsScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
 
@@ -732,7 +874,9 @@ class _AdminSystemSettingsScreenState extends ConsumerState<AdminSystemSettingsS
                 // ── Tab 1: Plan Quota ──
                 SingleChildScrollView(
                   child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(AppColors.surface2),
+                    headingRowColor: WidgetStateProperty.all(
+                      AppColors.surface2,
+                    ),
                     columns: const [
                       DataColumn(label: Text('플랜')),
                       DataColumn(label: Text('AI 토큰/월'), numeric: true),
@@ -740,24 +884,30 @@ class _AdminSystemSettingsScreenState extends ConsumerState<AdminSystemSettingsS
                       DataColumn(label: Text('멤버 한도'), numeric: true),
                     ],
                     rows: const [
-                      DataRow(cells: [
-                        DataCell(Text('Free')),
-                        DataCell(Text('1,000')),
-                        DataCell(Text('1')),
-                        DataCell(Text('5')),
-                      ]),
-                      DataRow(cells: [
-                        DataCell(Text('Pro')),
-                        DataCell(Text('50,000')),
-                        DataCell(Text('50')),
-                        DataCell(Text('100')),
-                      ]),
-                      DataRow(cells: [
-                        DataCell(Text('Enterprise')),
-                        DataCell(Text('무제한')),
-                        DataCell(Text('500')),
-                        DataCell(Text('무제한')),
-                      ]),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('Free')),
+                          DataCell(Text('1,000')),
+                          DataCell(Text('1')),
+                          DataCell(Text('5')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('Pro')),
+                          DataCell(Text('50,000')),
+                          DataCell(Text('50')),
+                          DataCell(Text('100')),
+                        ],
+                      ),
+                      DataRow(
+                        cells: [
+                          DataCell(Text('Enterprise')),
+                          DataCell(Text('무제한')),
+                          DataCell(Text('500')),
+                          DataCell(Text('무제한')),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -781,7 +931,10 @@ class _AdminSystemSettingsScreenState extends ConsumerState<AdminSystemSettingsS
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('API 요청 속도 제한 (req/min)', style: textTheme.titleSmall),
+                      Text(
+                        'API 요청 속도 제한 (req/min)',
+                        style: textTheme.titleSmall,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       TextFormField(
                         controller: _rateLimitController,
@@ -836,10 +989,38 @@ class _MockReport {
 
 // TODO: 팀원 구현 — platform-svc 신고 목록 API 연동
 const _mockReports = [
-  _MockReport(id: 'RPT-001', reporter: 'user1@example.com', target: '스팸 카드 #412', reason: '스팸', receivedAt: '2026-05-20', status: '대기'),
-  _MockReport(id: 'RPT-002', reporter: 'user2@example.com', target: '사용자 baduser', reason: '부적절 콘텐츠', receivedAt: '2026-05-19', status: '처리중'),
-  _MockReport(id: 'RPT-003', reporter: 'user3@example.com', target: '노트 #88', reason: '저작권 침해', receivedAt: '2026-05-18', status: '완료'),
-  _MockReport(id: 'RPT-004', reporter: 'user4@example.com', target: '덱 #55', reason: '혐오 발언', receivedAt: '2026-05-17', status: '기각'),
+  _MockReport(
+    id: 'RPT-001',
+    reporter: 'user1@example.com',
+    target: '스팸 카드 #412',
+    reason: '스팸',
+    receivedAt: '2026-05-20',
+    status: '대기',
+  ),
+  _MockReport(
+    id: 'RPT-002',
+    reporter: 'user2@example.com',
+    target: '사용자 baduser',
+    reason: '부적절 콘텐츠',
+    receivedAt: '2026-05-19',
+    status: '처리중',
+  ),
+  _MockReport(
+    id: 'RPT-003',
+    reporter: 'user3@example.com',
+    target: '노트 #88',
+    reason: '저작권 침해',
+    receivedAt: '2026-05-18',
+    status: '완료',
+  ),
+  _MockReport(
+    id: 'RPT-004',
+    reporter: 'user4@example.com',
+    target: '덱 #55',
+    reason: '혐오 발언',
+    receivedAt: '2026-05-17',
+    status: '기각',
+  ),
 ];
 
 class AdminReportScreen extends ConsumerStatefulWidget {
@@ -885,7 +1066,9 @@ class _AdminReportScreenState extends ConsumerState<AdminReportScreen>
             child: TabBarView(
               controller: _tabController,
               children: _statusTabs.map((status) {
-                final filtered = _mockReports.where((r) => r.status == status).toList();
+                final filtered = _mockReports
+                    .where((r) => r.status == status)
+                    .toList();
                 return AdminDataGrid(
                   searchHint: '신고 검색...',
                   columns: const [
@@ -896,41 +1079,53 @@ class _AdminReportScreenState extends ConsumerState<AdminReportScreen>
                     DataColumn(label: Text('접수일')),
                   ],
                   rows: filtered.map((r) {
-                    return DataRow(cells: [
-                      DataCell(Text(r.id)),
-                      DataCell(Text(r.reporter)),
-                      DataCell(Text(r.target)),
-                      DataCell(Text(r.reason)),
-                      DataCell(Text(r.receivedAt)),
-                    ]);
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(r.id)),
+                        DataCell(Text(r.reporter)),
+                        DataCell(Text(r.target)),
+                        DataCell(Text(r.reason)),
+                        DataCell(Text(r.receivedAt)),
+                      ],
+                    );
                   }).toList(),
                   actions: [
                     _ReportActionButton(
                       label: '경고',
                       icon: Icons.warning_amber,
                       color: AppColors.warning,
-                      onPressed: () => _confirmAction(context, '경고', '해당 사용자에게 경고를 보내시겠습니까?'),
+                      onPressed: () => _confirmAction(
+                        context,
+                        '경고',
+                        '해당 사용자에게 경고를 보내시겠습니까?',
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     _ReportActionButton(
                       label: '정지',
                       icon: Icons.block,
                       color: AppColors.error,
-                      onPressed: () => _confirmAction(context, '정지', '해당 사용자를 정지하시겠습니까?'),
+                      onPressed: () =>
+                          _confirmAction(context, '정지', '해당 사용자를 정지하시겠습니까?'),
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     _ReportActionButton(
                       label: '삭제',
                       icon: Icons.delete_outline,
                       color: AppColors.error,
-                      onPressed: () => _confirmAction(context, '콘텐츠 삭제', '해당 콘텐츠를 삭제하시겠습니까?'),
+                      onPressed: () => _confirmAction(
+                        context,
+                        '콘텐츠 삭제',
+                        '해당 콘텐츠를 삭제하시겠습니까?',
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     _ReportActionButton(
                       label: '기각',
                       icon: Icons.close,
                       color: AppColors.muted,
-                      onPressed: () => _confirmAction(context, '기각', '이 신고를 기각하시겠습니까?'),
+                      onPressed: () =>
+                          _confirmAction(context, '기각', '이 신고를 기각하시겠습니까?'),
                     ),
                   ],
                 );
@@ -942,7 +1137,11 @@ class _AdminReportScreenState extends ConsumerState<AdminReportScreen>
     );
   }
 
-  Future<void> _confirmAction(BuildContext context, String title, String content) async {
+  Future<void> _confirmAction(
+    BuildContext context,
+    String title,
+    String content,
+  ) async {
     await ConfirmDialog.show(
       context,
       title: title,
@@ -997,14 +1196,44 @@ class _MockContent {
 
 // TODO: 팀원 구현 — platform-svc 공유 콘텐츠 API 연동
 const _mockSharedDecks = [
-  _MockContent(title: '알고리즘 기초', author: '이학생', status: '공개', reportCount: 0, createdAt: '2026-04-10'),
-  _MockContent(title: 'TOEIC 단어장', author: '박선생', status: '공개', reportCount: 2, createdAt: '2026-03-15'),
-  _MockContent(title: '한국사 요약', author: '김역사', status: '비공개', reportCount: 0, createdAt: '2026-05-01'),
+  _MockContent(
+    title: '알고리즘 기초',
+    author: '이학생',
+    status: '공개',
+    reportCount: 0,
+    createdAt: '2026-04-10',
+  ),
+  _MockContent(
+    title: 'TOEIC 단어장',
+    author: '박선생',
+    status: '공개',
+    reportCount: 2,
+    createdAt: '2026-03-15',
+  ),
+  _MockContent(
+    title: '한국사 요약',
+    author: '김역사',
+    status: '비공개',
+    reportCount: 0,
+    createdAt: '2026-05-01',
+  ),
 ];
 
 const _mockSharedNotes = [
-  _MockContent(title: 'Flutter 정리 노트', author: '최개발', status: '공개', reportCount: 1, createdAt: '2026-04-22'),
-  _MockContent(title: '수학 공식 모음', author: '정수학', status: '공개', reportCount: 0, createdAt: '2026-05-10'),
+  _MockContent(
+    title: 'Flutter 정리 노트',
+    author: '최개발',
+    status: '공개',
+    reportCount: 1,
+    createdAt: '2026-04-22',
+  ),
+  _MockContent(
+    title: '수학 공식 모음',
+    author: '정수학',
+    status: '공개',
+    reportCount: 0,
+    createdAt: '2026-05-10',
+  ),
 ];
 
 class AdminContentScreen extends ConsumerStatefulWidget {
@@ -1073,16 +1302,22 @@ class _AdminContentScreenState extends ConsumerState<AdminContentScreen>
         DataColumn(label: Text('등록일')),
       ],
       rows: items.map((c) {
-        return DataRow(cells: [
-          DataCell(Text(c.title)),
-          DataCell(Text(c.author)),
-          DataCell(_StatusBadge(status: c.status == '공개' ? '활성' : c.status)),
-          DataCell(Text(
-            '${c.reportCount}',
-            style: TextStyle(color: c.reportCount > 0 ? AppColors.error : null),
-          )),
-          DataCell(Text(c.createdAt)),
-        ]);
+        return DataRow(
+          cells: [
+            DataCell(Text(c.title)),
+            DataCell(Text(c.author)),
+            DataCell(_StatusBadge(status: c.status == '공개' ? '활성' : c.status)),
+            DataCell(
+              Text(
+                '${c.reportCount}',
+                style: TextStyle(
+                  color: c.reportCount > 0 ? AppColors.error : null,
+                ),
+              ),
+            ),
+            DataCell(Text(c.createdAt)),
+          ],
+        );
       }).toList(),
     );
   }
@@ -1107,11 +1342,36 @@ class _MockGroup {
 
 // TODO: 팀원 구현 — platform-svc 그룹 목록 API 연동
 const _mockGroups = [
-  _MockGroup(name: '알고리즘 스터디', members: 12, status: '활성', createdAt: '2025-09-01'),
-  _MockGroup(name: 'TOEIC 900 도전', members: 45, status: '활성', createdAt: '2025-10-15'),
-  _MockGroup(name: '수능 대비반', members: 30, status: '활성', createdAt: '2026-01-10'),
-  _MockGroup(name: '졸업논문 준비', members: 8, status: '정지됨', createdAt: '2025-07-20'),
-  _MockGroup(name: '코딩 테스트 준비', members: 22, status: '활성', createdAt: '2026-03-05'),
+  _MockGroup(
+    name: '알고리즘 스터디',
+    members: 12,
+    status: '활성',
+    createdAt: '2025-09-01',
+  ),
+  _MockGroup(
+    name: 'TOEIC 900 도전',
+    members: 45,
+    status: '활성',
+    createdAt: '2025-10-15',
+  ),
+  _MockGroup(
+    name: '수능 대비반',
+    members: 30,
+    status: '활성',
+    createdAt: '2026-01-10',
+  ),
+  _MockGroup(
+    name: '졸업논문 준비',
+    members: 8,
+    status: '정지됨',
+    createdAt: '2025-07-20',
+  ),
+  _MockGroup(
+    name: '코딩 테스트 준비',
+    members: 22,
+    status: '활성',
+    createdAt: '2026-03-05',
+  ),
 ];
 
 class AdminGroupScreen extends ConsumerWidget {
@@ -1138,12 +1398,14 @@ class AdminGroupScreen extends ConsumerWidget {
                 DataColumn(label: Text('생성일')),
               ],
               rows: _mockGroups.map((g) {
-                return DataRow(cells: [
-                  DataCell(Text(g.name)),
-                  DataCell(Text('${g.members}')),
-                  DataCell(_StatusBadge(status: g.status)),
-                  DataCell(Text(g.createdAt)),
-                ]);
+                return DataRow(
+                  cells: [
+                    DataCell(Text(g.name)),
+                    DataCell(Text('${g.members}')),
+                    DataCell(_StatusBadge(status: g.status)),
+                    DataCell(Text(g.createdAt)),
+                  ],
+                );
               }).toList(),
             ),
           ),
@@ -1158,7 +1420,11 @@ class AdminGroupScreen extends ConsumerWidget {
 // ============================================================================
 
 class _MockBadge {
-  const _MockBadge({required this.name, required this.icon, required this.holders});
+  const _MockBadge({
+    required this.name,
+    required this.icon,
+    required this.holders,
+  });
   final String name;
   final IconData icon;
   final int holders;
@@ -1178,10 +1444,12 @@ class AdminGamificationScreen extends ConsumerStatefulWidget {
   const AdminGamificationScreen({super.key});
 
   @override
-  ConsumerState<AdminGamificationScreen> createState() => _AdminGamificationScreenState();
+  ConsumerState<AdminGamificationScreen> createState() =>
+      _AdminGamificationScreenState();
 }
 
-class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScreen>
+class _AdminGamificationScreenState
+    extends ConsumerState<AdminGamificationScreen>
     with TickerProviderStateMixin {
   late final TabController _tabController;
   final _xpReviewController = TextEditingController(text: '10');
@@ -1255,7 +1523,10 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
         return Card(
           child: ListTile(
             title: Text(s.$1),
-            trailing: Text(s.$2, style: textTheme.titleMedium?.copyWith(color: AppColors.primary)),
+            trailing: Text(
+              s.$2,
+              style: textTheme.titleMedium?.copyWith(color: AppColors.primary),
+            ),
           ),
         );
       }).toList(),
@@ -1280,9 +1551,16 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
               children: [
                 Icon(b.icon, size: 36, color: AppColors.primary),
                 const SizedBox(height: AppSpacing.sm),
-                Text(b.name, style: textTheme.bodySmall, textAlign: TextAlign.center),
+                Text(
+                  b.name,
+                  style: textTheme.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: AppSpacing.xs),
-                Text('${b.holders}명 보유', style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
+                Text(
+                  '${b.holders}명 보유',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ),
@@ -1302,11 +1580,46 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
           DataColumn(label: Text('사용자 수'), numeric: true),
         ],
         rows: const [
-          DataRow(cells: [DataCell(Text('1')), DataCell(Text('0')), DataCell(Text('입문자')), DataCell(Text('320'))]),
-          DataRow(cells: [DataCell(Text('2')), DataCell(Text('100')), DataCell(Text('학습자')), DataCell(Text('280'))]),
-          DataRow(cells: [DataCell(Text('3')), DataCell(Text('300')), DataCell(Text('숙련자')), DataCell(Text('195'))]),
-          DataRow(cells: [DataCell(Text('5')), DataCell(Text('1,000')), DataCell(Text('전문가')), DataCell(Text('88'))]),
-          DataRow(cells: [DataCell(Text('10')), DataCell(Text('5,000')), DataCell(Text('마스터')), DataCell(Text('12'))]),
+          DataRow(
+            cells: [
+              DataCell(Text('1')),
+              DataCell(Text('0')),
+              DataCell(Text('입문자')),
+              DataCell(Text('320')),
+            ],
+          ),
+          DataRow(
+            cells: [
+              DataCell(Text('2')),
+              DataCell(Text('100')),
+              DataCell(Text('학습자')),
+              DataCell(Text('280')),
+            ],
+          ),
+          DataRow(
+            cells: [
+              DataCell(Text('3')),
+              DataCell(Text('300')),
+              DataCell(Text('숙련자')),
+              DataCell(Text('195')),
+            ],
+          ),
+          DataRow(
+            cells: [
+              DataCell(Text('5')),
+              DataCell(Text('1,000')),
+              DataCell(Text('전문가')),
+              DataCell(Text('88')),
+            ],
+          ),
+          DataRow(
+            cells: [
+              DataCell(Text('10')),
+              DataCell(Text('5,000')),
+              DataCell(Text('마스터')),
+              DataCell(Text('12')),
+            ],
+          ),
         ],
       ),
     );
@@ -1322,27 +1635,36 @@ class _AdminGamificationScreenState extends ConsumerState<AdminGamificationScree
           TextFormField(
             controller: _xpReviewController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '복습 완료 XP', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: '복습 완료 XP',
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           TextFormField(
             controller: _xpCreateController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '카드 생성 XP', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: '카드 생성 XP',
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           TextFormField(
             controller: _xpShareController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '콘텐츠 공유 XP', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+              labelText: '콘텐츠 공유 XP',
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           FilledButton(
             onPressed: () {
               // TODO: 팀원 구현 — gamification-svc XP 설정 저장 API 연동
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('XP 설정이 저장되었습니다.')),
-              );
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('XP 설정이 저장되었습니다.')));
             },
             child: const Text('저장'),
           ),
@@ -1373,17 +1695,42 @@ class _MockDataRequest {
 
 // TODO: 팀원 구현 — platform-svc GDPR/데이터 요청 API 연동
 const _mockDataRequests = [
-  _MockDataRequest(receivedAt: '2026-05-15', user: 'user1@example.com', type: '데이터 열람', status: '대기', daysRemaining: 24),
-  _MockDataRequest(receivedAt: '2026-05-10', user: 'user2@example.com', type: '데이터 삭제', status: '처리중', daysRemaining: 19),
-  _MockDataRequest(receivedAt: '2026-04-25', user: 'user3@example.com', type: '데이터 이전', status: '완료', daysRemaining: 0),
-  _MockDataRequest(receivedAt: '2026-05-01', user: 'user4@example.com', type: '데이터 삭제', status: '거부', daysRemaining: 0),
+  _MockDataRequest(
+    receivedAt: '2026-05-15',
+    user: 'user1@example.com',
+    type: '데이터 열람',
+    status: '대기',
+    daysRemaining: 24,
+  ),
+  _MockDataRequest(
+    receivedAt: '2026-05-10',
+    user: 'user2@example.com',
+    type: '데이터 삭제',
+    status: '처리중',
+    daysRemaining: 19,
+  ),
+  _MockDataRequest(
+    receivedAt: '2026-04-25',
+    user: 'user3@example.com',
+    type: '데이터 이전',
+    status: '완료',
+    daysRemaining: 0,
+  ),
+  _MockDataRequest(
+    receivedAt: '2026-05-01',
+    user: 'user4@example.com',
+    type: '데이터 삭제',
+    status: '거부',
+    daysRemaining: 0,
+  ),
 ];
 
 class AdminDataRequestScreen extends ConsumerStatefulWidget {
   const AdminDataRequestScreen({super.key});
 
   @override
-  ConsumerState<AdminDataRequestScreen> createState() => _AdminDataRequestScreenState();
+  ConsumerState<AdminDataRequestScreen> createState() =>
+      _AdminDataRequestScreenState();
 }
 
 class _AdminDataRequestScreenState extends ConsumerState<AdminDataRequestScreen>
@@ -1423,7 +1770,9 @@ class _AdminDataRequestScreenState extends ConsumerState<AdminDataRequestScreen>
             child: TabBarView(
               controller: _tabController,
               children: _statusTabs.map((status) {
-                final filtered = _mockDataRequests.where((r) => r.status == status).toList();
+                final filtered = _mockDataRequests
+                    .where((r) => r.status == status)
+                    .toList();
                 return Column(
                   children: [
                     Expanded(
@@ -1445,38 +1794,75 @@ class _AdminDataRequestScreenState extends ConsumerState<AdminDataRequestScreen>
                               DataCell(Text(r.receivedAt)),
                               DataCell(Text(r.user)),
                               DataCell(Text(r.type)),
-                              DataCell(_StatusBadge(
-                                status: r.status == '대기' || r.status == '처리중' ? r.status : r.status == '완료' ? '활성' : r.status,
-                              )),
+                              DataCell(
+                                _StatusBadge(
+                                  status: r.status == '대기' || r.status == '처리중'
+                                      ? r.status
+                                      : r.status == '완료'
+                                      ? '활성'
+                                      : r.status,
+                                ),
+                              ),
                             ],
                           );
                         }).toList(),
                         actions: status == '대기' || status == '처리중'
                             ? [
                                 OutlinedButton.icon(
-                                  onPressed: () => _confirmDataAction(context, '승인', '이 데이터 요청을 승인하시겠습니까?'),
-                                  icon: const Icon(Icons.check, size: 16, color: AppColors.success),
+                                  onPressed: () => _confirmDataAction(
+                                    context,
+                                    '승인',
+                                    '이 데이터 요청을 승인하시겠습니까?',
+                                  ),
+                                  icon: const Icon(
+                                    Icons.check,
+                                    size: 16,
+                                    color: AppColors.success,
+                                  ),
                                   label: const Text('승인'),
                                 ),
                                 const SizedBox(width: AppSpacing.xs),
                                 OutlinedButton.icon(
-                                  onPressed: () => _confirmDataAction(context, '실행', '데이터 처리를 즉시 실행하시겠습니까?'),
-                                  icon: const Icon(Icons.play_arrow, size: 16, color: AppColors.info),
+                                  onPressed: () => _confirmDataAction(
+                                    context,
+                                    '실행',
+                                    '데이터 처리를 즉시 실행하시겠습니까?',
+                                  ),
+                                  icon: const Icon(
+                                    Icons.play_arrow,
+                                    size: 16,
+                                    color: AppColors.info,
+                                  ),
                                   label: const Text('실행'),
                                 ),
                                 const SizedBox(width: AppSpacing.xs),
                                 OutlinedButton.icon(
-                                  onPressed: () => _confirmDataAction(context, '거부', '이 데이터 요청을 거부하시겠습니까?'),
-                                  icon: const Icon(Icons.close, size: 16, color: AppColors.error),
+                                  onPressed: () => _confirmDataAction(
+                                    context,
+                                    '거부',
+                                    '이 데이터 요청을 거부하시겠습니까?',
+                                  ),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: AppColors.error,
+                                  ),
                                   label: const Text('거부'),
-                                  style: OutlinedButton.styleFrom(side: const BorderSide(color: AppColors.error)),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: AppColors.error,
+                                    ),
+                                  ),
                                 ),
                               ]
                             : null,
                       ),
                     ),
-                    if (_selectedRequestIndex != null && _selectedRequestIndex! < filtered.length)
-                      _DataRequestDetail(request: filtered[_selectedRequestIndex!]),
+                    if (_selectedRequestIndex != null &&
+                        _selectedRequestIndex! < filtered.length)
+                      _DataRequestDetail(
+                        request: filtered[_selectedRequestIndex!],
+                      ),
                   ],
                 );
               }).toList(),
@@ -1487,7 +1873,11 @@ class _AdminDataRequestScreenState extends ConsumerState<AdminDataRequestScreen>
     );
   }
 
-  Future<void> _confirmDataAction(BuildContext context, String title, String content) async {
+  Future<void> _confirmDataAction(
+    BuildContext context,
+    String title,
+    String content,
+  ) async {
     await ConfirmDialog.show(
       context,
       title: title,
@@ -1505,7 +1895,9 @@ class _DataRequestDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final daysColor = request.daysRemaining <= 7 ? AppColors.error : AppColors.text;
+    final daysColor = request.daysRemaining <= 7
+        ? AppColors.error
+        : AppColors.text;
     return Card(
       margin: const EdgeInsets.only(top: AppSpacing.md),
       child: Padding(
@@ -1522,12 +1914,21 @@ class _DataRequestDetail extends StatelessWidget {
             if (request.daysRemaining > 0)
               Text(
                 '30일 기한 남은 일수: ${request.daysRemaining}일',
-                style: textTheme.bodyMedium?.copyWith(color: daysColor, fontWeight: FontWeight.bold),
+                style: textTheme.bodyMedium?.copyWith(
+                  color: daysColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             const SizedBox(height: AppSpacing.sm),
             // TODO: 팀원 구현 — 데이터 요약 및 실행 로그 표시
-            Text('데이터 요약: 카드 142개, 노트 38개, 복습 기록 1,204건', style: textTheme.bodySmall),
-            Text('실행 로그: (처리 대기 중)', style: textTheme.bodySmall?.copyWith(color: AppColors.muted)),
+            Text(
+              '데이터 요약: 카드 142개, 노트 38개, 복습 기록 1,204건',
+              style: textTheme.bodySmall,
+            ),
+            Text(
+              '실행 로그: (처리 대기 중)',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
           ],
         ),
       ),

@@ -169,7 +169,7 @@ class _BillingPlansScreenState extends ConsumerState<BillingPlansScreen> {
         const SizedBox(height: AppSpacing.xs),
         Text(
           '학습 목표에 맞는 플랜을 선택하세요',
-          style: textTheme.bodyMedium?.copyWith(color: AppColors.stone500),
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
         ),
         if (_loadingSubscription) ...[
           const SizedBox(height: AppSpacing.md),
@@ -253,10 +253,10 @@ class _PlanCard extends StatelessWidget {
 
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.md),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         side: plan.isHighlighted
-            ? const BorderSide(color: AppColors.primaryAmber, width: 2)
-            : const BorderSide(color: AppColors.stone200),
+            ? const BorderSide(color: AppColors.primary, width: 1.5)
+            : const BorderSide(color: AppColors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -270,7 +270,7 @@ class _PlanCard extends StatelessWidget {
                   vertical: AppSpacing.xxs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryAmber,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(AppSpacing.xs),
                 ),
                 child: Text(
@@ -284,7 +284,7 @@ class _PlanCard extends StatelessWidget {
             Text(
               plan.price,
               style: textTheme.headlineSmall?.copyWith(
-                color: AppColors.primaryAmber,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -296,16 +296,14 @@ class _PlanCard extends StatelessWidget {
                     Icon(
                       f.available ? Icons.check_circle : Icons.cancel,
                       size: 16,
-                      color: f.available
-                          ? AppColors.success
-                          : AppColors.stone300,
+                      color: f.available ? AppColors.success : AppColors.muted,
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Text(
                         f.label,
                         style: textTheme.bodySmall?.copyWith(
-                          color: f.available ? null : AppColors.stone400,
+                          color: f.available ? null : AppColors.muted,
                         ),
                       ),
                     ),
@@ -320,15 +318,15 @@ class _PlanCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: AppColors.stone100,
-                  borderRadius: BorderRadius.circular(AppSpacing.sm),
-                  border: Border.all(color: AppColors.stone200),
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.border),
                 ),
                 child: Center(
                   child: Text(
                     plan.actionLabel,
                     style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.stone500,
+                      color: AppColors.muted,
                     ),
                   ),
                 ),
@@ -405,9 +403,7 @@ class BillingReturnScreen extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: AppColors.stone500,
-                ),
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
               ),
             ],
           ),
@@ -499,7 +495,7 @@ class _UsageCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final progressColor = item.isLocked
-        ? AppColors.stone300
+        ? AppColors.muted
         : item.progress >= 0.7
         ? AppColors.warning
         : AppColors.success;
@@ -523,10 +519,10 @@ class _UsageCard extends StatelessWidget {
                   labelText,
                   style: textTheme.bodySmall?.copyWith(
                     color: item.isLocked
-                        ? AppColors.stone400
+                        ? AppColors.muted
                         : item.progress >= 0.7
                         ? AppColors.warning
-                        : AppColors.stone500,
+                        : AppColors.muted,
                   ),
                 ),
               ],
@@ -534,7 +530,7 @@ class _UsageCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             LinearProgressIndicator(
               value: item.progress,
-              backgroundColor: AppColors.stone200,
+              backgroundColor: AppColors.border,
               color: progressColor,
               borderRadius: BorderRadius.circular(AppSpacing.xs),
               minHeight: 8,
@@ -543,7 +539,7 @@ class _UsageCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 '현재 플랜에서 사용할 수 없습니다',
-                style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ],
           ],
@@ -620,21 +616,17 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
                 const Icon(
                   Icons.receipt_long_outlined,
                   size: 64,
-                  color: AppColors.stone300,
+                  color: AppColors.muted,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'Free 플랜은 결제 이력이 없습니다',
-                  style: textTheme.bodyLarge?.copyWith(
-                    color: AppColors.stone400,
-                  ),
+                  style: textTheme.bodyLarge?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Free 플랜을 사용 중입니다',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.stone300,
-                  ),
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(

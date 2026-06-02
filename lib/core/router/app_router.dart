@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/auth/auth_notifier.dart';
@@ -110,6 +111,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DashboardStatsScreen(),
           ),
           GoRoute(
+            path: AppRoutes.planner,
+            builder: (context, state) => const PlannerScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.notes,
             builder: (context, state) => const NoteListScreen(),
           ),
@@ -138,9 +143,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const DeckListScreen(),
           ),
           GoRoute(
+            path: AppRoutes.deckNew,
+            builder: (context, state) => const DeckCreateScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.deckCards,
             builder: (context, state) =>
                 CardListScreen(deckId: state.pathParameters['deckId'] ?? ''),
+          ),
+          GoRoute(
+            path: AppRoutes.deckCardNew,
+            builder: (context, state) =>
+                CardEditorScreen(deckId: state.pathParameters['deckId']),
           ),
           GoRoute(
             path: AppRoutes.cardNew,
@@ -221,13 +235,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.communityGroupDetail,
-            builder: (context, state) => CommunityGroupDetailScreen(
-              groupId: state.pathParameters['groupId'] ?? '',
+            builder: (context, state) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: CommunityGroupDetailScreen(
+                  groupId: state.pathParameters['groupId'] ?? '',
+                ),
+              ),
             ),
           ),
           GoRoute(
             path: AppRoutes.communitySharedDecks,
-            builder: (context, state) => const SharedDecksScreen(),
+            builder: (context, state) => Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: const SharedDecksScreen(),
+              ),
+            ),
           ),
           GoRoute(
             path: AppRoutes.communitySharedDeckDetail,
@@ -240,6 +264,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SharedNotesScreen(),
           ),
           GoRoute(
+            path: AppRoutes.communitySharedNoteDetail,
+            builder: (context, state) => SharedNoteDetailScreen(
+              noteId: state.pathParameters['noteId'] ?? '',
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.gamificationProfile,
             builder: (context, state) => const GamificationProfileScreen(),
           ),
@@ -250,6 +280,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.gamificationLeaderboard,
             builder: (context, state) => const LeaderboardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.gamificationXpHistory,
+            builder: (context, state) => const XpHistoryScreen(),
           ),
           GoRoute(
             path: AppRoutes.notifications,

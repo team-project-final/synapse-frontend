@@ -606,27 +606,6 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    // 공유 덱 (v1 ⑫ .sharedeck)
-                    SectionLabel('공유 덱 ${sharedDecks.length}'),
-                    const SizedBox(height: AppSpacing.sm),
-                    StudyCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < sharedDecks.length; i++)
-                            _SharedDeckRow(
-                              name: sharedDecks[i].name,
-                              sharer: sharedDecks[i].sharer,
-                              count: sharedDecks[i].count,
-                              showDivider: i < sharedDecks.length - 1,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
                     // 이번 주 랭킹 (v1 ⑫ .rank)
                     const SectionLabel('이번 주 랭킹'),
                     const SizedBox(height: AppSpacing.sm),
@@ -681,25 +660,30 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                // Shared content tab
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.folder_outlined,
-                        size: 48,
-                        color: AppColors.stone300,
+                // Shared content tab — 공유 덱
+                ListView(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  children: [
+                    SectionLabel('공유 덱 ${sharedDecks.length}'),
+                    const SizedBox(height: AppSpacing.sm),
+                    StudyCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        '공유된 콘텐츠가 없습니다',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.stone400,
-                        ),
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < sharedDecks.length; i++)
+                            _SharedDeckRow(
+                              name: sharedDecks[i].name,
+                              sharer: sharedDecks[i].sharer,
+                              count: sharedDecks[i].count,
+                              showDivider: i < sharedDecks.length - 1,
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 // TODO: 팀원 구현 — engagement-svc 멤버/콘텐츠 API 연동
               ],

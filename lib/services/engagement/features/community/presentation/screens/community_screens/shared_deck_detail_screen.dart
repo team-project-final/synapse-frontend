@@ -15,6 +15,8 @@ class SharedDeckDetailScreen extends ConsumerStatefulWidget {
 class _SharedDeckDetailScreenState
     extends ConsumerState<SharedDeckDetailScreen> {
   int _userRating = 0;
+  // TODO: 팀원 구현 — 실제 소유자 여부로 교체. 데모용으로 공유 취소 노출.
+  static const bool _isSharedByMe = true;
   final PageController _pageController = PageController();
 
   @override
@@ -99,6 +101,32 @@ class _SharedDeckDetailScreenState
             ),
           ],
         ),
+        // 내가 공유한 콘텐츠면 공유 취소(삭제) 가능.
+        if (_isSharedByMe) ...[
+          const SizedBox(height: AppSpacing.sm),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final ok = await ConfirmDialog.show(
+                context,
+                title: '공유 취소',
+                content: '이 덱의 공유를 취소하면 그룹에서 더 이상 보이지 않습니다. 계속할까요?',
+                confirmLabel: '공유 취소',
+                isDestructive: true,
+              );
+              if (ok == true && context.mounted) {
+                AppToast.show(
+                  context,
+                  message: '공유가 취소되었습니다',
+                  type: ToastType.success,
+                );
+                // TODO: 팀원 구현 — 공유 취소(삭제) API 연동
+              }
+            },
+            style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('공유 취소'),
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
 
         // Card preview PageView carousel

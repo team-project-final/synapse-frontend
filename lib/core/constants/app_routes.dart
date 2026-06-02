@@ -64,10 +64,12 @@ abstract final class AppRoutes {
   static const communitySharedDecks = '/community/shared-decks';
   static const communitySharedDeckDetail = '/community/shared-decks/:deckId';
   static const communitySharedNotes = '/community/shared-notes';
+  static const communitySharedNoteDetail = '/community/shared-notes/:noteId';
 
   static const gamificationProfile = '/gamification/profile';
   static const gamificationBadges = '/gamification/badges';
   static const gamificationLeaderboard = '/gamification/leaderboard';
+  static const gamificationXpHistory = '/gamification/xp-history';
 
   static const notifications = '/notifications';
   static const notificationSettings = '/notifications/settings';
@@ -82,4 +84,6 @@ abstract final class AppRoutes {
       '/community/groups/$groupId';
   static String communitySharedDeckDetailPath(String deckId) =>
       '/community/shared-decks/$deckId';
+  static String communitySharedNoteDetailPath(String noteId) =>
+      '/community/shared-notes/$noteId';
 }

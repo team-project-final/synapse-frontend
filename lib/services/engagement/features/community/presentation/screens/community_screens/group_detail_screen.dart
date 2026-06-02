@@ -132,6 +132,19 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
+                    const SizedBox(width: AppSpacing.sm),
+                    TextButton.icon(
+                      onPressed: () => ReportDialog.show(
+                        context,
+                        targetTitle: 'AWS 자격증 스터디',
+                      ),
+                      icon: const Icon(Icons.flag_outlined, size: 18),
+                      label: const Text('신고'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -167,20 +180,37 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
                           member['name'] as String,
                           style: textTheme.bodyMedium,
                         ),
-                        trailing: Chip(
-                          label: Text(
-                            member['role'] as String,
-                            style: textTheme.labelSmall?.copyWith(
-                              color: member['role'] == '소유자'
-                                  ? AppColors.primaryAmber
-                                  : AppColors.stone500,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(
+                              label: Text(
+                                member['role'] as String,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: member['role'] == '소유자'
+                                      ? AppColors.primaryAmber
+                                      : AppColors.stone500,
+                                ),
+                              ),
+                              backgroundColor: member['role'] == '소유자'
+                                  ? AppColors.primaryAmber.withValues(
+                                      alpha: 0.1,
+                                    )
+                                  : AppColors.stone100,
+                              side: BorderSide.none,
+                              visualDensity: VisualDensity.compact,
                             ),
-                          ),
-                          backgroundColor: member['role'] == '소유자'
-                              ? AppColors.primaryAmber.withValues(alpha: 0.1)
-                              : AppColors.stone100,
-                          side: BorderSide.none,
-                          visualDensity: VisualDensity.compact,
+                            IconButton(
+                              icon: const Icon(Icons.flag_outlined, size: 18),
+                              color: AppColors.muted,
+                              tooltip: '사용자 신고',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () => ReportDialog.show(
+                                context,
+                                targetTitle: member['name'] as String,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

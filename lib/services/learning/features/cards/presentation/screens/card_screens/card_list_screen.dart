@@ -66,6 +66,16 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const ConceptViewHead(title: '카드', meta: '카드 4'),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: () =>
+                              ShareDialog.show(context, targetTitle: '내 덱'),
+                          icon: const Icon(Icons.ios_share, size: 18),
+                          label: const Text('공유하기'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
                       ConceptSearchBar(hint: '카드 검색…', onTap: () {}),
                       const SizedBox(height: AppSpacing.md),
                       // Sort pills

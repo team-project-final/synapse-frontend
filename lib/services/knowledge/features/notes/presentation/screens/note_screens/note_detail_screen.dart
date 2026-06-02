@@ -52,6 +52,23 @@ class NoteDetailScreen extends ConsumerWidget {
                   runSpacing: AppSpacing.xs,
                   children: [ConceptTag('#머신러닝'), ConceptTag('#딥러닝')],
                 ),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => ShareDialog.show(
+                      context,
+                      targetTitle: '정규화 기법 (Regularization)',
+                    ),
+                    icon: const Icon(Icons.ios_share, size: 18),
+                    label: const Text('공유하기'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 // 본문 — 인라인 위키링크([[…]])가 본문 안에서 탭 가능.
                 _WikiBody(

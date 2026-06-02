@@ -10,3 +10,4 @@ import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 part 'gamification_screens/gamification_profile_screen.dart';
 part 'gamification_screens/badge_gallery_screen.dart';
 part 'gamification_screens/leaderboard_screen.dart';
+part 'gamification_screens/xp_history_screen.dart';

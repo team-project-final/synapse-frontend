@@ -132,7 +132,8 @@ class _SharedNoteItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         onTap: () {
-          // TODO: 팀원 구현 — 공유 노트 상세 화면 연동
+          // TODO: 팀원 구현 — 실제 noteId 연결
+          context.go(AppRoutes.communitySharedNoteDetailPath('1'));
         },
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(

@@ -8,6 +8,7 @@ import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/flip_card.dart';
+import 'package:synapse_frontend/shared/widgets/share_dialog.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 part 'card_screens/_mock.dart';

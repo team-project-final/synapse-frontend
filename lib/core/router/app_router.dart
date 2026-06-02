@@ -264,6 +264,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const SharedNotesScreen(),
           ),
           GoRoute(
+            path: AppRoutes.communitySharedNoteDetail,
+            builder: (context, state) => SharedNoteDetailScreen(
+              noteId: state.pathParameters['noteId'] ?? '',
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.gamificationProfile,
             builder: (context, state) => const GamificationProfileScreen(),
           ),
@@ -274,6 +280,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.gamificationLeaderboard,
             builder: (context, state) => const LeaderboardScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.gamificationXpHistory,
+            builder: (context, state) => const XpHistoryScreen(),
           ),
           GoRoute(
             path: AppRoutes.notifications,

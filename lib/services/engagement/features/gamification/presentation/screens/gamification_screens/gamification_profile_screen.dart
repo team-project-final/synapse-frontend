@@ -206,12 +206,18 @@ class GamificationProfileScreen extends ConsumerWidget {
           itemBuilder: (context, i) => _ProfileBadgeTile(badge: _badges[i]),
         ),
         const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.gamificationLeaderboard),
-            child: const Text('리더보드 보기 →'),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () => context.go(AppRoutes.gamificationXpHistory),
+              child: const Text('XP 이력 보기 →'),
+            ),
+            TextButton(
+              onPressed: () => context.go(AppRoutes.gamificationLeaderboard),
+              child: const Text('리더보드 보기 →'),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.xl),
       ],

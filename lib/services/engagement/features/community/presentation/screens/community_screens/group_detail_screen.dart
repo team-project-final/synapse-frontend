@@ -355,6 +355,22 @@ class _SharedDeckRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
+          OutlinedButton(
+            onPressed: () {
+              AppToast.show(
+                context,
+                message: '\'$name\' 덱을 내 라이브러리에 추가했습니다',
+                type: ToastType.success,
+              );
+              // TODO: 팀원 구현 — 공유 덱 받기(복사) API 연동
+            },
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            ),
+            child: const Text('공유받기'),
+          ),
         ],
       ),
     );

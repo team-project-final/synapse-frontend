@@ -65,30 +65,34 @@ class DeckListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isWide = MediaQuery.sizeOf(context).width >= 600;
 
-    return ConceptPage(
+    // 1차 액션(새 덱)은 노트 화면과 동일하게 FAB로 분리, 헤더 우측엔 개수만.
+    return Stack(
       children: [
-        Row(
+        ConceptPage(
           children: [
-            const Expanded(
-              child: ConceptViewHead(title: '내 덱', meta: '덱 3'),
+            ConceptViewHead(title: '내 덱', meta: '총 ${_mockDecks.length}개'),
+            const SizedBox(height: AppSpacing.sm),
+            // Deck cards
+            // TODO: 팀원 구현 — learning-svc 덱 목록 API 연동
+            ConceptResponsiveGrid(
+              isWide: isWide,
+              children: [for (final deck in _mockDecks) _DeckCard(deck: deck)],
             ),
-            FilledButton.icon(
-              onPressed: () {
-                // TODO: 팀원 구현 — 새 덱 생성 다이얼로그/화면
-              },
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('새 덱'),
-            ),
+            // FAB에 마지막 카드가 가리지 않도록 하단 여백 확보.
+            const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        // Deck cards
-        // TODO: 팀원 구현 — learning-svc 덱 목록 API 연동
-        ConceptResponsiveGrid(
-          isWide: isWide,
-          children: [for (final deck in _mockDecks) _DeckCard(deck: deck)],
+        Positioned(
+          bottom: AppSpacing.lg,
+          right: AppSpacing.lg,
+          child: FloatingActionButton.extended(
+            onPressed: () {
+              // TODO: 팀원 구현 — 새 덱 생성 다이얼로그/화면
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('새 덱'),
+          ),
         ),
-        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }

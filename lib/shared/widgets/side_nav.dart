@@ -102,7 +102,7 @@ class SideNav extends StatelessWidget {
               children: [
                 for (final item in _topItems) _buildItem(context, item),
                 if (isExpanded) ...[
-                  const _SideSection(label: '최근 대화'),
+                  const _SideSection(label: '최근 활동'),
                   for (final chat in _recentChats)
                     _buildRecentChat(context, chat),
                 ],
@@ -137,66 +137,35 @@ class SideNav extends StatelessWidget {
   }
 
   Widget _buildBrand(BuildContext context) {
-    // 접힌 상태: 세로로 orb(홈 이동) + 펼치기 버튼.
-    // (펼치기 버튼이 없으면 한 번 접은 뒤 다시 열 수 없다 — 폭 72px라 가로로는
-    // orb와 버튼이 같이 안 들어가므로 세로 배치한다.)
+    // 앱 아이콘/이름은 상단 앱바(AppShell)에 이미 있으므로 사이드바에선
+    // 생략하고, 접기/펼치기 토글만 둔다.
     if (!isExpanded) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        child: Column(
-          children: [
-            InkWell(
-              onTap: () => onItemTap('/'),
-              customBorder: const CircleBorder(),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: SynapseOrb(size: 34, glyphScale: 0.52),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right, size: 20),
-              color: AppColors.muted,
-              onPressed: onToggle,
-              tooltip: '사이드바 펼치기',
-              visualDensity: VisualDensity.compact,
-            ),
-          ],
+        child: Center(
+          child: IconButton(
+            icon: const Icon(Icons.chevron_right, size: 20),
+            color: AppColors.muted,
+            onPressed: onToggle,
+            tooltip: '사이드바 펼치기',
+            visualDensity: VisualDensity.compact,
+          ),
         ),
       );
     }
 
-    return InkWell(
-      onTap: () => onItemTap('/'),
+    return Align(
+      alignment: Alignment.centerRight,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.md,
-          AppSpacing.sm,
-          AppSpacing.md,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
         ),
-        child: Row(
-          children: [
-            const SynapseOrb(size: 34, glyphScale: 0.52),
-            const SizedBox(width: AppSpacing.sm + 2),
-            Expanded(
-              child: Text(
-                'Synapse',
-                overflow: TextOverflow.clip,
-                softWrap: false,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  color: AppColors.text,
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.chevron_left, size: 20),
-              color: AppColors.muted,
-              onPressed: onToggle,
-              tooltip: '사이드바 접기',
-            ),
-          ],
+        child: IconButton(
+          icon: const Icon(Icons.chevron_left, size: 20),
+          color: AppColors.muted,
+          onPressed: onToggle,
+          tooltip: '사이드바 접기',
         ),
       ),
     );

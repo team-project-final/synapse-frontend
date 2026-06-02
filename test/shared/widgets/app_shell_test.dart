@@ -42,8 +42,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 브랜드("Synapse")는 AppBar와 SideNav 양쪽에 노출되는 것이 의도된 설계.
-    expect(find.text('Synapse'), findsNWidgets(2));
+    // 브랜드("Synapse")는 상단 AppBar에만 노출(사이드바 브랜드는 중복이라 제거).
+    expect(find.text('Synapse'), findsOneWidget);
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.byType(SideNav), findsOneWidget);
   });

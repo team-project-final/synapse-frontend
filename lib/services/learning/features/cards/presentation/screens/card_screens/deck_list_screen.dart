@@ -29,10 +29,26 @@ class DeckListScreen extends ConsumerWidget {
         Positioned(
           bottom: AppSpacing.lg,
           right: AppSpacing.lg,
-          child: FloatingActionButton.extended(
-            onPressed: () => context.go(AppRoutes.deckNew),
-            icon: const Icon(Icons.add),
-            label: const Text('새 덱'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.extended(
+                heroTag: 'ai_cards_fab',
+                onPressed: () => context.go(AppRoutes.aiCards),
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('AI 카드 생성'),
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.primaryFg,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              FloatingActionButton.extended(
+                heroTag: 'new_deck_fab',
+                onPressed: () => context.go(AppRoutes.deckNew),
+                icon: const Icon(Icons.add),
+                label: const Text('새 덱'),
+              ),
+            ],
           ),
         ),
       ],

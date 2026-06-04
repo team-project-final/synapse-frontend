@@ -49,6 +49,16 @@ class SideNav extends StatelessWidget {
     SideNavItem(icon: Icons.hub_outlined, label: '그래프', route: '/graph'),
     SideNavItem(icon: Icons.search, label: '검색', route: '/search'),
     SideNavItem(
+      icon: Icons.auto_awesome_outlined,
+      label: 'AI 카드',
+      route: '/ai/cards',
+    ),
+    SideNavItem(
+      icon: Icons.smart_toy_outlined,
+      label: 'AI Q&A',
+      route: '/qa',
+    ),
+    SideNavItem(
       icon: Icons.groups_outlined,
       label: '커뮤니티',
       route: '/community/groups',

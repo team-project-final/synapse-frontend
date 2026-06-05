@@ -74,9 +74,11 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     setState(() => _isVerifying = true);
     // TODO: 팀원 구현 — platform-svc POST /auth/mfa/verify (TOTP 코드 검증)
     Future<void>.delayed(const Duration(seconds: 1)).then((_) {
-      if (mounted) {
-        setState(() => _isVerifying = false);
-      }
+      if (!mounted) return;
+      setState(() => _isVerifying = false);
+      // 검증 성공(목업) → 인증 완료 처리 후 대시보드로 이동.
+      ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
+      context.go(AppRoutes.dashboard);
     });
   }
 

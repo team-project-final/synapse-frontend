@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 
@@ -135,6 +137,11 @@ class _NotificationCenterScreenState
             children: [
               Text('알림 센터', style: textTheme.titleLarge),
               const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: '알림 설정',
+                onPressed: () => context.go(AppRoutes.notificationSettings),
+              ),
               TextButton(
                 onPressed: () {
                   // TODO: 팀원 구현 — 모두 읽음 처리 API 연동

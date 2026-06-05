@@ -206,6 +206,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const BillingHistoryScreen(),
           ),
           GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsHubScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.settingsProfile,
             builder: (context, state) => const ProfileSettingsScreen(),
           ),

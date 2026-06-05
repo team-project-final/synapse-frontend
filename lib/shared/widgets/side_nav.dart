@@ -61,11 +61,7 @@ class SideNav extends StatelessWidget {
       label: '알림',
       route: '/notifications',
     ),
-    SideNavItem(
-      icon: Icons.settings_outlined,
-      label: '설정',
-      route: '/settings/profile',
-    ),
+    SideNavItem(icon: Icons.settings_outlined, label: '설정', route: '/settings'),
   ];
 
   // 최근 대화 — mock 데이터 (기능 없음, 디자인 시연용)

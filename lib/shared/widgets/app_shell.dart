@@ -74,7 +74,7 @@ class AppShell extends ConsumerWidget {
       CommandPaletteItem(
         icon: Icons.settings_outlined,
         label: '설정',
-        route: '/settings/profile',
+        route: '/settings',
       ),
     ];
 

@@ -191,6 +191,7 @@ class AppShell extends ConsumerWidget {
           bottomNavigationBar: isMobile
               ? AppBottomNav(
                   currentIndex: AppBottomNav.indexFromRoute(currentRoute),
+                  onFabTap: () => context.go(AppRoutes.aiCards),
                   onTap: (index) {
                     if (index == 3) {
                       Scaffold.of(context).openDrawer();

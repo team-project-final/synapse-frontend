@@ -228,16 +228,6 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // AI 카드 생성(보조)
-              FloatingActionButton.extended(
-                heroTag: 'aiCardFab',
-                onPressed: () => context.go(AppRoutes.aiCards),
-                backgroundColor: AppColors.surface,
-                foregroundColor: AppColors.primary,
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('AI 생성'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
               // 직접 카드 작성(주)
               FloatingActionButton.extended(
                 heroTag: 'newCardFab',

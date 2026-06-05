@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/learning/features/ai/providers/ai_providers.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
@@ -317,24 +318,6 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
 
-  // TODO: 팀원 구현 — RAG Q&A API 연동 (스트리밍)
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(isUser: true, text: '정규화 기법에 대해 설명해줘', time: '14:30'),
-    const _ChatMessage(
-      isUser: false,
-      text:
-          'L1/L2 정규화는 과적합(Overfitting)을 방지하기 위한 기법입니다.\n\n'
-          'L1 정규화 (Lasso)\n'
-          '- 가중치의 절댓값 합을 페널티로 추가합니다\n'
-          '- 일부 가중치를 0으로 만들어 희소성을 유도합니다\n\n'
-          'L2 정규화 (Ridge)\n'
-          '- 가중치의 제곱합을 페널티로 추가합니다\n'
-          '- 가중치를 작게 유지하되 완전히 0으로 만들지 않습니다',
-      time: '14:30',
-      sources: ['정규화 기법', '과적합 방지'],
-    ),
-  ];
-
   @override
   void dispose() {
     _inputController.dispose();
@@ -342,9 +325,34 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
     super.dispose();
   }
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final qaState = ref.watch(qaNotifierProvider);
+
+    ref.listen(qaNotifierProvider, (_, __) => _scrollToBottom());
+
+    // QaMessage → _ChatMessage 변환 (기존 _ChatBubble 재사용)
+    final messages = qaState.messages
+        .map((m) => _ChatMessage(
+              isUser: m.isUser,
+              text: m.text,
+              time: '',
+              sources: const [],
+            ))
+        .toList();
 
     return Column(
       children: [
@@ -367,14 +375,15 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                 children: [
                   Text(
                     'AI 튜터',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    '● 답변 중',
+                    qaState.isStreaming ? '● 답변 중' : '● 대기 중',
                     style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.success,
+                      color: qaState.isStreaming
+                          ? AppColors.success
+                          : AppColors.muted,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -383,47 +392,60 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
             ],
           ),
         ),
-        // Messages list
+
+        // 메시지 목록
         Expanded(
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                itemCount: _messages.length,
-                itemBuilder: (context, i) => _ChatBubble(message: _messages[i]),
-              ),
+              child: messages.isEmpty
+                  ? Center(
+                      child: Text(
+                        '노트 내용에 대해 무엇이든 질문해보세요',
+                        style: textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.muted),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: messages.length,
+                      itemBuilder: (context, i) =>
+                          _ChatBubble(message: messages[i]),
+                    ),
             ),
           ),
         ),
-        // Streaming indicator placeholder
-        Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.xs,
-          ),
-          child: Row(
-            children: [
-              const SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
+
+        // 스트리밍 인디케이터 (실제 상태 반영)
+        if (qaState.isStreaming)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                '생성 중…',
-                style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
-              ),
-              // TODO: 팀원 구현 — 스트리밍 생성 상태 연동
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '생성 중…',
+                  style:
+                      textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Input row
+
+        // 입력창
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: const BoxDecoration(
@@ -435,15 +457,18 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
               Expanded(
                 child: TextField(
                   controller: _inputController,
+                  enabled: !qaState.isStreaming,
                   decoration: InputDecoration(
                     hintText: '노트 내용에 대해 질문하세요…',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      borderSide: const BorderSide(color: AppColors.border),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      borderSide: const BorderSide(color: AppColors.border),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -453,12 +478,11 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                     fillColor: AppColors.surface2,
                   ),
                   onSubmitted: (_) => _sendMessage(),
-                  // TODO: 팀원 구현 — RAG Q&A 입력 연동
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               IconButton.filled(
-                onPressed: _sendMessage,
+                onPressed: qaState.isStreaming ? null : _sendMessage,
                 icon: const Icon(Icons.arrow_upward),
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.primary,
@@ -475,8 +499,8 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
   void _sendMessage() {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
-    // TODO: 팀원 구현 — RAG Q&A API 호출
     _inputController.clear();
+    ref.read(qaNotifierProvider.notifier).sendMessage(text);
   }
 }
 
@@ -660,11 +684,11 @@ class _AnimatedTypingTextState extends State<_AnimatedTypingText> {
   @override
   void didUpdateWidget(_AnimatedTypingText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text) {
-      _timer?.cancel();
-      _charCount = 0;
-      _startTyping();
-    }
+    if (oldWidget.text == widget.text) return;
+    _timer?.cancel();
+    // 스트리밍: 기존 텍스트의 연장이면 현재 위치에서 계속 진행
+    if (!widget.text.startsWith(oldWidget.text)) _charCount = 0;
+    _startTyping();
   }
 
   void _startTyping() {

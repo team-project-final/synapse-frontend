@@ -12,39 +12,59 @@ class AiCardGenerationScreen extends ConsumerStatefulWidget {
 
 class _AiCardGenerationScreenState
     extends ConsumerState<AiCardGenerationScreen> {
-  // v1 목업 ⑤: 대화 흐름 속에서 카드가 만들어진다.
-  // 생성된 4장 중 기본 3장 선택(마지막 1장 미선택) — 목업과 동일.
-  final Set<int> _selected = {0, 1, 2};
+  final _inputController = TextEditingController();
+  final _scrollController = ScrollController();
+
+  // 선택된 카드 인덱스 (AiCardsMsg 기준 — 메시지별 독립 관리)
+  final Map<int, Set<int>> _selectedByMsgIndex = {};
 
   static const _deckName = 'ML 기초';
   static const _xpPerCard = 5;
 
-  // TODO: 팀원 구현 — learning-svc AI 카드 생성 API 연동(대화형)
-  static const _generated = <_GenCard>[
-    _GenCard(
-      type: 'basic',
-      q: '트랜스포머의 핵심 메커니즘은?',
-      a: '어텐션 메커니즘 — 입력의 어느 부분에 집중할지 학습',
-    ),
-    _GenCard(type: 'cloze', q: '트랜스포머는 ___ 방지를 위해 드롭아웃을 쓴다', a: '과적합'),
-    _GenCard(type: 'basic', q: '트랜스포머가 표준인 분야는?', a: 'NLP와 Vision'),
-    _GenCard(type: 'basic', q: '어텐션과 RNN의 차이는?', a: '병렬 처리 가능, 장거리 의존성에 강함'),
-  ];
+  @override
+  void dispose() {
+    _inputController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-  void _toggle(int i) {
-    setState(() {
-      if (!_selected.add(i)) _selected.remove(i);
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
+  }
+
+  void _send() {
+    final text = _inputController.text.trim();
+    if (text.isEmpty) return;
+    _inputController.clear();
+    ref.read(cardGenNotifierProvider.notifier).generate(
+          input: text,
+          cardCount: 10,
+        );
+    _scrollToBottom();
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final count = _selected.length;
+    final cardGenState = ref.watch(cardGenNotifierProvider);
+
+    ref.listen(cardGenNotifierProvider, (_, __) => _scrollToBottom());
+
+    // 선택 카드 총 개수 계산
+    final selectedCount =
+        _selectedByMsgIndex.values.fold(0, (sum, s) => sum + s.length);
 
     return Column(
       children: [
-        // 대화 헤더 (orb + 이름 + ●답변 중)
+        // 대화 헤더
         Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
@@ -63,14 +83,15 @@ class _AiCardGenerationScreenState
                 children: [
                   Text(
                     'AI 튜터',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   Text(
-                    '● 답변 중',
+                    cardGenState.isLoading ? '● 생성 중' : '● 대기 중',
                     style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.success,
+                      color: cardGenState.isLoading
+                          ? AppColors.warning
+                          : AppColors.success,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -79,97 +100,135 @@ class _AiCardGenerationScreenState
             ],
           ),
         ),
+
         // 대화 본문
         Expanded(
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                children: [
-                  const ConceptChatBubble(
-                    text: '트랜스포머 노트로 복습 카드 만들어줘',
-                    isMe: true,
-                  ),
-                  const SizedBox(height: AppSpacing.sm + 2),
-                  const ConceptChatBubble(
-                    text: '「트랜스포머」 노트에서 핵심 4장을 만들었어요. 추가할 카드를 골라주세요 👇',
-                    isMe: false,
-                  ),
-                  const SizedBox(height: AppSpacing.sm + 2),
-                  for (int i = 0; i < _generated.length; i++)
-                    _GenCardTile(
-                      card: _generated[i],
-                      checked: _selected.contains(i),
-                      onChanged: (_) => _toggle(i),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // "N장 선택됨 · 덱 · +XP / 덱에 추가" 바
-        Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 760),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                0,
-                AppSpacing.md,
-                AppSpacing.sm,
-              ),
-              child: ConceptCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md - 2,
-                  vertical: AppSpacing.sm + 2,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$count장 선택됨',
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            '덱: $_deckName · +${count * _xpPerCard} XP',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: AppColors.muted,
-                            ),
-                          ),
-                        ],
+              child: cardGenState.conversation.isEmpty
+                  ? Center(
+                      child: Text(
+                        '노트 내용을 붙여넣거나 질문하면\nAI가 플래시카드를 만들어드립니다',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.muted),
                       ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: cardGenState.conversation.length,
+                      itemBuilder: (context, index) {
+                        final item = cardGenState.conversation[index];
+                        return switch (item) {
+                          AiTextMsg(:final isUser, :final text) =>
+                            Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpacing.sm),
+                              child: ConceptChatBubble(
+                                  text: text, isMe: isUser),
+                            ),
+                          AiLoadingMsg() => Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpacing.sm),
+                              child: Row(
+                                children: [
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.primary),
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Text('카드 생성 중…',
+                                      style: textTheme.labelSmall
+                                          ?.copyWith(color: AppColors.muted)),
+                                ],
+                              ),
+                            ),
+                          AiErrorMsg(:final message) => Padding(
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpacing.sm),
+                              child: ConceptChatBubble(
+                                  text: '⚠️ $message', isMe: false),
+                            ),
+                          AiCardsMsg(:final cards) => _CardResultBlock(
+                              msgIndex: index,
+                              cards: cards,
+                              selected: _selectedByMsgIndex[index] ??
+                                  Set.from(
+                                    Iterable.generate(cards.length),
+                                  ),
+                              onToggle: (cardIdx) => setState(() {
+                                final s = _selectedByMsgIndex[index] ??
+                                    Set.from(
+                                      Iterable.generate(cards.length),
+                                    );
+                                if (!s.remove(cardIdx)) s.add(cardIdx);
+                                _selectedByMsgIndex[index] = s;
+                              }),
+                            ),
+                        };
+                      },
                     ),
-                    FilledButton(
-                      onPressed: count > 0
-                          ? () {
-                              // TODO: 팀원 구현 — 선택 카드 덱 추가 API 연동
-                              context.go(AppRoutes.decks);
-                            }
-                          : null,
-                      child: const Text('덱에 추가'),
-                    ),
-                  ],
+            ),
+          ),
+        ),
+
+        // 선택 카드 → 덱 추가 바 (카드가 하나라도 선택됐을 때)
+        if (selectedCount > 0)
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+                child: ConceptCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md - 2,
+                    vertical: AppSpacing.sm + 2,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$selectedCount장 선택됨',
+                              style: textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              '덱: $_deckName · +${selectedCount * _xpPerCard} XP',
+                              style: textTheme.labelSmall
+                                  ?.copyWith(color: AppColors.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      FilledButton(
+                        onPressed: () {
+                          // TODO: 팀원 구현 — 선택 카드 덱 추가 API 연동
+                          context.go(AppRoutes.decks);
+                        },
+                        child: const Text('덱에 추가'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+
         // 채팅 입력 바
         Container(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.sm,
-            AppSpacing.md,
-            AppSpacing.sm,
-          ),
+              AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.sm),
           decoration: const BoxDecoration(
             color: AppColors.surface,
             border: Border(top: BorderSide(color: AppColors.border)),
@@ -177,31 +236,41 @@ class _AiCardGenerationScreenState
           child: Row(
             children: [
               Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm + 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface2,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    '더 물어보거나 카드를 수정하세요…',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.muted,
+                child: TextField(
+                  controller: _inputController,
+                  enabled: !cardGenState.isLoading,
+                  maxLines: null,
+                  decoration: InputDecoration(
+                    hintText: '노트 내용을 붙여넣거나 카드 생성을 요청하세요…',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    filled: true,
+                    fillColor: AppColors.surface2,
                   ),
+                  onSubmitted: (_) => _send(),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               IconButton.filled(
-                onPressed: () {
-                  // TODO: 팀원 구현 — 대화형 카드 수정 입력 연동
-                },
-                icon: const Icon(Icons.arrow_forward),
+                onPressed: cardGenState.isLoading ? null : _send,
+                icon: cardGenState.isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.arrow_upward),
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.primaryFg,
@@ -215,102 +284,73 @@ class _AiCardGenerationScreenState
   }
 }
 
-/// AI 생성 카드 1건 (v1 `.gencard`).
-class _GenCard {
-  const _GenCard({required this.type, required this.q, required this.a});
-  final String type; // basic | cloze
-  final String q;
-  final String a;
-}
+// ── 카드 결과 블록 ──
 
-/// 체크박스 + basic/cloze 배지 + Q/A. v1 목업 `.gencard`.
-class _GenCardTile extends StatelessWidget {
-  const _GenCardTile({
-    required this.card,
-    required this.checked,
-    required this.onChanged,
+class _CardResultBlock extends StatelessWidget {
+  const _CardResultBlock({
+    required this.msgIndex,
+    required this.cards,
+    required this.selected,
+    required this.onToggle,
   });
 
-  final _GenCard card;
-  final bool checked;
-  final ValueChanged<bool?> onChanged;
+  final int msgIndex;
+  final List<GeneratedCard> cards;
+  final Set<int> selected;
+  final ValueChanged<int> onToggle;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: ConceptCard(
-        highlightBorder: checked,
-        padding: const EdgeInsets.all(AppSpacing.sm + 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 24,
-              height: 24,
-              child: Checkbox(
-                value: checked,
-                onChanged: onChanged,
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm + 2),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _CardTypeBadge(card.type),
-                  const SizedBox(height: AppSpacing.xs + 1),
-                  Text(
-                    'Q. ${card.q}',
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+    return Column(
+      children: cards.asMap().entries.map((e) {
+        final i = e.key;
+        final card = e.value;
+        final checked = selected.contains(i);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: ConceptCard(
+            highlightBorder: checked,
+            padding: const EdgeInsets.all(AppSpacing.sm + 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: checked,
+                    onChanged: (_) => onToggle(i),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'A. ${card.a}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.muted,
-                      height: 1.45,
-                    ),
+                ),
+                const SizedBox(width: AppSpacing.sm + 2),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Q. ${card.front}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'A. ${card.back}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppColors.muted,
+                              height: 1.45,
+                            ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// basic / cloze 배지 (v1 `.gencard .badge`).
-class _CardTypeBadge extends StatelessWidget {
-  const _CardTypeBadge(this.type);
-  final String type;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadius.sm - 6),
-      ),
-      child: Text(
-        type,
-        style: textTheme.labelSmall?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: AppColors.primary,
-        ),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

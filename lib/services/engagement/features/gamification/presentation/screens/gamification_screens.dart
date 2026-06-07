@@ -1,45 +1,13 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:synapse_frontend/shared/widgets/domain_placeholder_scaffold.dart';
+import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/core/theme/app_colors.dart';
+import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
-class GamificationProfileScreen extends ConsumerWidget {
-  const GamificationProfileScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const DomainPlaceholderScaffold(
-      title: '내 프로필',
-      domain: 'GAMIFICATION',
-      screenId: 'SCR-W-GAME-001',
-      routeHint: '/gamification/profile',
-    );
-  }
-}
-
-class BadgeGalleryScreen extends ConsumerWidget {
-  const BadgeGalleryScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const DomainPlaceholderScaffold(
-      title: '배지 갤러리',
-      domain: 'GAMIFICATION',
-      screenId: 'SCR-W-GAME-002',
-      routeHint: '/gamification/badges',
-    );
-  }
-}
-
-class LeaderboardScreen extends ConsumerWidget {
-  const LeaderboardScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const DomainPlaceholderScaffold(
-      title: '리더보드',
-      domain: 'GAMIFICATION',
-      screenId: 'SCR-W-GAME-003',
-      routeHint: '/gamification/leaderboard',
-    );
-  }
-}
+part 'gamification_screens/gamification_profile_screen.dart';
+part 'gamification_screens/badge_gallery_screen.dart';
+part 'gamification_screens/leaderboard_screen.dart';
+part 'gamification_screens/xp_history_screen.dart';

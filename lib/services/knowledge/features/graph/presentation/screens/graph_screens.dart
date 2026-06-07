@@ -1,47 +1,14 @@
-import 'package:flutter/widgets.dart';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:synapse_frontend/shared/widgets/domain_placeholder_scaffold.dart';
+import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/core/theme/app_colors.dart';
+import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
 
-class GraphViewScreen extends ConsumerWidget {
-  const GraphViewScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const DomainPlaceholderScaffold(
-      title: '그래프 뷰',
-      domain: 'GRAPH',
-      screenId: 'SCR-W-GRAPH-001',
-      routeHint: '/graph',
-    );
-  }
-}
-
-class GraphNoteScreen extends ConsumerWidget {
-  const GraphNoteScreen({required this.noteId, super.key});
-
-  final String noteId;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return DomainPlaceholderScaffold(
-      title: '노트 이웃',
-      domain: 'GRAPH',
-      screenId: 'SCR-W-GRAPH-002',
-      routeHint: '/graph/notes/$noteId',
-    );
-  }
-}
-
-class GraphClustersScreen extends ConsumerWidget {
-  const GraphClustersScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const DomainPlaceholderScaffold(
-      title: '클러스터 뷰',
-      domain: 'GRAPH',
-      screenId: 'SCR-W-GRAPH-003',
-      routeHint: '/graph/clusters',
-    );
-  }
-}
+part 'graph_screens/_mock.dart';
+part 'graph_screens/_painters.dart';
+part 'graph_screens/graph_view_screen.dart';
+part 'graph_screens/graph_note_screen.dart';
+part 'graph_screens/graph_clusters_screen.dart';

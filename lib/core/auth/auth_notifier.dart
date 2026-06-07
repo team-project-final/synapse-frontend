@@ -1,32 +1,100 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
 
-final authNotifierProvider =
-    NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authNotifierProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
 
-  Future<void> login(String email, String password) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — platform-svc 연동
-    // 성공 시: state = state.copyWith(status: AuthStatus.authenticated, accessToken: token);
-    // 실패 시: state = state.copyWith(status: AuthStatus.unauthenticated);
+  Future<void> restoreSession() async {
+    state = const AuthState(status: AuthStatus.initializing);
+    final tokens = await ref.read(authRepositoryPortProvider).restoreSession();
+    if (tokens == null) {
+      state = const AuthState(status: AuthStatus.unauthenticated);
+      return;
+    }
+
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      accessToken: tokens.accessToken,
+    );
   }
 
-  Future<void> loginWithOAuth(String provider) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — OAuth PKCE 플로우
+  Future<void> completeOAuthLogin({required String accessToken}) async {
+    state = const AuthState(status: AuthStatus.loading);
+    final tokens = await ref
+        .read(authRepositoryPortProvider)
+        .completeOAuthLogin(accessToken: accessToken);
+    state = AuthState(
+      status: AuthStatus.authenticated,
+      accessToken: tokens.accessToken,
+    );
+  }
+
+  Future<void> login(String email, String password) async {
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      final tokens = await ref
+          .read(authRepositoryPortProvider)
+          .login(email: email, password: password);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        accessToken: tokens.accessToken,
+      );
+    } on AuthRepositoryException catch (error) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: error.detail,
+      );
+    } catch (_) {
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Login failed.',
+      );
+    }
+  }
+
+  void loginWithOAuth(String provider) {
+    ref.read(authRepositoryPortProvider).loginWithOAuth(provider);
+  }
+
+  void bypassLoginForDevelopment() {
+    state = const AuthState(
+      status: AuthStatus.authenticated,
+      accessToken: 'dev-bypass-token',
+    );
   }
 
   Future<void> signup(String email, String password) async {
-    state = state.copyWith(status: AuthStatus.loading);
-    // TODO: 팀원 구현 — platform-svc 연동
+    state = const AuthState(status: AuthStatus.loading);
+    try {
+      await ref
+          .read(authRepositoryPortProvider)
+          .signup(email: email, password: password);
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        successMessage: 'Signup completed. Please log in.',
+      );
+    } on AuthRepositoryException catch (error) {
+      state = AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: error.detail,
+      );
+    } catch (_) {
+      state = const AuthState(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Signup failed.',
+      );
+    }
   }
 
-  void logout() {
-    // TODO: 팀원 구현 — SecureStorage 토큰 삭제
-    state = const AuthState();
+  Future<void> logout() async {
+    await ref.read(authRepositoryPortProvider).logout();
+    state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

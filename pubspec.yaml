@@ -15,6 +15,8 @@ dependencies:
   google_fonts: ^8.1.0
   hive_flutter: ^1.1.0
   flutter_markdown: ^0.7.6
+  flutter_secure_storage: ^10.3.0
+  lottie: ^3.1.0
 
 dev_dependencies:
   flutter_test:
@@ -23,3 +25,20 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   mockito: ^5.6.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    # Lottie 애니메이션(JSON/dotLottie) 보관. 파일은 상황에 맞춰 추가.
+    - assets/lottie/
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700

@@ -90,10 +90,7 @@ class AdminShell extends StatelessWidget {
             decoration: const BoxDecoration(
               border: Border(right: BorderSide(color: AppColors.stone200)),
             ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
+            child: ListView(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               children: _menuItems.map((item) {
                 final isActive = currentRoute == item.route ||
@@ -121,24 +118,6 @@ class AdminShell extends StatelessWidget {
                   onTap: () => context.go(item.route),
                 );
               }).toList(),
-                  ),
-                ),
-                const Divider(height: 1),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: ListTile(
-                    leading: const Icon(Icons.arrow_back, size: 20,
-                        color: AppColors.stone500),
-                    title: Text('사용자 화면으로',
-                        style: textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.stone700)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    dense: true,
-                    onTap: () => context.go(AppRoutes.dashboard),
-                  ),
-                ),
-              ],
             ),
           ),
           // Content

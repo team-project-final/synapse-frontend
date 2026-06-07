@@ -1,0 +1,21 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: team-project-final/synapse-shared/.github/workflows/deploy-service.yml@main
+    secrets: inherit
+    with:
+      gitops_app: frontend
+      ecr_repository: synapse/frontend

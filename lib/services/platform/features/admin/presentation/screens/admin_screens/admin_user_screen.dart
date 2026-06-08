@@ -2,67 +2,83 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminUserScreen (SCR-A-ADMIN-003)
+// platform-svc /api/v1/admin/users 연동 (목록/상태변경/삭제)
 // ============================================================================
 
-class _MockUser {
-  const _MockUser({
-    required this.email,
-    required this.name,
-    required this.role,
-    required this.status,
-    required this.joinedAt,
-  });
-  final String email;
-  final String name;
-  final String role;
-  final String status;
-  final String joinedAt;
+String _userStatusLabel(String status) {
+  switch (status.toLowerCase()) {
+    case 'active':
+      return '활성';
+    case 'suspended':
+      return '정지';
+    case 'deleted':
+      return '삭제됨';
+    default:
+      return status;
+  }
 }
 
-// TODO: 팀원 구현 — platform-svc 사용자 목록 API 연동
-const _mockUsers = [
-  _MockUser(
-    email: 'admin@synapse.io',
-    name: '김관리',
-    role: 'ADMIN',
-    status: '활성',
-    joinedAt: '2025-01-10',
-  ),
-  _MockUser(
-    email: 'user1@example.com',
-    name: '이학생',
-    role: 'USER',
-    status: '활성',
-    joinedAt: '2025-03-22',
-  ),
-  _MockUser(
-    email: 'user2@example.com',
-    name: '박선생',
-    role: 'MODERATOR',
-    status: '활성',
-    joinedAt: '2025-05-15',
-  ),
-  _MockUser(
-    email: 'banned@test.com',
-    name: '최정지',
-    role: 'USER',
-    status: '정지',
-    joinedAt: '2025-06-01',
-  ),
-  _MockUser(
-    email: 'deleted@old.com',
-    name: '정탈퇴',
-    role: 'USER',
-    status: '삭제됨',
-    joinedAt: '2024-12-01',
-  ),
-];
+String _formatDate(DateTime? date) {
+  if (date == null) return '-';
+  final local = date.toLocal();
+  final m = local.month.toString().padLeft(2, '0');
+  final d = local.day.toString().padLeft(2, '0');
+  return '${local.year}-$m-$d';
+}
 
-class AdminUserScreen extends ConsumerWidget {
+class AdminUserScreen extends ConsumerStatefulWidget {
   const AdminUserScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminUserScreen> createState() => _AdminUserScreenState();
+}
+
+class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
+  late Future<AdminPage<AdminUser>> _usersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _usersFuture = _fetchUsers();
+  }
+
+  Future<AdminPage<AdminUser>> _fetchUsers() {
+    return ref.read(listAdminUsersUseCaseProvider)();
+  }
+
+  void _reload() {
+    setState(() {
+      _usersFuture = _fetchUsers();
+    });
+  }
+
+  Future<void> _changeStatus(AdminUser user, String status) async {
+    try {
+      await ref.read(changeUserStatusUseCaseProvider)(user.id, status);
+      if (mounted) _reload();
+    } catch (_) {
+      _showError('상태 변경에 실패했습니다.');
+    }
+  }
+
+  Future<void> _deleteUser(AdminUser user) async {
+    try {
+      await ref.read(deleteAdminUserUseCaseProvider)(user.id);
+      if (mounted) _reload();
+    } catch (_) {
+      _showError('삭제에 실패했습니다.');
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -72,35 +88,64 @@ class AdminUserScreen extends ConsumerWidget {
           Text('사용자 관리', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
           Expanded(
-            child: AdminDataGrid(
-              searchHint: '이메일 또는 이름 검색...',
-              filters: const ['활성', '정지', '삭제됨'],
-              columns: const [
-                DataColumn(label: Text('이메일')),
-                DataColumn(label: Text('이름')),
-                DataColumn(label: Text('역할')),
-                DataColumn(label: Text('상태')),
-                DataColumn(label: Text('가입일')),
-              ],
-              rows: _mockUsers.indexed.map((entry) {
-                final u = entry.$2;
-                return DataRow(
-                  onSelectChanged: (_) {
-                    // TODO: 팀원 구현 — 사용자 상세 다이얼로그
-                    showDialog<void>(
-                      context: context,
-                      builder: (_) => _UserDetailDialog(user: u),
-                    );
-                  },
-                  cells: [
-                    DataCell(Text(u.email)),
-                    DataCell(Text(u.name)),
-                    DataCell(Text(u.role)),
-                    DataCell(_StatusBadge(status: u.status)),
-                    DataCell(Text(u.joinedAt)),
+            child: FutureBuilder<AdminPage<AdminUser>>(
+              future: _usersFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('사용자 목록을 불러오지 못했습니다.'),
+                        const SizedBox(height: AppSpacing.sm),
+                        FilledButton(
+                          onPressed: _reload,
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final users = snapshot.data?.content ?? const <AdminUser>[];
+                // TODO: 팀원 구현 — 검색(q)/상태필터/페이지네이션을 API 파라미터와 연동
+                //   (현재 AdminDataGrid는 표시 전용이라 1페이지만 노출)
+                return AdminDataGrid(
+                  searchHint: '이메일 또는 이름 검색...',
+                  filters: const ['활성', '정지', '삭제됨'],
+                  columns: const [
+                    DataColumn(label: Text('이메일')),
+                    DataColumn(label: Text('이름')),
+                    DataColumn(label: Text('상태')),
+                    DataColumn(label: Text('가입일')),
                   ],
+                  rows: users.map((user) {
+                    return DataRow(
+                      onSelectChanged: (_) {
+                        showDialog<void>(
+                          context: context,
+                          builder: (_) => _UserDetailDialog(
+                            user: user,
+                            onSuspend: () => _changeStatus(user, 'suspended'),
+                            onActivate: () => _changeStatus(user, 'active'),
+                            onDelete: () => _deleteUser(user),
+                          ),
+                        );
+                      },
+                      cells: [
+                        DataCell(Text(user.email)),
+                        DataCell(Text(user.displayName)),
+                        DataCell(
+                          _StatusBadge(status: _userStatusLabel(user.status)),
+                        ),
+                        DataCell(Text(_formatDate(user.createdAt))),
+                      ],
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
         ],
@@ -110,21 +155,30 @@ class AdminUserScreen extends ConsumerWidget {
 }
 
 class _UserDetailDialog extends StatelessWidget {
-  const _UserDetailDialog({required this.user});
-  final _MockUser user;
+  const _UserDetailDialog({
+    required this.user,
+    required this.onSuspend,
+    required this.onActivate,
+    required this.onDelete,
+  });
+
+  final AdminUser user;
+  final VoidCallback onSuspend;
+  final VoidCallback onActivate;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final isActive = user.status.toLowerCase() == 'active';
     return AlertDialog(
-      title: Text(user.name),
+      title: Text(user.displayName),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('이메일: ${user.email}'),
-          Text('역할: ${user.role}'),
-          Text('상태: ${user.status}'),
-          Text('가입일: ${user.joinedAt}'),
+          Text('상태: ${_userStatusLabel(user.status)}'),
+          Text('가입일: ${_formatDate(user.createdAt)}'),
         ],
       ),
       actions: [
@@ -132,20 +186,47 @@ class _UserDetailDialog extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
           child: const Text('닫기'),
         ),
-        if (user.status == '활성')
+        TextButton(
+          onPressed: () async {
+            final confirmed = await ConfirmDialog.show(
+              context,
+              title: '사용자 삭제',
+              content: '${user.displayName} 사용자를 삭제하시겠습니까?',
+              confirmLabel: '삭제',
+              isDestructive: true,
+            );
+            if (confirmed == true && context.mounted) {
+              Navigator.pop(context);
+              onDelete();
+            }
+          },
+          child: const Text('삭제', style: TextStyle(color: AppColors.error)),
+        ),
+        if (isActive)
           FilledButton(
             onPressed: () async {
               final confirmed = await ConfirmDialog.show(
                 context,
                 title: '사용자 정지',
-                content: '${user.name} 사용자를 정지하시겠습니까?',
+                content: '${user.displayName} 사용자를 정지하시겠습니까?',
                 confirmLabel: '정지',
                 isDestructive: true,
               );
-              if (confirmed == true && context.mounted) Navigator.pop(context);
+              if (confirmed == true && context.mounted) {
+                Navigator.pop(context);
+                onSuspend();
+              }
             },
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('정지'),
+          )
+        else
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onActivate();
+            },
+            child: const Text('활성화'),
           ),
       ],
     );

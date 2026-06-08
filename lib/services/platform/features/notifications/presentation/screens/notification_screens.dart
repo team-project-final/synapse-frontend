@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 
@@ -42,7 +44,7 @@ class _NotificationCenterScreenState
         time: '1시간 전',
         isRead: false,
         actionLabel: null,
-        iconColor: AppColors.primaryAmber,
+        iconColor: AppColors.primary,
       ),
       _Notification(
         icon: Icons.style_outlined,
@@ -69,7 +71,7 @@ class _NotificationCenterScreenState
         time: '어제 오후 6시',
         isRead: true,
         actionLabel: null,
-        iconColor: AppColors.stone500,
+        iconColor: AppColors.muted,
       ),
       _Notification(
         icon: Icons.star_outlined,
@@ -88,31 +90,34 @@ class _NotificationCenterScreenState
         time: '3일 전',
         isRead: true,
         actionLabel: null,
-        iconColor: AppColors.stone500,
+        iconColor: AppColors.muted,
       ),
     ];
 
     final content = ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         // Today section
-        Text('오늘',
-            style: textTheme.labelMedium
-                ?.copyWith(color: AppColors.stone400)),
+        Text(
+          '오늘',
+          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+        ),
         const SizedBox(height: AppSpacing.sm),
         ...todayNotifs.map((n) => _NotificationItem(notif: n)),
         const SizedBox(height: AppSpacing.md),
         // Yesterday section
-        Text('어제',
-            style: textTheme.labelMedium
-                ?.copyWith(color: AppColors.stone400)),
+        Text(
+          '어제',
+          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+        ),
         const SizedBox(height: AppSpacing.sm),
         ...yesterdayNotifs.map((n) => _NotificationItem(notif: n)),
         const SizedBox(height: AppSpacing.md),
         // This week section
-        Text('이번 주',
-            style: textTheme.labelMedium
-                ?.copyWith(color: AppColors.stone400)),
+        Text(
+          '이번 주',
+          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+        ),
         const SizedBox(height: AppSpacing.sm),
         ...thisWeekNotifs.map((n) => _NotificationItem(notif: n)),
       ],
@@ -123,11 +128,20 @@ class _NotificationCenterScreenState
         // Header row
         Padding(
           padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md, AppSpacing.md, AppSpacing.sm, 0),
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.sm,
+            0,
+          ),
           child: Row(
             children: [
               Text('알림 센터', style: textTheme.titleLarge),
               const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.settings_outlined),
+                tooltip: '알림 설정',
+                onPressed: () => context.go(AppRoutes.notificationSettings),
+              ),
               TextButton(
                 onPressed: () {
                   // TODO: 팀원 구현 — 모두 읽음 처리 API 연동
@@ -183,16 +197,19 @@ class _NotificationItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: notif.isRead ? null : colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppSpacing.sm),
+        color: notif.isRead
+            ? AppColors.surface
+            : AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
-          color: notif.isRead ? AppColors.stone200 : colorScheme.primary.withValues(alpha: 0.2),
+          color: notif.isRead
+              ? AppColors.border
+              : AppColors.primary.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
@@ -219,24 +236,27 @@ class _NotificationItem extends StatelessWidget {
                         width: 8,
                         height: 8,
                         decoration: const BoxDecoration(
-                          color: AppColors.info,
+                          color: AppColors.primary,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xs),
                     ],
                     Expanded(
-                      child: Text(notif.title,
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: notif.isRead ? null : FontWeight.w600,
-                          )),
+                      child: Text(
+                        notif.title,
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: notif.isRead ? null : FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xxs),
-                Text(notif.time,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone400)),
+                Text(
+                  notif.time,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
                 if (notif.actionLabel != null) ...[
                   const SizedBox(height: AppSpacing.xs),
                   TextButton(
@@ -282,12 +302,7 @@ class _NotificationPreferenceScreenState
     [false, true, true], // 시스템 알림
   ];
 
-  static const _categoryLabels = [
-    '복습 리마인더',
-    '커뮤니티 활동',
-    '성취/배지',
-    '시스템 알림',
-  ];
+  static const _categoryLabels = ['복습 리마인더', '커뮤니티 활동', '성취/배지', '시스템 알림'];
 
   static const _channelLabels = ['Push', 'Email', 'InApp'];
 
@@ -302,10 +317,7 @@ class _NotificationPreferenceScreenState
 
   Future<void> _pickTime({required bool isStart}) async {
     final initial = isStart ? _quietStart : _quietEnd;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
-    );
+    final picked = await showTimePicker(context: context, initialTime: initial);
     if (picked != null) {
       setState(() {
         if (isStart) {
@@ -343,24 +355,30 @@ class _NotificationPreferenceScreenState
             // Header row
             TableRow(
               decoration: BoxDecoration(
-                color: AppColors.stone100,
+                color: AppColors.surface2,
                 borderRadius: BorderRadius.circular(AppSpacing.xs),
               ),
               children: [
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: Text('카테고리',
-                      style: textTheme.labelMedium
-                          ?.copyWith(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    '카테고리',
+                    style: textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 ...List.generate(
                   3,
                   (i) => Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Text(_channelLabels[i],
-                          style: textTheme.labelMedium
-                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        _channelLabels[i],
+                        style: textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -372,9 +390,13 @@ class _NotificationPreferenceScreenState
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                    child: Text(_categoryLabels[row],
-                        style: textTheme.bodyMedium),
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
+                    ),
+                    child: Text(
+                      _categoryLabels[row],
+                      style: textTheme.bodyMedium,
+                    ),
                   ),
                   ...List.generate(
                     3,
@@ -401,8 +423,7 @@ class _NotificationPreferenceScreenState
         const SizedBox(height: AppSpacing.sm),
         Text(
           '이 시간 동안 Push 알림이 비활성화됩니다.',
-          style:
-              textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+          style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: AppSpacing.md),
         Row(

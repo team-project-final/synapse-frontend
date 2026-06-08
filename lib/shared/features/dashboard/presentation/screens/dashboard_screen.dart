@@ -2,36 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
-import 'package:synapse_frontend/shared/widgets/onboarding_checklist.dart';
+import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/home_board_section.dart';
+import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/planner_section.dart';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
-
-const _kReviewCardCount = 12;
-const _kTotalCards = 78;
-const _kAccuracyPercent = 82;
-const _kStreakDays = 5;
-
-const _kMockNotes = [
-  _MockNote(
-    title: '운영체제 가상 메모리 정리',
-    snippet: '페이지 교체 알고리즘 비교: FIFO, LRU, Optimal...',
-    timeAgo: '30분 전',
-  ),
-  _MockNote(
-    title: 'Flutter 상태 관리 패턴',
-    snippet: 'Riverpod의 Provider 종류와 사용 시점 정리...',
-    timeAgo: '2시간 전',
-  ),
-  _MockNote(
-    title: '이산수학 그래프 이론',
-    snippet: 'BFS와 DFS 시간복잡도 및 활용 사례...',
-    timeAgo: '어제',
-  ),
-];
 
 List<int> _generateHeatmapData(int days) {
   final rng = math.Random(42);
@@ -45,291 +21,33 @@ List<int> _generateHeatmapData(int days) {
   });
 }
 
-// ── Helper model ───────────────────────────────────────────────────────────
-
-class _MockNote {
-  const _MockNote({
-    required this.title,
-    required this.snippet,
-    required this.timeAgo,
-  });
-  final String title;
-  final String snippet;
-  final String timeAgo;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // DASH-001  DashboardScreen
 // ═══════════════════════════════════════════════════════════════════════════
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        // ── Review card ──
-        Text('오늘의 학습', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('복습 대기', style: textTheme.titleMedium),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        '$_kReviewCardCount장',
-                        style: textTheme.headlineLarge
-                            ?.copyWith(color: colorScheme.primary),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      // TODO: 팀원 구현 — learning-svc 복습 대기 카드 수 연동
-                      Text(
-                        '오늘 복습할 카드가 준비되어 있습니다',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone400),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () => context.go(AppRoutes.review),
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('복습 시작'),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Onboarding checklist ──
-        const OnboardingChecklist(),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Stats cards ──
-        Text('학습 현황', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                label: '복습 카드',
-                value: '$_kTotalCards장',
-                icon: Icons.style_outlined,
-                color: colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: _StatCard(
-                label: '정확도',
-                value: '$_kAccuracyPercent%',
-                icon: Icons.check_circle_outline,
-                color: AppColors.success,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Expanded(
-              child: _StatCard(
-                label: '연속 학습',
-                value: '$_kStreakDays일 🔥',
-                icon: Icons.local_fire_department,
-                color: AppColors.primaryAmber,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.dashboardStats),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Mini heatmap ──
-        Text('학습 히트맵', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        GestureDetector(
-          onTap: () => context.go(AppRoutes.dashboardHeatmap),
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: SizedBox(
-                height: 100,
-                child: CustomPaint(
-                  painter: _HeatmapMiniPainter(
-                    data: _generateHeatmapData(84), // 12 weeks
-                  ),
-                  size: Size.infinite,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.dashboardHeatmap),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-
-        // ── Recent notes ──
-        Text('최근 노트', style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.md),
-        Card(
-          child: Column(
-            children: [
-              // TODO: 팀원 구현 — knowledge-svc 최근 노트 목록 연동
-              for (int i = 0; i < _kMockNotes.length; i++) ...[
-                if (i > 0) const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.description_outlined,
-                      color: AppColors.stone400),
-                  title: Text(_kMockNotes[i].title,
-                      style: textTheme.bodyMedium),
-                  subtitle: Text(
-                    _kMockNotes[i].snippet,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone500),
-                  ),
-                  trailing: Text(
-                    _kMockNotes[i].timeAgo,
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: AppColors.stone400),
-                  ),
-                  onTap: () => context.go(AppRoutes.notes),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => context.go(AppRoutes.notes),
-            child: const Text('더보기'),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-      ],
-    );
+  Widget build(BuildContext context) {
+    // 디자인 컨펌(2026-06-01): 홈 대시보드를 위젯보드화.
+    // 플래너는 별도 사이드바 메뉴(/planner · PlannerScreen)로 분리.
+    return const HomeBoardSection();
   }
 }
 
-// ── Stat card widget ───────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// PlannerScreen — 사이드바 '플래너' 메뉴(/planner) 본문
+//   캘린더(위) + 칸반(아래). AppShell 내부에서 렌더되는 BODY 화면.
+// ═══════════════════════════════════════════════════════════════════════════
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
+class PlannerScreen extends StatelessWidget {
+  const PlannerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.md,
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              value,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xxs),
-            Text(
-              label,
-              style:
-                  textTheme.bodySmall?.copyWith(color: AppColors.stone500),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const PlannerSection();
   }
-}
-
-// ── Mini heatmap painter ───────────────────────────────────────────────────
-
-class _HeatmapMiniPainter extends CustomPainter {
-  _HeatmapMiniPainter({required this.data});
-
-  final List<int> data;
-
-  static const int _cols = 12;
-  static const int _rows = 7;
-
-  Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cellW = (size.width - (_cols - 1) * 2) / _cols;
-    final cellH = (size.height - (_rows - 1) * 2) / _rows;
-    final cellSize = math.min(cellW, cellH);
-    const gap = 2.0;
-
-    for (int col = 0; col < _cols; col++) {
-      for (int row = 0; row < _rows; row++) {
-        final index = col * _rows + row;
-        final count = index < data.length ? data[index] : 0;
-        final paint = Paint()..color = _colorForCount(count);
-        final rect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            col * (cellSize + gap),
-            row * (cellSize + gap),
-            cellSize,
-            cellSize,
-          ),
-          const Radius.circular(2),
-        );
-        canvas.drawRRect(rect, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _HeatmapMiniPainter oldDelegate) =>
-      oldDelegate.data != data;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -362,11 +80,12 @@ class _DashboardHeatmapScreenState
   }
 
   Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
+    // 컨셉 보라 스케일 (적음→많음)
+    if (count == 0) return AppColors.surface2;
+    if (count <= 2) return const Color(0xFFD8C6F5);
+    if (count <= 5) return const Color(0xFFB388F0);
+    if (count <= 9) return const Color(0xFF8B5CF6);
+    return AppColors.primary;
   }
 
   int? _hitTest(Offset local) {
@@ -440,8 +159,9 @@ class _DashboardHeatmapScreenState
               const SizedBox(width: AppSpacing.xs),
               for (final count in [0, 1, 4, 7, 12])
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxs,
+                  ),
                   child: Container(
                     width: 14,
                     height: 14,
@@ -474,11 +194,12 @@ class _HeatmapFullPainter extends CustomPainter {
   static const double _gap = 3;
 
   Color _colorForCount(int count) {
-    if (count == 0) return AppColors.stone100;
-    if (count <= 2) return const Color(0xFFBBF7D0);
-    if (count <= 5) return const Color(0xFF4ADE80);
-    if (count <= 9) return const Color(0xFF16A34A);
-    return const Color(0xFF166534);
+    // 컨셉 보라 스케일 (적음→많음)
+    if (count == 0) return AppColors.surface2;
+    if (count <= 2) return const Color(0xFFD8C6F5);
+    if (count <= 5) return const Color(0xFFB388F0);
+    if (count <= 9) return const Color(0xFF8B5CF6);
+    return AppColors.primary;
   }
 
   @override
@@ -519,8 +240,7 @@ class DashboardStatsScreen extends ConsumerStatefulWidget {
       _DashboardStatsScreenState();
 }
 
-class _DashboardStatsScreenState
-    extends ConsumerState<DashboardStatsScreen> {
+class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   String _period = '주간';
 
   // TODO: 팀원 구현 — learning-svc 학습 통계 데이터 연동

@@ -36,6 +36,7 @@ abstract final class AppRoutes {
   static const billingSuccess = '/billing/success';
   static const billingCancel = '/billing/cancel';
 
+  static const settings = '/settings';
   static const settingsProfile = '/settings/profile';
   static const settingsSecurity = '/settings/security';
   static const settingsNotifications = '/settings/notifications';

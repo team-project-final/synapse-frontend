@@ -180,8 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       TextButton(
                         onPressed: () => context.go(AppRoutes.signup),
@@ -191,6 +192,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       TextButton(
                         onPressed: () => context.go(AppRoutes.passwordReset),
                         child: const Text('비밀번호 찾기'),
+                      ),
+                      const Text('·'),
+                      TextButton(
+                        onPressed: () => context.go(AppRoutes.mfa),
+                        child: const Text('2단계 인증'),
                       ),
                     ],
                   ),

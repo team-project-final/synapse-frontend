@@ -26,6 +26,7 @@ class AdminAuditLogScreen extends ConsumerStatefulWidget {
 class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
   AdminPage<AdminAuditLog>? _data;
   bool _loading = true;
+  bool _exporting = false;
   String? _action;
   int _page = 0;
 
@@ -64,6 +65,61 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
     _load();
   }
 
+  // 현재 액션 필터 기준 감사 로그를 CSV로 내보낸다(최대 1000건, 웹 전용).
+  Future<void> _exportCsv() async {
+    if (!kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CSV 내보내기는 웹에서만 지원됩니다.')),
+      );
+      return;
+    }
+    setState(() => _exporting = true);
+    try {
+      final page = await ref.read(listAuditLogsUseCaseProvider)(
+        action: _action,
+        page: 0,
+        size: 1000,
+      );
+      final csv = toCsv(
+        const [
+          '시각',
+          '이벤트ID',
+          '액션',
+          '사용자',
+          '대상유형',
+          '대상ID',
+          '이전값',
+          '이후값',
+          'IP',
+          'UserAgent',
+        ],
+        page.content
+            .map((log) => [
+                  _formatDateTime(log.createdAt),
+                  log.eventId,
+                  log.action,
+                  log.userId,
+                  log.resourceType,
+                  log.resourceId,
+                  log.oldValue,
+                  log.newValue,
+                  log.ipAddress,
+                  log.userAgent,
+                ])
+            .toList(),
+      );
+      downloadCsv('audit-logs.csv', csv);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSV 내보내기에 실패했습니다.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -98,13 +154,14 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
       onPageChanged: _onPage,
       actions: [
         OutlinedButton.icon(
-          onPressed: () {
-            // TODO: 팀원 구현 — CSV 내보내기
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('CSV 내보내기 준비 중...')),
-            );
-          },
-          icon: const Icon(Icons.download, size: 18),
+          onPressed: _exporting ? null : _exportCsv,
+          icon: _exporting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download, size: 18),
           label: const Text('CSV 내보내기'),
         ),
       ],

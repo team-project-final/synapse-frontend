@@ -6,6 +6,7 @@ abstract final class AppRoutes {
   static const mfa = '/mfa';
   static const passwordReset = '/password-reset';
   static const oauthConsent = '/oauth-consent';
+  static const authCallback = '/auth/callback';
 
   static const notes = '/notes';
   static const noteDetail = '/notes/:noteId';
@@ -14,7 +15,9 @@ abstract final class AppRoutes {
   static const tags = '/tags';
 
   static const decks = '/decks';
+  static const deckNew = '/decks/new';
   static const deckCards = '/decks/:deckId/cards';
+  static const deckCardNew = '/decks/:deckId/cards/new';
   static const cardNew = '/cards/new';
   static const aiCards = '/ai/cards';
   static const review = '/review';
@@ -30,7 +33,10 @@ abstract final class AppRoutes {
   static const billingPlans = '/billing/plans';
   static const billingUsage = '/billing/usage';
   static const billingHistory = '/billing/history';
+  static const billingSuccess = '/billing/success';
+  static const billingCancel = '/billing/cancel';
 
+  static const settings = '/settings';
   static const settingsProfile = '/settings/profile';
   static const settingsSecurity = '/settings/security';
   static const settingsNotifications = '/settings/notifications';
@@ -51,16 +57,20 @@ abstract final class AppRoutes {
   static const dashboardHeatmap = '/dashboard/heatmap';
   static const dashboardStats = '/dashboard/stats';
 
+  static const planner = '/planner';
+
   static const communityGroups = '/community/groups';
   static const communityGroupDetail = '/community/groups/:groupId';
   static const communityGroupNew = '/community/groups/new';
   static const communitySharedDecks = '/community/shared-decks';
   static const communitySharedDeckDetail = '/community/shared-decks/:deckId';
   static const communitySharedNotes = '/community/shared-notes';
+  static const communitySharedNoteDetail = '/community/shared-notes/:noteId';
 
   static const gamificationProfile = '/gamification/profile';
   static const gamificationBadges = '/gamification/badges';
   static const gamificationLeaderboard = '/gamification/leaderboard';
+  static const gamificationXpHistory = '/gamification/xp-history';
 
   static const notifications = '/notifications';
   static const notificationSettings = '/notifications/settings';
@@ -69,9 +79,12 @@ abstract final class AppRoutes {
   static String noteEditorPath(String noteId) => '/notes/$noteId/edit';
   static String noteVersionsPath(String noteId) => '/notes/$noteId/versions';
   static String deckCardsPath(String deckId) => '/decks/$deckId/cards';
+  static String deckCardNewPath(String deckId) => '/decks/$deckId/cards/new';
   static String graphNotePath(String noteId) => '/graph/notes/$noteId';
   static String communityGroupDetailPath(String groupId) =>
       '/community/groups/$groupId';
   static String communitySharedDeckDetailPath(String deckId) =>
       '/community/shared-decks/$deckId';
+  static String communitySharedNoteDetailPath(String noteId) =>
+      '/community/shared-notes/$noteId';
 }

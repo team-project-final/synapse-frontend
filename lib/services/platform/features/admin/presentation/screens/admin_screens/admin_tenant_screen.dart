@@ -2,7 +2,8 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminTenantScreen (SCR-A-ADMIN-002)
-// platform-svc /api/v1/admin/tenants 연동 (목록/상태변경)
+// platform-svc /api/v1/admin/tenants 연동 (목록/페이지/상태변경)
+// 백엔드가 검색·필터를 지원하지 않아 페이지네이션만 연결한다.
 // ============================================================================
 
 class AdminTenantScreen extends ConsumerStatefulWidget {
@@ -13,28 +14,40 @@ class AdminTenantScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminTenantScreenState extends ConsumerState<AdminTenantScreen> {
-  late Future<AdminPage<AdminTenant>> _tenantsFuture;
+  AdminPage<AdminTenant>? _data;
+  bool _loading = true;
+  int _page = 0;
 
   @override
   void initState() {
     super.initState();
-    _tenantsFuture = _fetchTenants();
+    _load();
   }
 
-  Future<AdminPage<AdminTenant>> _fetchTenants() {
-    return ref.read(listAdminTenantsUseCaseProvider)();
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final data = await ref.read(listAdminTenantsUseCaseProvider)(page: _page);
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
-  void _reload() {
-    setState(() {
-      _tenantsFuture = _fetchTenants();
-    });
+  void _onPage(int page) {
+    _page = page;
+    _load();
   }
 
   Future<void> _changeStatus(AdminTenant tenant, String status) async {
     try {
       await ref.read(changeTenantStatusUseCaseProvider)(tenant.id, status);
-      if (mounted) _reload();
+      await _load();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,67 +67,53 @@ class _AdminTenantScreenState extends ConsumerState<AdminTenantScreen> {
         children: [
           Text('테넌트 관리', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: FutureBuilder<AdminPage<AdminTenant>>(
-              future: _tenantsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('테넌트 목록을 불러오지 못했습니다.'),
-                        const SizedBox(height: AppSpacing.sm),
-                        FilledButton(
-                          onPressed: _reload,
-                          child: const Text('다시 시도'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                final tenants = snapshot.data?.content ?? const <AdminTenant>[];
-                // TODO: 팀원 구현 — 필터/페이지네이션을 API 파라미터와 연동
-                return AdminDataGrid(
-                  searchHint: '테넌트 검색...',
-                  filters: const ['활성', '정지'],
-                  columns: const [
-                    DataColumn(label: Text('테넌트명')),
-                    DataColumn(label: Text('플랜')),
-                    DataColumn(label: Text('상태')),
-                    DataColumn(label: Text('생성일')),
-                  ],
-                  rows: tenants.map((tenant) {
-                    return DataRow(
-                      onSelectChanged: (_) {
-                        showModalBottomSheet<void>(
-                          context: context,
-                          builder: (_) => _TenantDetailSheet(
-                            tenant: tenant,
-                            onSuspend: () => _changeStatus(tenant, 'suspended'),
-                            onActivate: () => _changeStatus(tenant, 'active'),
-                          ),
-                        );
-                      },
-                      cells: [
-                        DataCell(Text(tenant.name)),
-                        DataCell(_PlanChip(plan: tenant.plan)),
-                        DataCell(
-                          _StatusBadge(status: _userStatusLabel(tenant.status)),
-                        ),
-                        DataCell(Text(_formatDate(tenant.createdAt))),
-                      ],
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    final data = _data;
+    if (data == null) {
+      if (_loading) return const Center(child: CircularProgressIndicator());
+      return _AdminErrorRetry(
+        onRetry: _load,
+        message: '테넌트 목록을 불러오지 못했습니다.',
+      );
+    }
+    return AdminDataGrid(
+      searchHint: '테넌트 검색...',
+      page: data.page,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+      onPageChanged: _onPage,
+      columns: const [
+        DataColumn(label: Text('테넌트명')),
+        DataColumn(label: Text('플랜')),
+        DataColumn(label: Text('상태')),
+        DataColumn(label: Text('생성일')),
+      ],
+      rows: data.content.map((tenant) {
+        return DataRow(
+          onSelectChanged: (_) {
+            showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => _TenantDetailSheet(
+                tenant: tenant,
+                onSuspend: () => _changeStatus(tenant, 'suspended'),
+                onActivate: () => _changeStatus(tenant, 'active'),
+              ),
+            );
+          },
+          cells: [
+            DataCell(Text(tenant.name)),
+            DataCell(_PlanChip(plan: tenant.plan)),
+            DataCell(_StatusBadge(status: _userStatusLabel(tenant.status))),
+            DataCell(Text(_formatDate(tenant.createdAt))),
+          ],
+        );
+      }).toList(),
     );
   }
 }

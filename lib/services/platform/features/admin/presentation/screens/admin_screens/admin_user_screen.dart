@@ -2,7 +2,7 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminUserScreen (SCR-A-ADMIN-003)
-// platform-svc /api/v1/admin/users 연동 (목록/상태변경/삭제)
+// platform-svc /api/v1/admin/users 연동 (목록/검색/필터/페이지/상태변경/삭제)
 // ============================================================================
 
 String _userStatusLabel(String status) {
@@ -15,6 +15,19 @@ String _userStatusLabel(String status) {
       return '삭제됨';
     default:
       return status;
+  }
+}
+
+String? _userStatusFromLabel(String? label) {
+  switch (label) {
+    case '활성':
+      return 'active';
+    case '정지':
+      return 'suspended';
+    case '삭제됨':
+      return 'deleted';
+    default:
+      return null;
   }
 }
 
@@ -34,28 +47,58 @@ class AdminUserScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
-  late Future<AdminPage<AdminUser>> _usersFuture;
+  AdminPage<AdminUser>? _data;
+  bool _loading = true;
+  String? _query;
+  String? _statusFilter;
+  int _page = 0;
 
   @override
   void initState() {
     super.initState();
-    _usersFuture = _fetchUsers();
+    _load();
   }
 
-  Future<AdminPage<AdminUser>> _fetchUsers() {
-    return ref.read(listAdminUsersUseCaseProvider)();
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final data = await ref.read(listAdminUsersUseCaseProvider)(
+        query: _query,
+        status: _statusFilter,
+        page: _page,
+      );
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
-  void _reload() {
-    setState(() {
-      _usersFuture = _fetchUsers();
-    });
+  void _onSearch(String value) {
+    _query = value.trim().isEmpty ? null : value.trim();
+    _page = 0;
+    _load();
+  }
+
+  void _onFilter(String? label) {
+    _statusFilter = _userStatusFromLabel(label);
+    _page = 0;
+    _load();
+  }
+
+  void _onPage(int page) {
+    _page = page;
+    _load();
   }
 
   Future<void> _changeStatus(AdminUser user, String status) async {
     try {
       await ref.read(changeUserStatusUseCaseProvider)(user.id, status);
-      if (mounted) _reload();
+      await _load();
     } catch (_) {
       _showError('상태 변경에 실패했습니다.');
     }
@@ -64,7 +107,7 @@ class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
   Future<void> _deleteUser(AdminUser user) async {
     try {
       await ref.read(deleteAdminUserUseCaseProvider)(user.id);
-      if (mounted) _reload();
+      await _load();
     } catch (_) {
       _showError('삭제에 실패했습니다.');
     }
@@ -87,69 +130,54 @@ class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
         children: [
           Text('사용자 관리', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: FutureBuilder<AdminPage<AdminUser>>(
-              future: _usersFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('사용자 목록을 불러오지 못했습니다.'),
-                        const SizedBox(height: AppSpacing.sm),
-                        FilledButton(
-                          onPressed: _reload,
-                          child: const Text('다시 시도'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                final users = snapshot.data?.content ?? const <AdminUser>[];
-                // TODO: 팀원 구현 — 검색(q)/상태필터/페이지네이션을 API 파라미터와 연동
-                //   (현재 AdminDataGrid는 표시 전용이라 1페이지만 노출)
-                return AdminDataGrid(
-                  searchHint: '이메일 또는 이름 검색...',
-                  filters: const ['활성', '정지', '삭제됨'],
-                  columns: const [
-                    DataColumn(label: Text('이메일')),
-                    DataColumn(label: Text('이름')),
-                    DataColumn(label: Text('상태')),
-                    DataColumn(label: Text('가입일')),
-                  ],
-                  rows: users.map((user) {
-                    return DataRow(
-                      onSelectChanged: (_) {
-                        showDialog<void>(
-                          context: context,
-                          builder: (_) => _UserDetailDialog(
-                            user: user,
-                            onSuspend: () => _changeStatus(user, 'suspended'),
-                            onActivate: () => _changeStatus(user, 'active'),
-                            onDelete: () => _deleteUser(user),
-                          ),
-                        );
-                      },
-                      cells: [
-                        DataCell(Text(user.email)),
-                        DataCell(Text(user.displayName)),
-                        DataCell(
-                          _StatusBadge(status: _userStatusLabel(user.status)),
-                        ),
-                        DataCell(Text(_formatDate(user.createdAt))),
-                      ],
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    final data = _data;
+    if (data == null) {
+      if (_loading) return const Center(child: CircularProgressIndicator());
+      return _AdminErrorRetry(onRetry: _load);
+    }
+    return AdminDataGrid(
+      searchHint: '이메일 또는 이름 검색...',
+      filters: const ['활성', '정지', '삭제됨'],
+      onSearch: _onSearch,
+      onFilterSelected: _onFilter,
+      page: data.page,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+      onPageChanged: _onPage,
+      columns: const [
+        DataColumn(label: Text('이메일')),
+        DataColumn(label: Text('이름')),
+        DataColumn(label: Text('상태')),
+        DataColumn(label: Text('가입일')),
+      ],
+      rows: data.content.map((user) {
+        return DataRow(
+          onSelectChanged: (_) {
+            showDialog<void>(
+              context: context,
+              builder: (_) => _UserDetailDialog(
+                user: user,
+                onSuspend: () => _changeStatus(user, 'suspended'),
+                onActivate: () => _changeStatus(user, 'active'),
+                onDelete: () => _deleteUser(user),
+              ),
+            );
+          },
+          cells: [
+            DataCell(Text(user.email)),
+            DataCell(Text(user.displayName)),
+            DataCell(_StatusBadge(status: _userStatusLabel(user.status))),
+            DataCell(Text(_formatDate(user.createdAt))),
+          ],
+        );
+      }).toList(),
     );
   }
 }

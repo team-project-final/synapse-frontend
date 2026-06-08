@@ -2,7 +2,7 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminAuditLogScreen (SCR-A-ADMIN-004)
-// platform-svc /api/v1/admin/audit-logs 연동 (조회 전용)
+// platform-svc /api/v1/admin/audit-logs 연동 (조회/액션필터/페이지)
 // ============================================================================
 
 String _formatDateTime(DateTime? date) {
@@ -24,22 +24,44 @@ class AdminAuditLogScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
-  late Future<AdminPage<AdminAuditLog>> _logsFuture;
+  AdminPage<AdminAuditLog>? _data;
+  bool _loading = true;
+  String? _action;
+  int _page = 0;
 
   @override
   void initState() {
     super.initState();
-    _logsFuture = _fetchLogs();
+    _load();
   }
 
-  Future<AdminPage<AdminAuditLog>> _fetchLogs() {
-    return ref.read(listAuditLogsUseCaseProvider)();
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final data = await ref.read(listAuditLogsUseCaseProvider)(
+        action: _action,
+        page: _page,
+      );
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
-  void _reload() {
-    setState(() {
-      _logsFuture = _fetchLogs();
-    });
+  void _onFilter(String? label) {
+    _action = label;
+    _page = 0;
+    _load();
+  }
+
+  void _onPage(int page) {
+    _page = page;
+    _load();
   }
 
   @override
@@ -52,70 +74,58 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
         children: [
           Text('감사 로그', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: FutureBuilder<AdminPage<AdminAuditLog>>(
-              future: _logsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('감사 로그를 불러오지 못했습니다.'),
-                        const SizedBox(height: AppSpacing.sm),
-                        FilledButton(
-                          onPressed: _reload,
-                          child: const Text('다시 시도'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                final logs = snapshot.data?.content ?? const <AdminAuditLog>[];
-                // TODO: 팀원 구현 — action/userId 필터·페이지네이션 API 연동, CSV 내보내기
-                return AdminDataGrid(
-                  searchHint: '액션 또는 사용자 검색...',
-                  filters: const ['LOGIN', 'CREATE', 'UPDATE', 'DELETE'],
-                  actions: [
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('CSV 내보내기 준비 중...')),
-                        );
-                      },
-                      icon: const Icon(Icons.download, size: 18),
-                      label: const Text('CSV 내보내기'),
-                    ),
-                  ],
-                  columns: const [
-                    DataColumn(label: Text('시각')),
-                    DataColumn(label: Text('사용자')),
-                    DataColumn(label: Text('액션')),
-                    DataColumn(label: Text('대상')),
-                    DataColumn(label: Text('IP')),
-                  ],
-                  rows: logs.map((log) {
-                    return DataRow(
-                      cells: [
-                        DataCell(Text(_formatDateTime(log.createdAt))),
-                        DataCell(Text(log.userId.isEmpty ? '-' : log.userId)),
-                        DataCell(_ActionChip(action: log.action)),
-                        DataCell(Text(log.targetLabel)),
-                        DataCell(
-                          Text(log.ipAddress.isEmpty ? '-' : log.ipAddress),
-                        ),
-                      ],
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    final data = _data;
+    if (data == null) {
+      if (_loading) return const Center(child: CircularProgressIndicator());
+      return _AdminErrorRetry(
+        onRetry: _load,
+        message: '감사 로그를 불러오지 못했습니다.',
+      );
+    }
+    return AdminDataGrid(
+      filters: const ['LOGIN', 'CREATE', 'UPDATE', 'DELETE'],
+      onFilterSelected: _onFilter,
+      page: data.page,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+      onPageChanged: _onPage,
+      actions: [
+        OutlinedButton.icon(
+          onPressed: () {
+            // TODO: 팀원 구현 — CSV 내보내기
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('CSV 내보내기 준비 중...')),
+            );
+          },
+          icon: const Icon(Icons.download, size: 18),
+          label: const Text('CSV 내보내기'),
+        ),
+      ],
+      columns: const [
+        DataColumn(label: Text('시각')),
+        DataColumn(label: Text('사용자')),
+        DataColumn(label: Text('액션')),
+        DataColumn(label: Text('대상')),
+        DataColumn(label: Text('IP')),
+      ],
+      rows: data.content.map((log) {
+        return DataRow(
+          cells: [
+            DataCell(Text(_formatDateTime(log.createdAt))),
+            DataCell(Text(log.userId.isEmpty ? '-' : log.userId)),
+            DataCell(_ActionChip(action: log.action)),
+            DataCell(Text(log.targetLabel)),
+            DataCell(Text(log.ipAddress.isEmpty ? '-' : log.ipAddress)),
+          ],
+        );
+      }).toList(),
     );
   }
 }

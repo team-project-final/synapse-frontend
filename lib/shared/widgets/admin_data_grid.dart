@@ -10,6 +10,12 @@ class AdminDataGrid extends StatefulWidget {
     this.filters = const [],
     this.onRowTap,
     this.actions,
+    this.onSearch,
+    this.onFilterSelected,
+    this.page = 0,
+    this.totalPages = 1,
+    this.totalElements,
+    this.onPageChanged,
     super.key,
   });
 
@@ -19,6 +25,18 @@ class AdminDataGrid extends StatefulWidget {
   final List<String> filters;
   final ValueChanged<int>? onRowTap;
   final List<Widget>? actions;
+
+  /// 제공 시 검색어 제출(엔터)을 서버로 전달한다. null이면 검색창은 비활성.
+  final ValueChanged<String>? onSearch;
+
+  /// 제공 시 필터 칩 선택을 서버로 전달한다('전체'는 null).
+  final ValueChanged<String?>? onFilterSelected;
+
+  /// 서버 페이지네이션 상태/콜백. onPageChanged 제공 시 이전/다음 버튼 활성.
+  final int page;
+  final int totalPages;
+  final int? totalElements;
+  final ValueChanged<int>? onPageChanged;
 
   @override
   State<AdminDataGrid> createState() => _AdminDataGridState();
@@ -46,6 +64,7 @@ class _AdminDataGridState extends State<AdminDataGrid> {
               flex: 2,
               child: TextField(
                 controller: _searchController,
+                enabled: widget.onSearch != null,
                 decoration: InputDecoration(
                   hintText: widget.searchHint,
                   prefixIcon: const Icon(Icons.search, size: 20),
@@ -55,7 +74,8 @@ class _AdminDataGridState extends State<AdminDataGrid> {
                   contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 ),
-                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.search,
+                onSubmitted: widget.onSearch,
               ),
             ),
             if (widget.filters.isNotEmpty) ...[
@@ -71,8 +91,11 @@ class _AdminDataGridState extends State<AdminDataGrid> {
                         child: FilterChip(
                           label: Text(f),
                           selected: selected,
-                          onSelected: (_) =>
-                              setState(() => _selectedFilter = f),
+                          onSelected: (_) {
+                            setState(() => _selectedFilter = f);
+                            widget.onFilterSelected
+                                ?.call(f == '전체' ? null : f);
+                          },
                         ),
                       );
                     }).toList(),
@@ -106,25 +129,38 @@ class _AdminDataGridState extends State<AdminDataGrid> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('1-10 / ${widget.rows.length}',
+            Text(_pageLabel(),
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
                     ?.copyWith(color: AppColors.stone500)),
             const SizedBox(width: AppSpacing.sm),
-            const IconButton(
-              icon: Icon(Icons.chevron_left, size: 20),
-              onPressed: null,
+            IconButton(
+              icon: const Icon(Icons.chevron_left, size: 20),
+              onPressed: (widget.onPageChanged != null && widget.page > 0)
+                  ? () => widget.onPageChanged!(widget.page - 1)
+                  : null,
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right, size: 20),
-              onPressed: () {
-                // TODO: 팀원 구현 — 커서 페이지네이션
-              },
+              onPressed: (widget.onPageChanged != null &&
+                      widget.page < widget.totalPages - 1)
+                  ? () => widget.onPageChanged!(widget.page + 1)
+                  : null,
             ),
           ],
         ),
       ],
     );
+  }
+
+  String _pageLabel() {
+    if (widget.onPageChanged != null) {
+      final totalPages = widget.totalPages <= 0 ? 1 : widget.totalPages;
+      final base = '${widget.page + 1} / $totalPages';
+      final total = widget.totalElements;
+      return total != null ? '$base · 총 $total건' : base;
+    }
+    return '${widget.rows.length}건';
   }
 }

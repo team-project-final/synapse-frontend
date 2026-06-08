@@ -9,19 +9,15 @@ import 'package:synapse_frontend/services/platform/features/auth/data/auth_repos
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/oauth_callback_screen.dart';
 
 void main() {
-  // #25에서 AppRoutes.authCallback 상수가 제거됨. 콜백 화면 위젯은 유지되므로
-  // 경로 리터럴로 self-contained 라우터를 구성해 위젯 동작만 검증한다.
-  const authCallbackPath = '/auth/callback';
-
   testWidgets('oauth callback stores access token and navigates to dashboard', (
     tester,
   ) async {
     final tokenStore = InMemoryTokenStore();
     final router = GoRouter(
-      initialLocation: '$authCallbackPath?access_token=access',
+      initialLocation: '${AppRoutes.authCallback}?access_token=access',
       routes: [
         GoRoute(
-          path: authCallbackPath,
+          path: AppRoutes.authCallback,
           builder: (context, state) => OAuthCallbackScreen(
             accessToken: state.uri.queryParameters['access_token'],
             error: state.uri.queryParameters['error'],
@@ -59,10 +55,10 @@ void main() {
   testWidgets('oauth callback with error navigates to login', (tester) async {
     final tokenStore = InMemoryTokenStore();
     final router = GoRouter(
-      initialLocation: '$authCallbackPath?error=denied',
+      initialLocation: '${AppRoutes.authCallback}?error=denied',
       routes: [
         GoRoute(
-          path: authCallbackPath,
+          path: AppRoutes.authCallback,
           builder: (context, state) => OAuthCallbackScreen(
             accessToken: state.uri.queryParameters['access_token'],
             error: state.uri.queryParameters['error'],

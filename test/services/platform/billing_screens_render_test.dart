@@ -6,7 +6,7 @@ import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/platform/features/billing/data/billing_api.dart';
 import 'package:synapse_frontend/services/platform/features/billing/presentation/screens/billing_screens.dart';
 
-// 결제 화면(플랜/사용량/내역) reskin 후 데스크탑/모바일 렌더 검증.
+// 결제 화면(플랜/사용량/내역/결제반환) reskin 후 데스크탑/모바일 렌더 검증.
 // BillingPlansScreen은 init에서 구독 조회 API를 호출하므로 fake로 override한다.
 void main() {
   Future<void> pump(
@@ -53,6 +53,9 @@ void main() {
     });
     testWidgets('BillingHistoryScreen $label 렌더', (tester) async {
       await pump(tester, const BillingHistoryScreen(), size);
+    });
+    testWidgets('BillingReturnScreen(성공) $label 렌더', (tester) async {
+      await pump(tester, const BillingReturnScreen(success: true), size);
     });
   }
 }

@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/learning/features/ai/providers/ai_providers.dart';
+import 'package:synapse_frontend/shared/widgets/concept.dart';
+import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 // ── SearchScreen (SCR-W-SEARCH-001) ──
 
@@ -16,20 +19,10 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen>
-    with SingleTickerProviderStateMixin {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   bool _hasQuery = false;
-  late final TabController _tabController;
-
-  static const _categoryTabs = ['전체', '노트', '카드', '커뮤니티'];
-  static const _categoryCounts = [3, 2, 1, 0];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _categoryTabs.length, vsync: this);
-  }
+  bool _semantic = true;
 
   // TODO: 팀원 구현 — knowledge-svc / learning-svc 통합 검색 API 연동
   final _mockResults = [
@@ -59,11 +52,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   @override
   void dispose() {
     _searchController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
-  List<TextSpan> _highlightText(String text, String query, TextStyle? baseStyle) {
+  List<TextSpan> _highlightText(
+    String text,
+    String query,
+    TextStyle? baseStyle,
+  ) {
     if (query.isEmpty) return [TextSpan(text: text, style: baseStyle)];
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
@@ -76,15 +72,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         break;
       }
       if (index > start) {
-        spans.add(TextSpan(text: text.substring(start, index), style: baseStyle));
+        spans.add(
+          TextSpan(text: text.substring(start, index), style: baseStyle),
+        );
       }
-      spans.add(TextSpan(
-        text: text.substring(index, index + query.length),
-        style: baseStyle?.copyWith(
-          backgroundColor: AppColors.primaryAmber.withValues(alpha: 0.25),
-          fontWeight: FontWeight.bold,
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + query.length),
+          style: baseStyle?.copyWith(
+            backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+            fontWeight: FontWeight.bold,
+          ),
         ),
-      ));
+      );
       start = index + query.length;
     }
     return spans;
@@ -93,165 +93,214 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
-    return Column(
+    return ConceptPage(
       children: [
-        // Search bar
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: TextField(
-            controller: _searchController,
-            autofocus: false,
-            decoration: InputDecoration(
-              hintText: '노트, 카드, 태그 검색...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _hasQuery
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _hasQuery = false);
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.sm),
+        // 입력형 검색 바
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search, size: 18, color: AppColors.muted),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: '노트, 카드, 태그 검색…',
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ),
+                  onChanged: (v) => setState(() => _hasQuery = v.isNotEmpty),
+                ),
               ),
-              filled: true,
-              fillColor: AppColors.stone50,
-            ),
-            onChanged: (v) => setState(() => _hasQuery = v.isNotEmpty),
+              if (_hasQuery)
+                IconButton(
+                  icon: const Icon(Icons.clear, size: 18),
+                  color: AppColors.muted,
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _hasQuery = false);
+                  },
+                ),
+            ],
           ),
         ),
-        // Category tabs with badges
-        TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          tabs: List.generate(_categoryTabs.length, (i) {
-            final count = _categoryCounts[i];
-            return Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(_categoryTabs[i]),
-                  if (_hasQuery && count > 0) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    Badge(
-                      label: Text('$count'),
-                      backgroundColor: colorScheme.primary,
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }),
+        const SizedBox(height: AppSpacing.md),
+        // 의미 검색 / 키워드 토글
+        Row(
+          children: [
+            ConceptFilterPill(
+              label: '✦ 의미 검색',
+              selected: _semantic,
+              onTap: () => setState(() => _semantic = true),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ConceptFilterPill(
+              label: '키워드',
+              selected: !_semantic,
+              onTap: () => setState(() => _semantic = false),
+            ),
+          ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        // Results or empty state
-        Expanded(
-          child: _hasQuery
-              ? ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md),
-                  itemCount: _mockResults.length,
-                  itemBuilder: (context, i) {
-                    final result = _mockResults[i];
-                    final tags = result['tags'] as List<String>;
-                    return Card(
-                      margin:
-                          const EdgeInsets.only(bottom: AppSpacing.sm),
-                      child: InkWell(
-                        onTap: () => context.go(
-                            AppRoutes.noteDetailPath(
-                                result['id'] as String)),
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.sm),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        children: _highlightText(
-                                          result['title'] as String,
-                                          _searchController.text,
-                                          textTheme.titleSmall,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Text(result['time'] as String,
-                                      style: textTheme.bodySmall
-                                          ?.copyWith(
-                                              color: AppColors.stone400)),
-                                ],
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              RichText(
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                text: TextSpan(
-                                  children: _highlightText(
-                                    result['snippet'] as String,
-                                    _searchController.text,
-                                    textTheme.bodySmall?.copyWith(
-                                        color: AppColors.stone500),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.xs),
-                              Wrap(
-                                spacing: AppSpacing.xs,
-                                children: tags
-                                    .map((tag) => Chip(
-                                          label: Text(tag,
-                                              style: textTheme.bodySmall
-                                                  ?.copyWith(
-                                                      fontSize: 11)),
-                                          padding: EdgeInsets.zero,
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize
-                                                  .shrinkWrap,
-                                          visualDensity:
-                                              VisualDensity.compact,
-                                        ))
-                                    .toList(),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                )
-              : Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+        Text(
+          _semantic
+              ? '키워드를 넘어 의미로 — pgvector + Elasticsearch 하이브리드'
+              : '제목·본문 키워드 일치 검색',
+          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+        ),
+        if (!_hasQuery)
+          const ConceptEmptyState(
+            emoji: '🔍',
+            title: '검색어를 입력하세요',
+            body: '노트, 카드, 태그를 한번에 검색할 수 있습니다',
+          )
+        else ...[
+          // 의미 검색일 때 AI 답변 카드
+          if (_semantic) ...[
+            const ConceptSectionLabel('AI 답변'),
+            ConceptGradientCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      const Icon(Icons.search,
-                          size: 80, color: AppColors.stone300),
-                      const SizedBox(height: AppSpacing.md),
-                      Text('검색어를 입력하세요',
-                          style: textTheme.bodyLarge
-                              ?.copyWith(color: AppColors.stone400)),
-                      const SizedBox(height: AppSpacing.xs),
+                      const SynapseOrb(size: 26, glyphScale: 0.5),
+                      const SizedBox(width: AppSpacing.sm),
                       Text(
-                        '노트, 카드, 태그를 한번에 검색할 수 있습니다',
-                        style: textTheme.bodySmall
-                            ?.copyWith(color: AppColors.stone300),
+                        'AI 답변',
+                        style: textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    '정규화는 과적합을 막기 위한 기법입니다. L1(Lasso)은 일부 가중치를 0으로 만들어 feature selection 효과를 주고, L2(Ridge)는 가중치를 작게 유지합니다. 신경망에서는 드롭아웃도 정규화 역할을 합니다.',
+                    style: textTheme.bodyMedium?.copyWith(height: 1.6),
+                  ),
+                  const SizedBox(height: AppSpacing.sm + 2),
+                  const Wrap(
+                    spacing: AppSpacing.xs + 2,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      _SourceChip('ML 정규화 기법'),
+                      _SourceChip('Lasso'),
+                      _SourceChip('Ridge'),
+                      _SourceChip('과적합'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const ConceptSectionLabel('관련 결과'),
+          for (final result in _mockResults)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: ConceptCard(
+                onTap: () => context.go(
+                  AppRoutes.noteDetailPath(result['id'] as String),
                 ),
-        ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              children: _highlightText(
+                                result['title'] as String,
+                                _searchController.text,
+                                textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          result['time'] as String,
+                          style: textTheme.labelSmall?.copyWith(
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    RichText(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      text: TextSpan(
+                        children: _highlightText(
+                          result['snippet'] as String,
+                          _searchController.text,
+                          textTheme.bodySmall?.copyWith(
+                            color: AppColors.muted,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Wrap(
+                      spacing: AppSpacing.xs + 2,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        for (final tag in result['tags'] as List<String>)
+                          ConceptTag('#$tag'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
       ],
+    );
+  }
+}
+
+/// AI 답변 인용 소스 칩 (목업 `.src`).
+class _SourceChip extends StatelessWidget {
+  const _SourceChip(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm + 2,
+        vertical: AppSpacing.xs + 1,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        '📄 $label',
+        style: textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppColors.primary,
+        ),
+      ),
     );
   }
 }
@@ -269,28 +318,6 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
 
-  // TODO: 팀원 구현 — RAG Q&A API 연동 (스트리밍)
-  final List<_ChatMessage> _messages = [
-    const _ChatMessage(
-      isUser: true,
-      text: '정규화 기법에 대해 설명해줘',
-      time: '14:30',
-    ),
-    const _ChatMessage(
-      isUser: false,
-      text: 'L1/L2 정규화는 과적합(Overfitting)을 방지하기 위한 기법입니다.\n\n'
-          '**L1 정규화 (Lasso)**\n'
-          '- 가중치의 절댓값 합을 페널티로 추가합니다\n'
-          '- 일부 가중치를 0으로 만들어 희소성을 유도합니다\n\n'
-          '**L2 정규화 (Ridge)**\n'
-          '- 가중치의 제곱합을 페널티로 추가합니다\n'
-          '- 가중치를 작게 유지하되 완전히 0으로 만들지 않습니다\n\n'
-          '관련 노트: [[정규화 기법]], [[과적합 방지]]',
-      time: '14:30',
-      sources: ['정규화 기법', '과적합 방지'],
-    ),
-  ];
-
   @override
   void dispose() {
     _inputController.dispose();
@@ -298,80 +325,168 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
     super.dispose();
   }
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final qaState = ref.watch(qaNotifierProvider);
+
+    ref.listen(qaNotifierProvider, (_, __) => _scrollToBottom());
+
+    // QaMessage → _ChatMessage 변환 (기존 _ChatBubble 재사용)
+    final messages = qaState.messages
+        .map((m) => _ChatMessage(
+              isUser: m.isUser,
+              text: m.text,
+              time: '',
+              sources: const [],
+            ))
+        .toList();
 
     return Column(
       children: [
-        // Messages list
-        Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(AppSpacing.md),
-            itemCount: _messages.length,
-            itemBuilder: (context, i) {
-              final msg = _messages[i];
-              return _ChatBubble(message: msg);
-            },
-          ),
-        ),
-        // Streaming indicator placeholder
+        // 대화 헤더
         Container(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
           child: Row(
             children: [
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
+              const SynapseOrb(size: 32, glyphScale: 0.47),
+              const SizedBox(width: AppSpacing.sm + 2),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AI 튜터',
+                    style: textTheme.bodyMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  Text(
+                    qaState.isStreaming ? '● 답변 중' : '● 대기 중',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: qaState.isStreaming
+                          ? AppColors.success
+                          : AppColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                '생성 중...',
-                style: textTheme.bodySmall
-                    ?.copyWith(color: AppColors.stone400),
-              ),
-              // TODO: 팀원 구현 — 스트리밍 생성 상태 연동
             ],
           ),
         ),
-        // Input row
+
+        // 메시지 목록
+        Expanded(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 760),
+              child: messages.isEmpty
+                  ? Center(
+                      child: Text(
+                        '노트 내용에 대해 무엇이든 질문해보세요',
+                        style: textTheme.bodyMedium
+                            ?.copyWith(color: AppColors.muted),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      itemCount: messages.length,
+                      itemBuilder: (context, i) =>
+                          _ChatBubble(message: messages[i]),
+                    ),
+            ),
+          ),
+        ),
+
+        // 스트리밍 인디케이터 (실제 상태 반영)
+        if (qaState.isStreaming)
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '생성 중…',
+                  style:
+                      textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
+              ],
+            ),
+          ),
+
+        // 입력창
         Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: const BoxDecoration(
-            border:
-                Border(top: BorderSide(color: AppColors.stone200)),
+            color: AppColors.surface,
+            border: Border(top: BorderSide(color: AppColors.border)),
           ),
           child: Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _inputController,
+                  enabled: !qaState.isStreaming,
                   decoration: InputDecoration(
-                    hintText: '노트 내용에 대해 질문하세요...',
+                    hintText: '노트 내용에 대해 질문하세요…',
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.xl),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                      borderSide:
+                          const BorderSide(color: AppColors.border),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm),
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
                     filled: true,
-                    fillColor: AppColors.stone50,
+                    fillColor: AppColors.surface2,
                   ),
                   onSubmitted: (_) => _sendMessage(),
-                  // TODO: 팀원 구현 — RAG Q&A 입력 연동
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
               IconButton.filled(
-                onPressed: _sendMessage,
-                icon: const Icon(Icons.send),
+                onPressed: qaState.isStreaming ? null : _sendMessage,
+                icon: const Icon(Icons.arrow_upward),
                 style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.primaryFg,
                 ),
               ),
             ],
@@ -384,8 +499,8 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
   void _sendMessage() {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
-    // TODO: 팀원 구현 — RAG Q&A API 호출
     _inputController.clear();
+    ref.read(qaNotifierProvider.notifier).sendMessage(text);
   }
 }
 
@@ -409,33 +524,40 @@ class _ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
     if (message.isUser) {
       return Align(
         alignment: Alignment.centerRight,
         child: Container(
           margin: const EdgeInsets.only(
-              bottom: AppSpacing.sm, left: AppSpacing.xxl),
+            bottom: AppSpacing.sm,
+            left: AppSpacing.xxl,
+          ),
           padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(AppSpacing.md),
-              topRight: Radius.circular(AppSpacing.md),
-              bottomLeft: Radius.circular(AppSpacing.md),
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(AppRadius.lg),
+              topRight: Radius.circular(AppRadius.lg),
+              bottomLeft: Radius.circular(AppRadius.lg),
+              bottomRight: Radius.circular(5),
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(message.text,
-                  style: textTheme.bodyMedium
-                      ?.copyWith(color: Colors.white)),
+              Text(
+                message.text,
+                style: textTheme.bodyMedium?.copyWith(
+                  color: AppColors.primaryFg,
+                  height: 1.5,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xxs),
-              Text(message.time,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: Colors.white70)),
+              Text(
+                message.time,
+                style: textTheme.labelSmall?.copyWith(color: Colors.white70),
+              ),
             ],
           ),
         ),
@@ -446,16 +568,19 @@ class _ChatBubble extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(
-            bottom: AppSpacing.sm, right: AppSpacing.xxl),
+          bottom: AppSpacing.sm,
+          right: AppSpacing.xxl,
+        ),
         padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.stone100,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(AppSpacing.md),
-            topRight: Radius.circular(AppSpacing.md),
-            bottomRight: Radius.circular(AppSpacing.md),
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(5),
+            topRight: Radius.circular(AppRadius.lg),
+            bottomLeft: Radius.circular(AppRadius.lg),
+            bottomRight: Radius.circular(AppRadius.lg),
           ),
-          border: Border.all(color: AppColors.stone200),
+          border: Border.fromBorderSide(BorderSide(color: AppColors.border)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -463,35 +588,36 @@ class _ChatBubble extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_awesome,
-                    size: 14, color: AppColors.primaryAmber),
-                const SizedBox(width: AppSpacing.xs),
-                Text('Synapse AI',
-                    style: textTheme.labelSmall
-                        ?.copyWith(color: AppColors.stone500)),
+                const SynapseOrb(size: 22, glyphScale: 0.5),
+                const SizedBox(width: AppSpacing.xs + 2),
+                Text(
+                  'Synapse AI',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xs),
-            _AnimatedTypingText(text: message.text, style: textTheme.bodyMedium),
+            const SizedBox(height: AppSpacing.sm),
+            _AnimatedTypingText(
+              text: message.text,
+              style: textTheme.bodyMedium?.copyWith(height: 1.55),
+            ),
             if (message.sources.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.sm + 2),
               Wrap(
-                spacing: AppSpacing.xs,
+                spacing: AppSpacing.xs + 2,
                 runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Text('인용 소스:',
-                      style: textTheme.bodySmall
-                          ?.copyWith(color: AppColors.stone500)),
-                  ...message.sources.map((src) => ActionChip(
-                        label: Text(src,
-                            style: textTheme.bodySmall?.copyWith(fontSize: 11)),
-                        avatar: const Icon(Icons.description_outlined, size: 14),
-                        onPressed: () {
-                          // TODO: 팀원 구현 — 소스 노트로 이동
-                        },
-                        visualDensity: VisualDensity.compact,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      )),
+                  Text(
+                    '인용 소스',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
+                  ),
+                  for (final src in message.sources) _SourceChip(src),
                 ],
               ),
             ],
@@ -505,7 +631,7 @@ class _ChatBubble extends StatelessWidget {
                     // TODO: 팀원 구현 — 피드백 API 연동
                   },
                   visualDensity: VisualDensity.compact,
-                  color: AppColors.stone400,
+                  color: AppColors.muted,
                   tooltip: '좋아요',
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.all(AppSpacing.xs),
@@ -517,15 +643,16 @@ class _ChatBubble extends StatelessWidget {
                     // TODO: 팀원 구현 — 피드백 API 연동
                   },
                   visualDensity: VisualDensity.compact,
-                  color: AppColors.stone400,
+                  color: AppColors.muted,
                   tooltip: '싫어요',
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.all(AppSpacing.xs),
                 ),
                 const Spacer(),
-                Text(message.time,
-                    style: textTheme.bodySmall
-                        ?.copyWith(color: AppColors.stone400)),
+                Text(
+                  message.time,
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
               ],
             ),
           ],
@@ -536,10 +663,7 @@ class _ChatBubble extends StatelessWidget {
 }
 
 class _AnimatedTypingText extends StatefulWidget {
-  const _AnimatedTypingText({
-    required this.text,
-    this.style,
-  });
+  const _AnimatedTypingText({required this.text, this.style});
   final String text;
   final TextStyle? style;
 
@@ -560,11 +684,11 @@ class _AnimatedTypingTextState extends State<_AnimatedTypingText> {
   @override
   void didUpdateWidget(_AnimatedTypingText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text) {
-      _timer?.cancel();
-      _charCount = 0;
-      _startTyping();
-    }
+    if (oldWidget.text == widget.text) return;
+    _timer?.cancel();
+    // 스트리밍: 기존 텍스트의 연장이면 현재 위치에서 계속 진행
+    if (!widget.text.startsWith(oldWidget.text)) _charCount = 0;
+    _startTyping();
   }
 
   void _startTyping() {
@@ -573,7 +697,7 @@ class _AnimatedTypingTextState extends State<_AnimatedTypingText> {
         timer.cancel();
         return;
       }
-      setState(() => _charCount++);
+      if (mounted) setState(() => _charCount++);
     });
   }
 
@@ -585,9 +709,6 @@ class _AnimatedTypingTextState extends State<_AnimatedTypingText> {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      widget.text.substring(0, _charCount),
-      style: widget.style,
-    );
+    return Text(widget.text.substring(0, _charCount), style: widget.style);
   }
 }

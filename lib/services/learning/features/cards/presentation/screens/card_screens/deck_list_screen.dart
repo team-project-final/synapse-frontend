@@ -178,7 +178,11 @@ class _DeckCard extends StatelessWidget {
               data: Theme.of(
                 context,
               ).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
+              // ListTile(ExpansionTile)이 ConceptCard의 배경 DecoratedBox 위에
+              // 직접 그려지면 Flutter 3.44+ 가 assertion을 던지므로 투명 Material로 감싼다.
+              child: Material(
+                type: MaterialType.transparency,
+                child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Text(
                   '하위 덱',
@@ -197,6 +201,7 @@ class _DeckCard extends StatelessWidget {
                     count: deck.cardCount - deck.cardCount ~/ 2,
                   ),
                 ],
+              ),
               ),
             ),
           ],

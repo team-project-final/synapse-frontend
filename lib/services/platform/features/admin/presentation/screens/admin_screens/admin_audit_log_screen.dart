@@ -2,67 +2,48 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminAuditLogScreen (SCR-A-ADMIN-004)
+// platform-svc /api/v1/admin/audit-logs 연동 (조회 전용)
 // ============================================================================
 
-class _MockAuditLog {
-  const _MockAuditLog({
-    required this.timestamp,
-    required this.actor,
-    required this.action,
-    required this.target,
-    required this.ip,
-  });
-  final String timestamp;
-  final String actor;
-  final String action;
-  final String target;
-  final String ip;
+String _formatDateTime(DateTime? date) {
+  if (date == null) return '-';
+  final local = date.toLocal();
+  final mo = local.month.toString().padLeft(2, '0');
+  final d = local.day.toString().padLeft(2, '0');
+  final h = local.hour.toString().padLeft(2, '0');
+  final mi = local.minute.toString().padLeft(2, '0');
+  return '${local.year}-$mo-$d $h:$mi';
 }
 
-// TODO: 팀원 구현 — platform-svc 감사 로그 API 연동
-const _mockAuditLogs = [
-  _MockAuditLog(
-    timestamp: '2026-05-21 09:12',
-    actor: 'admin@synapse.io',
-    action: 'LOGIN',
-    target: '-',
-    ip: '192.168.1.10',
-  ),
-  _MockAuditLog(
-    timestamp: '2026-05-21 09:15',
-    actor: 'admin@synapse.io',
-    action: 'UPDATE',
-    target: '테넌트: 스터디그룹A',
-    ip: '192.168.1.10',
-  ),
-  _MockAuditLog(
-    timestamp: '2026-05-21 10:00',
-    actor: 'user1@example.com',
-    action: 'CREATE',
-    target: '덱: 알고리즘 기초',
-    ip: '10.0.0.55',
-  ),
-  _MockAuditLog(
-    timestamp: '2026-05-21 10:30',
-    actor: 'admin@synapse.io',
-    action: 'DELETE',
-    target: '사용자: deleted@old.com',
-    ip: '192.168.1.10',
-  ),
-  _MockAuditLog(
-    timestamp: '2026-05-21 11:00',
-    actor: 'user2@example.com',
-    action: 'LOGIN',
-    target: '-',
-    ip: '172.16.0.3',
-  ),
-];
-
-class AdminAuditLogScreen extends ConsumerWidget {
+class AdminAuditLogScreen extends ConsumerStatefulWidget {
   const AdminAuditLogScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminAuditLogScreen> createState() =>
+      _AdminAuditLogScreenState();
+}
+
+class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
+  late Future<AdminPage<AdminAuditLog>> _logsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _logsFuture = _fetchLogs();
+  }
+
+  Future<AdminPage<AdminAuditLog>> _fetchLogs() {
+    return ref.read(listAuditLogsUseCaseProvider)();
+  }
+
+  void _reload() {
+    setState(() {
+      _logsFuture = _fetchLogs();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -72,39 +53,65 @@ class AdminAuditLogScreen extends ConsumerWidget {
           Text('감사 로그', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
           Expanded(
-            child: AdminDataGrid(
-              searchHint: '액터 또는 대상 검색...',
-              filters: const ['LOGIN', 'CREATE', 'UPDATE', 'DELETE'],
-              actions: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: 팀원 구현 — CSV 다운로드
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('CSV 내보내기 준비 중...')),
-                    );
-                  },
-                  icon: const Icon(Icons.download, size: 18),
-                  label: const Text('CSV 내보내기'),
-                ),
-              ],
-              columns: const [
-                DataColumn(label: Text('시각')),
-                DataColumn(label: Text('액터')),
-                DataColumn(label: Text('액션')),
-                DataColumn(label: Text('대상')),
-                DataColumn(label: Text('IP')),
-              ],
-              rows: _mockAuditLogs.map((l) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(l.timestamp)),
-                    DataCell(Text(l.actor)),
-                    DataCell(_ActionChip(action: l.action)),
-                    DataCell(Text(l.target)),
-                    DataCell(Text(l.ip)),
+            child: FutureBuilder<AdminPage<AdminAuditLog>>(
+              future: _logsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('감사 로그를 불러오지 못했습니다.'),
+                        const SizedBox(height: AppSpacing.sm),
+                        FilledButton(
+                          onPressed: _reload,
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final logs = snapshot.data?.content ?? const <AdminAuditLog>[];
+                // TODO: 팀원 구현 — action/userId 필터·페이지네이션 API 연동, CSV 내보내기
+                return AdminDataGrid(
+                  searchHint: '액션 또는 사용자 검색...',
+                  filters: const ['LOGIN', 'CREATE', 'UPDATE', 'DELETE'],
+                  actions: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('CSV 내보내기 준비 중...')),
+                        );
+                      },
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('CSV 내보내기'),
+                    ),
                   ],
+                  columns: const [
+                    DataColumn(label: Text('시각')),
+                    DataColumn(label: Text('사용자')),
+                    DataColumn(label: Text('액션')),
+                    DataColumn(label: Text('대상')),
+                    DataColumn(label: Text('IP')),
+                  ],
+                  rows: logs.map((log) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(_formatDateTime(log.createdAt))),
+                        DataCell(Text(log.userId.isEmpty ? '-' : log.userId)),
+                        DataCell(_ActionChip(action: log.action)),
+                        DataCell(Text(log.targetLabel)),
+                        DataCell(
+                          Text(log.ipAddress.isEmpty ? '-' : log.ipAddress),
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
         ],

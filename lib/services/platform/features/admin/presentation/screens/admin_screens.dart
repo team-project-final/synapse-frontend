@@ -6,7 +6,9 @@ import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/admin_data_grid.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_user.dart';
 import 'package:synapse_frontend/services/platform/features/admin/providers/admin_providers.dart';
 

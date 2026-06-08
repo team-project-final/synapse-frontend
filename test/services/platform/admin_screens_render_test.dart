@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_user.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/repositories/admin_repository.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_tenants_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_users_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_audit_logs_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/presentation/screens/admin_screens.dart';
 import 'package:synapse_frontend/services/platform/features/admin/providers/admin_providers.dart';
 
@@ -25,6 +30,12 @@ void main() {
               ChangeUserStatusUseCase(_FakeAdminRepository())),
           deleteAdminUserUseCaseProvider.overrideWithValue(
               DeleteAdminUserUseCase(_FakeAdminRepository())),
+          listAdminTenantsUseCaseProvider.overrideWithValue(
+              ListAdminTenantsUseCase(_FakeAdminRepository())),
+          changeTenantStatusUseCaseProvider.overrideWithValue(
+              ChangeTenantStatusUseCase(_FakeAdminRepository())),
+          listAuditLogsUseCaseProvider
+              .overrideWithValue(ListAuditLogsUseCase(_FakeAdminRepository())),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -101,4 +112,57 @@ class _FakeAdminRepository implements AdminRepository {
 
   @override
   Future<void> deleteUser(String id) async {}
+
+  @override
+  Future<AdminPage<AdminTenant>> listTenants({int page = 0, int size = 20}) async {
+    return AdminPage<AdminTenant>(
+      content: [
+        AdminTenant(
+          id: '33333333-3333-3333-3333-333333333333',
+          name: '스터디그룹A',
+          slug: 'study-a',
+          plan: 'pro',
+          status: 'active',
+          createdAt: DateTime.utc(2026),
+        ),
+      ],
+      page: page,
+      size: size,
+      totalElements: 1,
+      totalPages: 1,
+    );
+  }
+
+  @override
+  Future<void> changeTenantStatus(String id, String status) async {}
+
+  @override
+  Future<AdminPage<AdminAuditLog>> listAuditLogs({
+    String? action,
+    String? userId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    return AdminPage<AdminAuditLog>(
+      content: [
+        AdminAuditLog(
+          id: '44444444-4444-4444-4444-444444444444',
+          eventId: '55555555-5555-5555-5555-555555555555',
+          action: 'USER_REGISTERED',
+          userId: '11111111-1111-1111-1111-111111111111',
+          resourceType: 'USER',
+          resourceId: '11111111-1111-1111-1111-111111111111',
+          oldValue: '',
+          newValue: '',
+          ipAddress: '127.0.0.1',
+          userAgent: 'test',
+          createdAt: DateTime.utc(2026),
+        ),
+      ],
+      page: page,
+      size: size,
+      totalElements: 1,
+      totalPages: 1,
+    );
+  }
 }

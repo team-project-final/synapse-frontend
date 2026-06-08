@@ -70,6 +70,99 @@ void main() {
     );
     expect(requests[1].method, 'DELETE');
   });
+
+  test('listTenants는 테넌트 페이지 응답을 파싱한다', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/admin/tenants');
+        expect(options.method, 'GET');
+        expect(options.queryParameters, {'page': 1, 'size': 10});
+        return _jsonResponse({
+          'content': [
+            {
+              'id': '22222222-2222-2222-2222-222222222222',
+              'name': 'Synapse',
+              'slug': 'synapse',
+              'plan': 'pro',
+              'status': 'active',
+              'createdAt': '2026-01-02T00:00:00Z',
+            },
+          ],
+          'page': 1,
+          'size': 10,
+          'totalElements': 12,
+          'totalPages': 2,
+        });
+      });
+
+    final page = await AdminRemoteDatasource(dio).listTenants(page: 1, size: 10);
+
+    expect(page.content.single.slug, 'synapse');
+    expect(page.page, 1);
+    expect(page.totalPages, 2);
+  });
+
+  test('changeTenantStatus는 상태를 소문자로 보낸다', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(
+          options.path,
+          '/api/v1/admin/tenants/22222222-2222-2222-2222-222222222222/status',
+        );
+        expect(options.method, 'PUT');
+        expect(options.data, {'status': 'active'});
+        return ResponseBody.fromString('', 204);
+      });
+
+    await AdminRemoteDatasource(dio)
+        .changeTenantStatus('22222222-2222-2222-2222-222222222222', 'ACTIVE');
+  });
+
+  test('listAuditLogs는 action/userId 쿼리를 전달하고 Spring Page(number)를 파싱한다',
+      () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/admin/audit-logs');
+        expect(options.method, 'GET');
+        expect(options.queryParameters, {
+          'action': 'USER_REGISTERED',
+          'userId': '11111111-1111-1111-1111-111111111111',
+          'page': 0,
+          'size': 20,
+        });
+        return _jsonResponse({
+          'content': [
+            {
+              'id': '33333333-3333-3333-3333-333333333333',
+              'eventId': '44444444-4444-4444-4444-444444444444',
+              'action': 'USER_REGISTERED',
+              'userId': '11111111-1111-1111-1111-111111111111',
+              'resourceType': 'USER',
+              'resourceId': '11111111-1111-1111-1111-111111111111',
+              'oldValue': null,
+              'newValue': '{}',
+              'ipAddress': '127.0.0.1',
+              'userAgent': 'test',
+              'createdAt': '2026-01-03T00:00:00Z',
+            },
+          ],
+          'number': 0,
+          'size': 20,
+          'totalElements': 1,
+          'totalPages': 1,
+        });
+      });
+
+    final page = await AdminRemoteDatasource(dio).listAuditLogs(
+      action: 'USER_REGISTERED',
+      userId: '11111111-1111-1111-1111-111111111111',
+    );
+
+    expect(page.content.single.action, 'USER_REGISTERED');
+    expect(page.content.single.toEntity().targetLabel,
+        'USER:11111111-1111-1111-1111-111111111111');
+    expect(page.page, 0);
+  });
 }
 
 ResponseBody _jsonResponse(Map<String, Object?> data) {

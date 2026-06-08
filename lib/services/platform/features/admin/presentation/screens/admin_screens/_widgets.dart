@@ -25,6 +25,19 @@ class _AdminErrorRetry extends StatelessWidget {
   }
 }
 
+/// 목록 재조회 중 표시하는 얇은 상단 진행바(로딩 아닐 땐 동일 높이 자리 유지).
+class _AdminTopLoadingBar extends StatelessWidget {
+  const _AdminTopLoadingBar({required this.loading});
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return loading
+        ? const LinearProgressIndicator(minHeight: 2)
+        : const SizedBox(height: 2);
+  }
+}
+
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({required this.status});
   final String status;

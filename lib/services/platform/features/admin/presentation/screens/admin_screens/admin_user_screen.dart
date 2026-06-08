@@ -75,6 +75,7 @@ class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+      if (_data != null) _showError('목록을 새로고침하지 못했습니다.');
     }
   }
 
@@ -142,8 +143,18 @@ class _AdminUserScreenState extends ConsumerState<AdminUserScreen> {
       if (_loading) return const Center(child: CircularProgressIndicator());
       return _AdminErrorRetry(onRetry: _load);
     }
+    return Column(
+      children: [
+        _AdminTopLoadingBar(loading: _loading),
+        Expanded(child: _buildGrid(data)),
+      ],
+    );
+  }
+
+  Widget _buildGrid(AdminPage<AdminUser> data) {
     return AdminDataGrid(
       searchHint: '이메일 또는 이름 검색...',
+      emptyMessage: '조건에 맞는 사용자가 없습니다.',
       filters: const ['활성', '정지', '삭제됨'],
       onSearch: _onSearch,
       onFilterSelected: _onFilter,
@@ -207,6 +218,8 @@ class _UserDetailDialog extends StatelessWidget {
           Text('이메일: ${user.email}'),
           Text('상태: ${_userStatusLabel(user.status)}'),
           Text('가입일: ${_formatDate(user.createdAt)}'),
+          if (user.suspendedAt != null)
+            Text('정지일시: ${_formatDate(user.suspendedAt)}'),
         ],
       ),
       actions: [

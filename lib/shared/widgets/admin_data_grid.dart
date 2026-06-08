@@ -7,6 +7,7 @@ class AdminDataGrid extends StatefulWidget {
     required this.columns,
     required this.rows,
     this.searchHint = '검색...',
+    this.emptyMessage = '결과가 없습니다.',
     this.filters = const [],
     this.onRowTap,
     this.actions,
@@ -22,6 +23,7 @@ class AdminDataGrid extends StatefulWidget {
   final List<DataColumn> columns;
   final List<DataRow> rows;
   final String searchHint;
+  final String emptyMessage;
   final List<String> filters;
   final ValueChanged<int>? onRowTap;
   final List<Widget>? actions;
@@ -112,17 +114,28 @@ class _AdminDataGridState extends State<AdminDataGrid> {
         const SizedBox(height: AppSpacing.md),
         // Data table
         Expanded(
-          child: SingleChildScrollView(
-            child: SizedBox(
-              width: double.infinity,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppColors.stone100),
-                columns: widget.columns,
-                rows: widget.rows,
-                showCheckboxColumn: false,
-              ),
-            ),
-          ),
+          child: widget.rows.isEmpty
+              ? Center(
+                  child: Text(
+                    widget.emptyMessage,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppColors.stone500),
+                  ),
+                )
+              : SingleChildScrollView(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: DataTable(
+                      headingRowColor:
+                          WidgetStateProperty.all(AppColors.stone100),
+                      columns: widget.columns,
+                      rows: widget.rows,
+                      showCheckboxColumn: false,
+                    ),
+                  ),
+                ),
         ),
         // Pagination
         const SizedBox(height: AppSpacing.sm),

@@ -51,6 +51,11 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+      if (_data != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('목록을 새로고침하지 못했습니다.')),
+        );
+      }
     }
   }
 
@@ -145,7 +150,17 @@ class _AdminAuditLogScreenState extends ConsumerState<AdminAuditLogScreen> {
         message: '감사 로그를 불러오지 못했습니다.',
       );
     }
+    return Column(
+      children: [
+        _AdminTopLoadingBar(loading: _loading),
+        Expanded(child: _buildGrid(data)),
+      ],
+    );
+  }
+
+  Widget _buildGrid(AdminPage<AdminAuditLog> data) {
     return AdminDataGrid(
+      emptyMessage: '감사 로그가 없습니다.',
       filters: const ['LOGIN', 'CREATE', 'UPDATE', 'DELETE'],
       onFilterSelected: _onFilter,
       page: data.page,

@@ -20,6 +20,19 @@ void main() {
     const DataRow(cells: [DataCell(Text('row'))]),
   ];
 
+  testWidgets('rows가 비면 emptyMessage를 표시하고 표를 그리지 않는다', (tester) async {
+    await pumpGrid(
+      tester,
+      const AdminDataGrid(
+        columns: columns,
+        rows: [],
+        emptyMessage: '결과 없음',
+      ),
+    );
+    expect(find.text('결과 없음'), findsOneWidget);
+    expect(find.byType(DataTable), findsNothing);
+  });
+
   testWidgets('onSearch는 검색어 제출 시 호출된다', (tester) async {
     String? submitted;
     await pumpGrid(

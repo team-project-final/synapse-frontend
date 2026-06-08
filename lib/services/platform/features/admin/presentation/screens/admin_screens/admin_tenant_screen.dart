@@ -36,6 +36,11 @@ class _AdminTenantScreenState extends ConsumerState<AdminTenantScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
+      if (_data != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('목록을 새로고침하지 못했습니다.')),
+        );
+      }
     }
   }
 
@@ -82,8 +87,18 @@ class _AdminTenantScreenState extends ConsumerState<AdminTenantScreen> {
         message: '테넌트 목록을 불러오지 못했습니다.',
       );
     }
+    return Column(
+      children: [
+        _AdminTopLoadingBar(loading: _loading),
+        Expanded(child: _buildGrid(data)),
+      ],
+    );
+  }
+
+  Widget _buildGrid(AdminPage<AdminTenant> data) {
     return AdminDataGrid(
       searchHint: '테넌트 검색...',
+      emptyMessage: '테넌트가 없습니다.',
       page: data.page,
       totalPages: data.totalPages,
       totalElements: data.totalElements,

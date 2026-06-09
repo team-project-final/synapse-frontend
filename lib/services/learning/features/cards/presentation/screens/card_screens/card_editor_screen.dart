@@ -42,7 +42,15 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
     final deckId = _selectedDeckId ?? (decks.isNotEmpty ? decks.first.id : null);
     final front = _frontController.text.trim();
     final back = _backController.text.trim();
-    if (deckId == null || front.isEmpty || back.isEmpty || _isSubmitting) return;
+    if (_isSubmitting) return;
+    if (deckId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('덱을 선택해주세요')));
+      return;
+    }
+    if (front.isEmpty || back.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('앞면과 뒷면을 입력해주세요')));
+      return;
+    }
     setState(() => _isSubmitting = true);
     try {
       await ref.read(createCardUseCaseProvider).call(
@@ -55,8 +63,13 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
       if (mounted) {
         context.go(AppRoutes.deckCardsPath(deckId));
       }
-    } catch (_) {
-      if (mounted) setState(() => _isSubmitting = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('저장 실패: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

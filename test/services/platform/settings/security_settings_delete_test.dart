@@ -13,7 +13,7 @@ void main() {
     required FakeAccountApi accountApi,
     required FakeAuthPort authPort,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(1200, 2200));
+    await tester.binding.setSurfaceSize(const Size(1000, 2600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
@@ -21,12 +21,15 @@ void main() {
           accountApiProvider.overrideWithValue(accountApi),
           authRepositoryPortProvider.overrideWithValue(authPort),
         ],
-        child: const MaterialApp(home: Scaffold(body: DataSettingsScreen())),
+        child: const MaterialApp(
+          home: Scaffold(body: SecuritySettingsScreen()),
+        ),
       ),
     );
+    await tester.pumpAndSettle();
   }
 
-  testWidgets('계정 삭제 확인 시 삭제 API 호출 후 로그아웃한다', (tester) async {
+  testWidgets('계정 삭제 확인 시 deleteAccount 호출 후 로그아웃한다', (tester) async {
     final authPort = FakeAuthPort();
     final accountApi = FakeAccountApi();
     await pump(tester, accountApi: accountApi, authPort: authPort);

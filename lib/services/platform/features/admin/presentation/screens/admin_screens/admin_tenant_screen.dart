@@ -2,67 +2,68 @@ part of '../admin_screens.dart';
 
 // ============================================================================
 // AdminTenantScreen (SCR-A-ADMIN-002)
+// platform-svc /api/v1/admin/tenants 연동 (목록/페이지/상태변경)
+// 백엔드가 검색·필터를 지원하지 않아 페이지네이션만 연결한다.
 // ============================================================================
 
-class _MockTenant {
-  const _MockTenant({
-    required this.name,
-    required this.plan,
-    required this.members,
-    required this.status,
-    required this.createdAt,
-  });
-  final String name;
-  final String plan;
-  final int members;
-  final String status;
-  final String createdAt;
-}
-
-// TODO: 팀원 구현 — platform-svc 테넌트 목록 API 연동
-const _mockTenants = [
-  _MockTenant(
-    name: '스터디그룹A',
-    plan: 'Pro',
-    members: 25,
-    status: '활성',
-    createdAt: '2025-11-01',
-  ),
-  _MockTenant(
-    name: '대학교 동아리',
-    plan: 'Enterprise',
-    members: 120,
-    status: '활성',
-    createdAt: '2025-08-15',
-  ),
-  _MockTenant(
-    name: '개인 프로젝트',
-    plan: 'Free',
-    members: 1,
-    status: '활성',
-    createdAt: '2026-01-20',
-  ),
-  _MockTenant(
-    name: '시험 준비반',
-    plan: 'Pro',
-    members: 42,
-    status: '정지됨',
-    createdAt: '2025-06-10',
-  ),
-  _MockTenant(
-    name: '회사 교육팀',
-    plan: 'Enterprise',
-    members: 85,
-    status: '활성',
-    createdAt: '2025-03-22',
-  ),
-];
-
-class AdminTenantScreen extends ConsumerWidget {
+class AdminTenantScreen extends ConsumerStatefulWidget {
   const AdminTenantScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminTenantScreen> createState() => _AdminTenantScreenState();
+}
+
+class _AdminTenantScreenState extends ConsumerState<AdminTenantScreen> {
+  AdminPage<AdminTenant>? _data;
+  bool _loading = true;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final data = await ref.read(listAdminTenantsUseCaseProvider)(page: _page);
+      if (!mounted) return;
+      setState(() {
+        _data = data;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (_data != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('목록을 새로고침하지 못했습니다.')),
+        );
+      }
+    }
+  }
+
+  void _onPage(int page) {
+    _page = page;
+    _load();
+  }
+
+  Future<void> _changeStatus(AdminTenant tenant, String status) async {
+    try {
+      await ref.read(changeTenantStatusUseCaseProvider)(tenant.id, status);
+      await _load();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('상태 변경에 실패했습니다.')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -71,50 +72,82 @@ class AdminTenantScreen extends ConsumerWidget {
         children: [
           Text('테넌트 관리', style: textTheme.headlineSmall),
           const SizedBox(height: AppSpacing.lg),
-          Expanded(
-            child: AdminDataGrid(
-              searchHint: '테넌트 검색...',
-              filters: const ['Free', 'Pro', 'Enterprise', '정지됨'],
-              columns: const [
-                DataColumn(label: Text('테넌트명')),
-                DataColumn(label: Text('플랜')),
-                DataColumn(label: Text('멤버 수'), numeric: true),
-                DataColumn(label: Text('상태')),
-                DataColumn(label: Text('생성일')),
-              ],
-              rows: _mockTenants.indexed.map((entry) {
-                final t = entry.$2;
-                return DataRow(
-                  onSelectChanged: (_) {
-                    // TODO: 팀원 구현 — 테넌트 상세 사이드 시트
-                    Scaffold.of(
-                      context,
-                    ).showBottomSheet((_) => _TenantDetailSheet(tenant: t));
-                  },
-                  cells: [
-                    DataCell(Text(t.name)),
-                    DataCell(_PlanChip(plan: t.plan)),
-                    DataCell(Text('${t.members}')),
-                    DataCell(_StatusBadge(status: t.status)),
-                    DataCell(Text(t.createdAt)),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    final data = _data;
+    if (data == null) {
+      if (_loading) return const Center(child: CircularProgressIndicator());
+      return _AdminErrorRetry(
+        onRetry: _load,
+        message: '테넌트 목록을 불러오지 못했습니다.',
+      );
+    }
+    return Column(
+      children: [
+        _AdminTopLoadingBar(loading: _loading),
+        Expanded(child: _buildGrid(data)),
+      ],
+    );
+  }
+
+  Widget _buildGrid(AdminPage<AdminTenant> data) {
+    return AdminDataGrid(
+      searchHint: '테넌트 검색...',
+      emptyMessage: '테넌트가 없습니다.',
+      page: data.page,
+      totalPages: data.totalPages,
+      totalElements: data.totalElements,
+      onPageChanged: _onPage,
+      columns: const [
+        DataColumn(label: Text('테넌트명')),
+        DataColumn(label: Text('플랜')),
+        DataColumn(label: Text('상태')),
+        DataColumn(label: Text('생성일')),
+      ],
+      rows: data.content.map((tenant) {
+        return DataRow(
+          onSelectChanged: (_) {
+            showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => _TenantDetailSheet(
+                tenant: tenant,
+                onSuspend: () => _changeStatus(tenant, 'suspended'),
+                onActivate: () => _changeStatus(tenant, 'active'),
+              ),
+            );
+          },
+          cells: [
+            DataCell(Text(tenant.name)),
+            DataCell(_PlanChip(plan: tenant.plan)),
+            DataCell(_StatusBadge(status: _userStatusLabel(tenant.status))),
+            DataCell(Text(_formatDate(tenant.createdAt))),
+          ],
+        );
+      }).toList(),
     );
   }
 }
 
 class _TenantDetailSheet extends StatelessWidget {
-  const _TenantDetailSheet({required this.tenant});
-  final _MockTenant tenant;
+  const _TenantDetailSheet({
+    required this.tenant,
+    required this.onSuspend,
+    required this.onActivate,
+  });
+
+  final AdminTenant tenant;
+  final VoidCallback onSuspend;
+  final VoidCallback onActivate;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isActive = tenant.status.toLowerCase() == 'active';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
@@ -123,14 +156,33 @@ class _TenantDetailSheet extends StatelessWidget {
         children: [
           Text(tenant.name, style: textTheme.titleLarge),
           const SizedBox(height: AppSpacing.md),
+          Text('슬러그: ${tenant.slug}'),
           Text('플랜: ${tenant.plan}'),
-          Text('멤버 수: ${tenant.members}'),
-          Text('상태: ${tenant.status}'),
-          Text('생성일: ${tenant.createdAt}'),
+          Text('상태: ${_userStatusLabel(tenant.status)}'),
+          Text('생성일: ${_formatDate(tenant.createdAt)}'),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
-              FilledButton(
+              if (isActive)
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onSuspend();
+                  },
+                  style:
+                      FilledButton.styleFrom(backgroundColor: AppColors.error),
+                  child: const Text('정지'),
+                )
+              else
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    onActivate();
+                  },
+                  child: const Text('활성화'),
+                ),
+              const SizedBox(width: AppSpacing.sm),
+              OutlinedButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('닫기'),
               ),
@@ -149,10 +201,10 @@ class _PlanChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color color;
-    switch (plan) {
-      case 'Enterprise':
+    switch (plan.toLowerCase()) {
+      case 'enterprise':
         color = AppColors.info;
-      case 'Pro':
+      case 'pro':
         color = AppColors.primary;
       default:
         color = AppColors.muted;

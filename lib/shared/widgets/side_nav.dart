@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/auth/auth_notifier.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
@@ -20,7 +22,7 @@ class SideNavItem {
 ///
 /// 접기/펼치기 토글 → 네비 → 최근 활동(mock) → 프로필 풋터.
 /// (브랜드 ✦ orb + Synapse는 상단 앱바로 이동) 활성 항목은 보라 12% 배경 강조.
-class SideNav extends StatelessWidget {
+class SideNav extends ConsumerWidget {
   const SideNav({
     required this.currentRoute,
     required this.onItemTap,
@@ -87,8 +89,9 @@ class SideNav extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = isExpanded ? expandedWidth : collapsedWidth;
+    final isAdmin = ref.watch(authNotifierProvider).isAdmin;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -123,7 +126,7 @@ class SideNav extends StatelessWidget {
             ),
             child: Column(
               children: [
-                if (kIsWeb)
+                if (kIsWeb && isAdmin)
                   _buildItem(
                     context,
                     const SideNavItem(

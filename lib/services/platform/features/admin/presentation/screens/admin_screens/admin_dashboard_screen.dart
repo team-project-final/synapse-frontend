@@ -4,39 +4,72 @@ part of '../admin_screens.dart';
 // AdminDashboardScreen (SCR-A-ADMIN-001)
 // ============================================================================
 
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  String _userCountText = '…';
+  String _tenantCountText = '…';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCounts();
+  }
+
+  // platform-svc 목록 API의 totalElements로 총 사용자/테넌트 수를 가져온다.
+  Future<void> _loadCounts() async {
+    try {
+      final users = await ref.read(listAdminUsersUseCaseProvider)(size: 1);
+      if (mounted) setState(() => _userCountText = '${users.totalElements}');
+    } catch (_) {
+      if (mounted) setState(() => _userCountText = '-');
+    }
+    try {
+      final tenants = await ref.read(listAdminTenantsUseCaseProvider)(size: 1);
+      if (mounted) {
+        setState(() => _tenantCountText = '${tenants.totalElements}');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _tenantCountText = '-');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 700;
 
-    // TODO: 팀원 구현 — platform-svc KPI API 연동
-    const kpiCards = [
+    final kpiCards = [
       _KpiData(
+        label: '총 사용자',
+        value: _userCountText,
+        icon: Icons.people_outline,
+        color: AppColors.info,
+      ),
+      _KpiData(
+        label: '총 테넌트',
+        value: _tenantCountText,
+        icon: Icons.business_outlined,
+        color: AppColors.primary,
+      ),
+      // TODO: 백엔드 대기 — DAU/MAU는 platform-svc 분석 API 필요 (현재 mock)
+      const _KpiData(
         label: 'DAU',
         value: '1,240',
         icon: Icons.person_outline,
         color: AppColors.info,
       ),
-      _KpiData(
+      const _KpiData(
         label: 'MAU',
         value: '8,920',
         icon: Icons.groups_outlined,
         color: AppColors.info,
-      ),
-      _KpiData(
-        label: 'MRR',
-        value: '\$4,820',
-        icon: Icons.attach_money,
-        color: AppColors.success,
-      ),
-      _KpiData(
-        label: '신규 가입',
-        value: '67/일',
-        icon: Icons.person_add_outlined,
-        color: AppColors.primary,
       ),
     ];
 

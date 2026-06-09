@@ -5,7 +5,6 @@ abstract final class AppRoutes {
   static const signup = '/signup';
   static const mfa = '/mfa';
   static const passwordReset = '/password-reset';
-  static const oauthConsent = '/oauth-consent';
   static const authCallback = '/auth/callback';
 
   static const notes = '/notes';

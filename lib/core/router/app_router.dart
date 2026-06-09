@@ -32,7 +32,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         AppRoutes.signup,
         AppRoutes.mfa,
         AppRoutes.passwordReset,
-        AppRoutes.oauthConsent,
         AppRoutes.authCallback,
       ];
       const publicRoutes = [
@@ -73,10 +72,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.passwordReset,
         builder: (context, state) => const PasswordResetScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.oauthConsent,
-        builder: (context, state) => const OAuthConsentScreen(),
       ),
       GoRoute(
         path: AppRoutes.authCallback,

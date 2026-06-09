@@ -12,12 +12,48 @@ class DataSettingsScreen extends ConsumerStatefulWidget {
 class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
   String _exportFormat = 'JSON';
   bool _isExporting = false;
+  bool _deleting = false;
 
   Future<void> _mockExport(String format) async {
     setState(() => _isExporting = true);
     await Future<void>.delayed(const Duration(seconds: 2));
     if (mounted) {
       setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: '계정 삭제',
+      content: '정말로 계정을 삭제하시겠습니까?\n모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.',
+      confirmLabel: '삭제',
+      isDestructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref.read(accountApiProvider).deleteAccount();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정이 삭제되었습니다.')),
+      );
+      // 삭제 성공 → 클라이언트 세션을 즉시 정리하고 로그인 화면으로 보낸다.
+      await ref.read(authNotifierProvider.notifier).logout();
+      if (mounted) setState(() => _deleting = false);
+    } on AccountApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정 삭제에 실패했습니다.')),
+      );
     }
   }
 
@@ -136,23 +172,17 @@ class _DataSettingsScreenState extends ConsumerState<DataSettingsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
-                  onPressed: () async {
-                    final confirmed = await ConfirmDialog.show(
-                      context,
-                      title: '계정 삭제',
-                      content:
-                          '정말로 계정을 삭제하시겠습니까?\n모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.',
-                      confirmLabel: '삭제',
-                      isDestructive: true,
-                    );
-                    if (confirmed == true) {
-                      // TODO: 팀원 구현 — 계정 삭제 API 연동
-                    }
-                  },
+                  onPressed: _deleting ? null : _deleteAccount,
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.error,
                   ),
-                  child: const Text('계정 삭제'),
+                  child: _deleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('계정 삭제'),
                 ),
               ],
             ),

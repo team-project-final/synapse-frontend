@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/auth/access_token_roles.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
@@ -22,6 +23,7 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState(
       status: AuthStatus.authenticated,
       accessToken: tokens.accessToken,
+      roles: rolesFromAccessToken(tokens.accessToken),
     );
   }
 
@@ -33,6 +35,7 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState(
       status: AuthStatus.authenticated,
       accessToken: tokens.accessToken,
+      roles: rolesFromAccessToken(tokens.accessToken),
     );
   }
 
@@ -45,6 +48,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = AuthState(
         status: AuthStatus.authenticated,
         accessToken: tokens.accessToken,
+        roles: rolesFromAccessToken(tokens.accessToken),
       );
     } on AuthRepositoryException catch (error) {
       state = AuthState(
@@ -64,9 +68,13 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   void bypassLoginForDevelopment() {
+    // 개발용 바이패스는 진짜 JWT가 아니라 roles를 디코드할 수 없으므로,
+    // 개발 편의를 위해 ROLE_ADMIN을 부여해 admin 화면까지 확인 가능하게 한다.
+    // (실제 인증 활성화 시에는 토큰의 진짜 roles가 사용된다.)
     state = const AuthState(
       status: AuthStatus.authenticated,
       accessToken: 'dev-bypass-token',
+      roles: ['ROLE_ADMIN'],
     );
   }
 

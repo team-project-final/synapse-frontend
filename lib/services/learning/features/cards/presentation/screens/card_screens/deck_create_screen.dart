@@ -2,8 +2,6 @@ part of '../card_screens.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DeckCreateScreen — 새 덱 생성 폼(/decks/new)
-//   '새 덱' FAB에서 진입. 이름·아이콘·설명·상위 덱 입력.
-//   AppShell 내부 BODY 화면(별도 Scaffold 없음).
 // ═══════════════════════════════════════════════════════════════════════════
 
 class DeckCreateScreen extends ConsumerStatefulWidget {
@@ -15,30 +13,35 @@ class DeckCreateScreen extends ConsumerStatefulWidget {
 
 class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
   static const List<String> _emojiChoices = [
-    '📚',
-    '🧠',
-    '💡',
-    '🎯',
-    '🧮',
-    '🌐',
-    '🔬',
-    '💻',
-    '📝',
-    '🎨',
-    '🗂️',
-    '⚙️',
+    '📚', '🧠', '💡', '🎯', '🧮', '🌐', '🔬', '💻', '📝', '🎨', '🗂️', '⚙️',
   ];
 
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   String _emoji = _emojiChoices.first;
-  String? _parentDeckId; // null = 최상위 덱
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty || _isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(deckListNotifierProvider.notifier).createDeck(
+            name: name,
+            description: _descController.text.trim(),
+            color: _emoji,
+          );
+      if (mounted) context.go(AppRoutes.decks);
+    } catch (_) {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
   }
 
   @override
@@ -57,7 +60,6 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                 Text('덱 만들기', style: textTheme.headlineSmall),
                 const SizedBox(height: AppSpacing.xl),
 
-                // 덱 이름
                 TextFormField(
                   controller: _nameController,
                   textInputAction: TextInputAction.next,
@@ -68,11 +70,9 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                   ),
-                  // TODO: 팀원 구현 — 덱 이름 입력
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 아이콘(이모지) 선택
                 Text('아이콘', style: textTheme.bodyMedium),
                 const SizedBox(height: AppSpacing.xs),
                 ConceptEmojiPicker(
@@ -82,7 +82,6 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // 설명(선택)
                 TextFormField(
                   controller: _descController,
                   maxLines: 3,
@@ -93,32 +92,9 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                   ),
-                  // TODO: 팀원 구현 — 덱 설명 입력
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // 상위 덱(선택)
-                DropdownButtonFormField<String?>(
-                  initialValue: _parentDeckId,
-                  decoration: InputDecoration(
-                    labelText: '상위 덱 (선택)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                  ),
-                  items: [
-                    const DropdownMenuItem<String?>(child: Text('최상위 덱')),
-                    for (final deck in _mockDecks)
-                      DropdownMenuItem<String?>(
-                        value: deck.id,
-                        child: Text('${deck.emoji}  ${deck.name}'),
-                      ),
-                  ],
-                  onChanged: (v) => setState(() => _parentDeckId = v),
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // 액션
                 Row(
                   children: [
                     Expanded(
@@ -130,11 +106,14 @@ class _DeckCreateScreenState extends ConsumerState<DeckCreateScreen> {
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: FilledButton(
-                        onPressed: () {
-                          // TODO: 팀원 구현 — learning-svc 덱 생성 API 연동
-                          context.go(AppRoutes.decks);
-                        },
-                        child: const Text('만들기'),
+                        onPressed: _isSubmitting ? null : _submit,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('만들기'),
                       ),
                     ),
                   ],

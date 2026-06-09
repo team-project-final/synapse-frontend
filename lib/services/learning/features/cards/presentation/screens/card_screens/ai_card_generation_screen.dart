@@ -18,8 +18,9 @@ class _AiCardGenerationScreenState
   // 선택된 카드 인덱스 (AiCardsMsg 기준 — 메시지별 독립 관리)
   final Map<int, Set<int>> _selectedByMsgIndex = {};
 
-  static const _deckName = 'ML 기초';
   static const _xpPerCard = 5;
+  String? _selectedDeckId;
+  bool _isAdding = false;
 
   @override
   void dispose() {
@@ -40,6 +41,39 @@ class _AiCardGenerationScreenState
     });
   }
 
+  Future<void> _addCardsToDeck(List<Deck> decks) async {
+    final deckId = _selectedDeckId ?? (decks.isNotEmpty ? decks.first.id : null);
+    if (deckId == null || _isAdding) return;
+
+    final cards = <Map<String, String>>[];
+    final conv = ref.read(cardGenNotifierProvider).conversation;
+    for (final entry in _selectedByMsgIndex.entries) {
+      final msgIndex = entry.key;
+      final selectedIndices = entry.value;
+      if (msgIndex < conv.length && conv[msgIndex] is AiCardsMsg) {
+        final aiCards = (conv[msgIndex] as AiCardsMsg).cards;
+        for (final i in selectedIndices) {
+          if (i < aiCards.length) {
+            cards.add({
+              'frontContent': aiCards[i].front,
+              'backContent': aiCards[i].back,
+              'cardType': 'BASIC',
+            });
+          }
+        }
+      }
+    }
+    if (cards.isEmpty) return;
+    setState(() => _isAdding = true);
+    try {
+      await ref.read(batchCreateCardsUseCaseProvider).call(deckId, cards);
+      ref.invalidate(cardListProvider(deckId));
+      if (mounted) context.go(AppRoutes.decks);
+    } catch (_) {
+      if (mounted) setState(() => _isAdding = false);
+    }
+  }
+
   void _send() {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
@@ -55,6 +89,10 @@ class _AiCardGenerationScreenState
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final cardGenState = ref.watch(cardGenNotifierProvider);
+    final decks = ref.watch(deckListNotifierProvider).asData?.value ?? [];
+    final deckName = _selectedDeckId != null
+        ? decks.firstWhere((d) => d.id == _selectedDeckId, orElse: () => decks.first).name
+        : (decks.isNotEmpty ? decks.first.name : '덱 없음');
 
     ref.listen(cardGenNotifierProvider, (_, __) => _scrollToBottom());
 
@@ -204,7 +242,7 @@ class _AiCardGenerationScreenState
                                   ?.copyWith(fontWeight: FontWeight.w800),
                             ),
                             Text(
-                              '덱: $_deckName · +${selectedCount * _xpPerCard} XP',
+                              '덱: $deckName · +${selectedCount * _xpPerCard} XP',
                               style: textTheme.labelSmall
                                   ?.copyWith(color: AppColors.muted),
                             ),
@@ -212,11 +250,14 @@ class _AiCardGenerationScreenState
                         ),
                       ),
                       FilledButton(
-                        onPressed: () {
-                          // TODO: 팀원 구현 — 선택 카드 덱 추가 API 연동
-                          context.go(AppRoutes.decks);
-                        },
-                        child: const Text('덱에 추가'),
+                        onPressed: _isAdding ? null : () => _addCardsToDeck(decks),
+                        child: _isAdding
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('덱에 추가'),
                       ),
                     ],
                   ),

@@ -53,6 +53,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.status == AuthStatus.authenticated && isAuthEntryRoute) {
         return AppRoutes.dashboard;
       }
+      // admin 영역은 ROLE_ADMIN만 접근 — 비관리자는 대시보드로.
+      if (authState.status == AuthStatus.authenticated &&
+          state.matchedLocation.startsWith(AppRoutes.admin) &&
+          !authState.isAdmin) {
+        return AppRoutes.dashboard;
+      }
       return null;
     },
     routes: [

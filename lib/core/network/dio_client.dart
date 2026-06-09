@@ -9,6 +9,20 @@ final environmentProvider = Provider<AppEnvironment>((ref) {
   return parseAppEnvironment(value);
 });
 
+// learning-svc 직접 접속용 (Gateway 우회, 로컬 개발 — 포트 8084)
+final learningDioProvider = Provider<Dio>((ref) {
+  final environment = ref.watch(environmentProvider);
+  return Dio(BaseOptions(
+    baseUrl: environment.learningBaseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 20),
+    headers: const {
+      'X-User-Id': '00000000-0000-0000-0000-000000000001',
+      'X-Tenant-Id': '00000000-0000-0000-0000-000000000001',
+    },
+  ));
+});
+
 // learning-ai 직접 접속용 (Gateway 우회, 로컬 개발)
 final aiDioProvider = Provider<Dio>((ref) {
   final environment = ref.watch(environmentProvider);

@@ -26,4 +26,12 @@ extension AppEnvironmentBaseUrl on AppEnvironment {
       AppEnvironment.prod => 'https://api.synapse.app',
     };
   }
+
+  String get learningBaseUrl {
+    return switch (this) {
+      AppEnvironment.dev || AppEnvironment.platformDev => 'http://localhost:8084',
+      AppEnvironment.staging => 'https://api-staging.synapse.app',
+      AppEnvironment.prod => 'https://api.synapse.app',
+    };
+  }
 }

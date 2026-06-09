@@ -6,8 +6,8 @@ import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/platform/features/billing/data/billing_api.dart';
 import 'package:synapse_frontend/services/platform/features/billing/presentation/screens/billing_screens.dart';
 
-// 결제 화면(플랜/사용량/내역/결제반환) reskin 후 데스크탑/모바일 렌더 검증.
-// BillingPlansScreen은 init에서 구독 조회 API를 호출하므로 fake로 override한다.
+// 결제 화면(플랜/내역/결제반환) reskin 후 데스크탑/모바일 렌더 검증.
+// Plans/History는 init에서 API를 호출하므로 fake로 override한다.
 void main() {
   Future<void> pump(
     WidgetTester tester,
@@ -48,11 +48,13 @@ void main() {
       await pump(tester, const BillingPlansScreen(), size,
           overrideBilling: true);
     });
-    testWidgets('BillingUsageScreen $label 렌더', (tester) async {
-      await pump(tester, const BillingUsageScreen(), size);
-    });
     testWidgets('BillingHistoryScreen $label 렌더', (tester) async {
-      await pump(tester, const BillingHistoryScreen(), size);
+      await pump(
+        tester,
+        const BillingHistoryScreen(),
+        size,
+        overrideBilling: true,
+      );
     });
     testWidgets('BillingReturnScreen(성공) $label 렌더', (tester) async {
       await pump(tester, const BillingReturnScreen(success: true), size);
@@ -73,4 +75,13 @@ class _FakeBillingApi extends BillingApi {
     required String cancelUrl,
   }) async =>
       CheckoutSession('https://checkout.test/${planCode.toLowerCase()}');
+
+  @override
+  Future<PaymentHistoryPage> getPayments({int page = 0, int size = 20}) async =>
+      const PaymentHistoryPage(
+        items: [],
+        page: 0,
+        totalElements: 0,
+        totalPages: 1,
+      );
 }

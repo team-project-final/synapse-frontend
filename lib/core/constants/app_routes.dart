@@ -30,7 +30,6 @@ abstract final class AppRoutes {
   static const qa = '/qa';
 
   static const billingPlans = '/billing/plans';
-  static const billingUsage = '/billing/usage';
   static const billingHistory = '/billing/history';
   static const billingSuccess = '/billing/success';
   static const billingCancel = '/billing/cancel';
@@ -39,7 +38,6 @@ abstract final class AppRoutes {
   static const settingsProfile = '/settings/profile';
   static const settingsSecurity = '/settings/security';
   static const settingsNotifications = '/settings/notifications';
-  static const settingsData = '/settings/data';
   static const settingsTenant = '/settings/tenant';
 
   static const admin = '/admin';

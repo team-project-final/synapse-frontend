@@ -24,7 +24,7 @@ class SettingsHubScreen extends StatelessWidget {
         _SettingsHubRow(
           icon: Icons.lock_outline,
           title: '보안',
-          subtitle: '비밀번호 · 2단계 인증(MFA) · 연결된 계정',
+          subtitle: '비밀번호 · 2단계 인증(MFA) · 연결된 계정 · 계정 삭제',
           route: AppRoutes.settingsSecurity,
         ),
         _SettingsHubRow(
@@ -32,12 +32,6 @@ class SettingsHubScreen extends StatelessWidget {
           title: '알림',
           subtitle: '카테고리별 알림 설정',
           route: AppRoutes.settingsNotifications,
-        ),
-        _SettingsHubRow(
-          icon: Icons.storage_outlined,
-          title: '데이터',
-          subtitle: '내보내기 · 가져오기 · 계정 삭제',
-          route: AppRoutes.settingsData,
         ),
         _SettingsHubRow(
           icon: Icons.business_outlined,
@@ -52,12 +46,6 @@ class SettingsHubScreen extends StatelessWidget {
           title: '요금제',
           subtitle: '플랜 비교 · 업그레이드',
           route: AppRoutes.billingPlans,
-        ),
-        _SettingsHubRow(
-          icon: Icons.bar_chart_outlined,
-          title: '사용량',
-          subtitle: '이번 달 사용량',
-          route: AppRoutes.billingUsage,
         ),
         _SettingsHubRow(
           icon: Icons.receipt_long_outlined,

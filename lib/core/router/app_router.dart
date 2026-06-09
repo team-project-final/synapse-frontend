@@ -204,10 +204,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const BillingPlansScreen(),
           ),
           GoRoute(
-            path: AppRoutes.billingUsage,
-            builder: (context, state) => const BillingUsageScreen(),
-          ),
-          GoRoute(
             path: AppRoutes.billingHistory,
             builder: (context, state) => const BillingHistoryScreen(),
           ),
@@ -226,10 +222,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.settingsNotifications,
             builder: (context, state) => const NotificationSettingsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.settingsData,
-            builder: (context, state) => const DataSettingsScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsTenant,

@@ -18,7 +18,7 @@ class SettingsHubScreen extends StatelessWidget {
         _SettingsHubRow(
           icon: Icons.person_outline,
           title: '프로필',
-          subtitle: '이름 · 이메일 · 언어 · 타임존',
+          subtitle: '이름 · 이메일 · 언어',
           route: AppRoutes.settingsProfile,
         ),
         _SettingsHubRow(

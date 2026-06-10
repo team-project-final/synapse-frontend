@@ -35,7 +35,10 @@ class AiRemoteDatasource {
       data: {'question': question, 'stream': true},
       options: Options(
         responseType: ResponseType.stream,
-        headers: {'Accept': 'text/event-stream'},
+        headers: {
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
       ),
     );
 

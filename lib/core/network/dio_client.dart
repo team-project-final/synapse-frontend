@@ -30,7 +30,7 @@ final aiDioProvider = Provider<Dio>((ref) {
     baseUrl: environment.aiBaseUrl,
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: null, // SSE 스트림은 응답 완료 시점을 예측할 수 없음
-    headers: {'X-User-Id': 'mock_user_123'},
+    headers: const {'X-User-Id': '00000000-0000-0000-0000-000000000001'},
   ));
 });
 

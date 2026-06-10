@@ -40,8 +40,9 @@ class AiRemoteDatasource {
     );
 
     final lineBuffer = StringBuffer();
-    await for (final bytes in response.data!.stream) {
-      lineBuffer.write(utf8.decode(bytes));
+    await for (final chunk
+        in response.data!.stream.cast<List<int>>().transform(utf8.decoder)) {
+      lineBuffer.write(chunk);
       final raw = lineBuffer.toString();
       final lines = raw.split('\n');
       lineBuffer.clear();

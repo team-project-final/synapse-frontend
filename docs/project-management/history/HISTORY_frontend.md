@@ -12,10 +12,10 @@
 | Step | 내용 | 상태 | 시작일 | 완료일 | 비고 |
 |------|------|------|--------|--------|------|
 | Step 1 | Flutter 앱 쉘 + GoRouter | Done | 2026-05-12 | 2026-05-16 | main에 머지됨 |
-| Step 2 | 인증 화면 | In Progress | 2026-05-20 | — | 폼 UI 뼈대 완료, OAuth 연동은 팀원 잔여 |
-| Step 3 | 대시보드 + 사이드바 | In Progress | 2026-05-20 | — | ShellRoute + SideNav + BottomNav 뼈대 완료, API 연동은 팀원 잔여 |
+| Step 2 | 인증 화면 | Done | 2026-05-20 | 2026-06-10 | platform 연동 완료 (PR #33 화면 정리 · #45 비밀번호 재설정/MFA 백업 코드). 로그인 바이패스는 개발 편의로 유지 중 |
+| Step 3 | 대시보드 + 사이드바 | In Progress | 2026-05-20 | — | ShellRoute + SideNav + BottomNav 뼈대 완료, admin 메뉴 가드는 PR #34로 완료, 대시보드 위젯 API 연동은 팀원 잔여 |
 
-**W1 진행률**: 1/3 Steps 완료 (Step 2·3 뼈대 완료, 비즈니스 로직 잔여)
+**W1 진행률**: 2/3 Steps 완료
 
 ### W2 (2026-05-19 ~ 05-23)
 
@@ -32,10 +32,10 @@
 | Step | 내용 | 상태 | 시작일 | 완료일 | 비고 |
 |------|------|------|--------|--------|------|
 | Step 7 | 게이미피케이션 UI | Not Started | — | — | |
-| Step 8 | 알림 화면 | Not Started | — | — | |
-| Step 9 | 관리자/공유 화면 | Not Started | — | — | |
+| Step 8 | 알림 화면 | Done | 2026-06-09 | 2026-06-09 | platform 연동 완료 (PR #37 — 인박스·읽음·뱃지·설정). 무한 스크롤·폴링은 범위 제외 |
+| Step 9 | 관리자/공유 화면 | In Progress | 2026-06-09 | — | admin 접근 제어(PR #34)·admin 화면 연동(PR #46)은 완료. 신고/공유는 engagement 소관 + ADMIN role 발급(F8) 대기 |
 
-**W3 진행률**: 0/3 Steps 완료
+**W3 진행률**: 1/3 Steps 완료 (Step 9는 platform 몫 완료)
 
 ### W4 (2026-06-02 ~ 06-06)
 
@@ -46,6 +46,24 @@
 | Step 12 | 토큰 검증 연동 | Not Started | — | — | |
 
 **W4 진행률**: 0/3 Steps 완료
+
+### Platform 경계 연동 (담당: 김해준 — W5, workflow Step 외 작업)
+
+> 디자인 프로토타입(mock) 화면을 synapse-platform-svc 실제 API에 연동한 작업.
+> 경계: `lib/services/platform/features/`(auth·billing·notifications·settings·admin) + 일부 shared(side_nav).
+> 공통 패턴: 경량 API 클라이언트(Dio + fromJson→Entity) · 로딩/에러(재시도)/빈 상태 · 백엔드 에러코드(PLAT-*) 한국어 매핑 · `flutter analyze` 0 + `flutter test` green 유지.
+
+| PR | 머지일 | 내용 | 의존 백엔드 |
+|----|--------|------|------------|
+| #33 | 2026-06-09 | User 셀프서비스 — 프로필 조회/저장·비밀번호 변경·계정 삭제·OAuth 연결 해제 + 인증 화면 정리(OAuth consent·MFA resend 제거) | platform #76 |
+| #34 | 2026-06-09 | JWT `roles` 기반 admin 접근 제어 — 라우트 가드·사이드바 메뉴 가드 | platform #77 |
+| #37 | 2026-06-09 | 알림 — 인박스(목록·읽음·모두읽음·unread 뱃지)·설정·카테고리 탭 필터 | platform #79 |
+| #38 | 2026-06-10 | 결제 — 이력·영수증(Stripe URL) + 사용량/데이터 화면 제거(백엔드 미연동 거짓정보 방지) | platform #80 |
+| #40 | 2026-06-10 | 테넌트 셀프서비스 — 정보·멤버·역할 변경·삭제·초대 + `myRole` 권한 가드 | platform #81·#82 |
+| #45 | 2026-06-10 | Auth 복구 — 비밀번호 재설정 3단계·MFA 백업 코드 발급/입력 모드 | platform #83 |
+| #46 | 2026-06-10 | admin 대시보드 — DAU/MAU·사용량·긴급 처리·최근 활동 실연동(미연동 항목은 배지 표시) | platform #85 |
+
+**의도적 보류/잔여**: 로그인 바이패스 유지(마무리 시 실 로그인 전환) · 알림/결제/멤버 페이지네이션 없음(첫 N건) · admin 시스템설정/GDPR(백엔드 미구현) · 신고/그룹/게임화/콘텐츠(타 서비스 소관) · settings 허브 알림 설정 mock 사본 정리 필요
 
 ---
 
@@ -185,5 +203,6 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-10 | Platform 경계 연동 섹션 추가 (PR #33~#46), W1 Step 2·W3 Step 8/9 상태 실측 반영 |
 | 2026-05-11 | W2/W3/W4 대시보드 및 로그 템플릿 추가 |
 | 2026-05-11 | 초기 템플릿 생성 |

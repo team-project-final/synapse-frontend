@@ -20,8 +20,10 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     _codeLength,
     (_) => FocusNode(),
   );
+  final _backupCodeController = TextEditingController();
 
   bool _isVerifying = false;
+  bool _useBackupCode = false;
 
   @override
   void dispose() {
@@ -31,6 +33,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     for (final f in _focusNodes) {
       f.dispose();
     }
+    _backupCodeController.dispose();
     super.dispose();
   }
 
@@ -49,14 +52,25 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
   }
 
   void _verifyCode() {
+    // TODO: 개발 초기 임시 처리 - 실제 인증 재활성화 시 platformAuthApiProvider의
+    // verifyMfa(TOTP) / verifyMfaBackupCode(백업 코드) 호출 복구.
     setState(() => _isVerifying = true);
-    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/verify (TOTP 코드 검증)
     Future<void>.delayed(const Duration(seconds: 1)).then((_) {
       if (!mounted) return;
       setState(() => _isVerifying = false);
       // 검증 성공(목업) → 인증 완료 처리 후 대시보드로 이동.
       ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
       context.go(AppRoutes.dashboard);
+    });
+  }
+
+  void _toggleBackupCode() {
+    setState(() {
+      _useBackupCode = !_useBackupCode;
+      _backupCodeController.clear();
+      for (final c in _controllers) {
+        c.clear();
+      }
     });
   }
 
@@ -77,49 +91,82 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
               children: [
                 Icon(Icons.security, size: 48, color: colorScheme.primary),
                 const SizedBox(height: AppSpacing.md),
-                Text('인증 코드 입력', style: textTheme.headlineSmall),
+                Text(
+                  _useBackupCode ? '백업 코드 입력' : '인증 코드 입력',
+                  style: textTheme.headlineSmall,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '인증 앱에 표시된 6자리 코드를 입력해주세요.',
+                  _useBackupCode
+                      ? 'MFA 설정 시 발급받은 백업 코드를 입력해주세요. 각 코드는 한 번만 사용할 수 있습니다.'
+                      : '인증 앱에 표시된 6자리 코드를 입력해주세요.',
                   style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_codeLength, (i) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        left: i == 0 ? 0 : AppSpacing.sm,
-                      ),
-                      child: SizedBox(
-                        width: 44,
-                        child: TextField(
-                          controller: _controllers[i],
-                          focusNode: _focusNodes[i],
-                          maxLength: 1,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          style: textTheme.headlineSmall,
-                          decoration: const InputDecoration(
-                            counterText: '',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (v) => _onDigitChanged(i, v),
+                if (_useBackupCode)
+                  TextField(
+                    key: const Key('mfa-backup-code-field'),
+                    controller: _backupCodeController,
+                    textAlign: TextAlign.center,
+                    style: textTheme.headlineSmall,
+                    decoration: const InputDecoration(
+                      hintText: 'XXXX-XXXX',
+                      border: OutlineInputBorder(),
+                    ),
+                    onSubmitted: (v) {
+                      if (v.trim().isNotEmpty) _verifyCode();
+                    },
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_codeLength, (i) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          left: i == 0 ? 0 : AppSpacing.sm,
                         ),
-                      ),
-                    );
-                  }),
-                ),
+                        child: SizedBox(
+                          width: 44,
+                          child: TextField(
+                            controller: _controllers[i],
+                            focusNode: _focusNodes[i],
+                            maxLength: 1,
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            style: textTheme.headlineSmall,
+                            decoration: const InputDecoration(
+                              counterText: '',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (v) => _onDigitChanged(i, v),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                if (_useBackupCode) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  FilledButton(
+                    key: const Key('mfa-backup-verify-button'),
+                    onPressed: _isVerifying
+                        ? null
+                        : () {
+                            if (_backupCodeController.text.trim().isNotEmpty) {
+                              _verifyCode();
+                            }
+                          },
+                    child: const Text('확인'),
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 if (_isVerifying) const CircularProgressIndicator(),
                 const SizedBox(height: AppSpacing.sm),
                 TextButton(
-                  onPressed: () {
-                    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/backup (백업 코드 검증 화면 이동)
-                  },
+                  key: const Key('mfa-backup-toggle'),
+                  onPressed: _isVerifying ? null : _toggleBackupCode,
                   child: Text(
-                    '백업 코드 사용',
+                    _useBackupCode ? '인증 앱 코드 사용' : '백업 코드 사용',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.primary,
                       decoration: TextDecoration.underline,

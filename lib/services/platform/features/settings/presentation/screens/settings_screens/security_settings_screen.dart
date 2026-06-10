@@ -30,17 +30,9 @@ class _SecuritySettingsScreenState
   bool _hasPassword = false;
   String? _unlinkingProvider;
   bool _deleting = false;
-
-  final List<String> _backupCodes = [
-    'A1B2-C3D4',
-    'E5F6-G7H8',
-    'I9J0-K1L2',
-    'M3N4-O5P6',
-    'Q7R8-S9T0',
-    'U1V2-W3X4',
-    'Y5Z6-A7B8',
-    'C9D0-E1F2',
-  ];
+  bool _backupLoading = false;
+  String? _backupError;
+  List<String>? _backupCodes;
 
   @override
   void initState() {
@@ -223,6 +215,8 @@ class _SecuritySettingsScreenState
         _mfaError = null;
         _mfaVerified = false;
         _mfaCodeController.clear();
+        _backupCodes = null;
+        _backupError = null;
       });
       return;
     }
@@ -274,6 +268,35 @@ class _SecuritySettingsScreenState
       setState(() {
         _mfaVerifyLoading = false;
         _mfaError = 'MFA 코드를 검증하지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _generateBackupCodes() async {
+    setState(() {
+      _backupLoading = true;
+      _backupError = null;
+    });
+
+    try {
+      final codes =
+          await ref.read(platformAuthApiProvider).generateMfaBackupCodes();
+      if (!mounted) return;
+      setState(() {
+        _backupCodes = codes;
+        _backupLoading = false;
+      });
+    } on PlatformAuthApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _backupLoading = false;
+        _backupError = error.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _backupLoading = false;
+        _backupError = '백업 코드를 발급하지 못했습니다.';
       });
     }
   }
@@ -445,28 +468,60 @@ class _SecuritySettingsScreenState
           Text('백업 코드', style: textTheme.titleSmall),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요.',
+            '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요. '
+            'MFA 인증을 완료한 뒤 발급할 수 있으며, 재발급하면 기존 코드는 모두 무효화됩니다.',
             style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: _backupCodes
-                .map(
-                  (code) => Chip(
-                    label: Text(
-                      code,
-                      style: textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    backgroundColor: AppColors.surface2,
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                )
-                .toList(),
+          if (_backupError != null) ...[
+            Text(
+              _backupError!,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton(
+              key: const Key('mfa-backup-generate-button'),
+              onPressed: !_mfaVerified || _backupLoading
+                  ? null
+                  : _generateBackupCodes,
+              child: _backupLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(_backupCodes == null ? '백업 코드 발급' : '백업 코드 재발급'),
+            ),
           ),
+          if (_backupCodes != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '백업 코드는 지금만 표시됩니다. 안전한 곳에 보관하세요.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: _backupCodes!
+                  .map(
+                    (code) => Chip(
+                      label: Text(
+                        code,
+                        style: textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      backgroundColor: AppColors.surface2,
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
 
         const SizedBox(height: AppSpacing.lg),

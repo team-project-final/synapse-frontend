@@ -1,4 +1,5 @@
 import 'package:synapse_frontend/services/platform/features/admin/data/datasources/admin_remote_datasource.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -74,5 +75,11 @@ class AdminRepositoryImpl implements AdminRepository {
       totalElements: model.totalElements,
       totalPages: model.totalPages,
     );
+  }
+
+  @override
+  Future<AdminAnalyticsSummary> getAnalyticsSummary() async {
+    final model = await _datasource.getAnalyticsSummary();
+    return model.toEntity();
   }
 }

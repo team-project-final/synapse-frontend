@@ -13,30 +13,34 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
-  String _userCountText = '…';
-  String _tenantCountText = '…';
+  AdminAnalyticsSummary? _summary;
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadCounts();
+    Future<void>.microtask(_load);
   }
 
-  // platform-svc 목록 API의 totalElements로 총 사용자/테넌트 수를 가져온다.
-  Future<void> _loadCounts() async {
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final users = await ref.read(listAdminUsersUseCaseProvider)(size: 1);
-      if (mounted) setState(() => _userCountText = '${users.totalElements}');
+      final summary = await ref.read(getAdminAnalyticsSummaryUseCaseProvider)();
+      if (!mounted) return;
+      setState(() {
+        _summary = summary;
+        _loading = false;
+      });
     } catch (_) {
-      if (mounted) setState(() => _userCountText = '-');
-    }
-    try {
-      final tenants = await ref.read(listAdminTenantsUseCaseProvider)(size: 1);
-      if (mounted) {
-        setState(() => _tenantCountText = '${tenants.totalElements}');
-      }
-    } catch (_) {
-      if (mounted) setState(() => _tenantCountText = '-');
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '대시보드 데이터를 불러오지 못했습니다.';
+      });
     }
   }
 
@@ -44,51 +48,49 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 700;
+    final summary = _summary;
+
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null || summary == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error ?? '대시보드 데이터를 불러오지 못했습니다.'),
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(onPressed: _load, child: const Text('다시 시도')),
+          ],
+        ),
+      );
+    }
 
     final kpiCards = [
       _KpiData(
         label: '총 사용자',
-        value: _userCountText,
+        value: _grouped(summary.users.total),
         icon: Icons.people_outline,
         color: AppColors.info,
       ),
       _KpiData(
         label: '총 테넌트',
-        value: _tenantCountText,
+        value: _grouped(summary.tenants.total),
         icon: Icons.business_outlined,
         color: AppColors.primary,
       ),
-      // TODO: 백엔드 대기 — DAU/MAU는 platform-svc 분석 API 필요 (현재 mock)
-      const _KpiData(
+      _KpiData(
         label: 'DAU',
-        value: '1,240',
+        value: _grouped(summary.users.dau),
         icon: Icons.person_outline,
         color: AppColors.info,
       ),
-      const _KpiData(
+      _KpiData(
         label: 'MAU',
-        value: '8,920',
+        value: _grouped(summary.users.mau),
         icon: Icons.groups_outlined,
         color: AppColors.info,
       ),
-    ];
-
-    // TODO: 팀원 구현 — platform-svc 시스템 사용량 API 연동
-    const usageGauges = [
-      _UsageGauge(label: 'AI 토큰', value: 0.62, display: '62%'),
-      _UsageGauge(label: '스토리지', value: 0.41, display: '41%'),
-      _UsageGauge(label: 'Kafka lag', value: 0.05, display: '정상'),
-    ];
-
-    const pendingItems = ['신고 8건 (P0: 2건)', 'GDPR 요청 3건', 'AI 할당량 초과 5건'];
-
-    // TODO: 팀원 구현 — platform-svc 최근 활동 API 연동
-    const recentActivity = [
-      '사용자 user@example.com 가 로그인함 · 방금 전',
-      '새 테넌트 "스터디그룹A" 생성됨 · 5분 전',
-      '사용자 admin@test.com 이 카드 50개를 생성함 · 12분 전',
-      '결제 처리 성공: Pro 플랜 · 1시간 전',
-      '신고 접수: 스팸 콘텐츠 · 2시간 전',
     ];
 
     return ListView(
@@ -124,49 +126,32 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
         const SizedBox(height: AppSpacing.xl),
 
-        // ── Usage Gauges ──
+        // ── Usage ──
         Text('시스템 사용량', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: usageGauges.map((g) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        child: Text(g.label, style: textTheme.bodySmall),
-                      ),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: g.value,
-                          backgroundColor: AppColors.border,
-                          color: g.value > 0.8
-                              ? AppColors.error
-                              : g.value > 0.6
-                              ? AppColors.warning
-                              : AppColors.success,
-                          minHeight: 8,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          g.display,
-                          style: textTheme.bodySmall,
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
-                    ],
+          child: Column(
+            children: summary.usage.indexed.map((entry) {
+              final item = entry.$2;
+              return Column(
+                children: [
+                  ListTile(
+                    dense: true,
+                    title: Text(item.label, style: textTheme.bodySmall),
+                    trailing: item.status == AdminMetricStatus.ok
+                        ? Text(
+                            _formatUsageValue(item),
+                            style: textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : _MetricStatusBadge(status: item.status),
                   ),
-                );
-              }).toList(),
-            ),
+                  if (entry.$1 < summary.usage.length - 1)
+                    const Divider(height: 1),
+                ],
+              );
+            }).toList(),
           ),
         ),
 
@@ -177,19 +162,34 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         const SizedBox(height: AppSpacing.sm),
         Card(
           child: Column(
-            children: pendingItems.indexed.map((entry) {
+            children: summary.pendingItems.indexed.map((entry) {
+              final item = entry.$2;
+              final hasCount =
+                  item.status == AdminMetricStatus.ok && item.count != null;
               return Column(
                 children: [
                   ListTile(
-                    leading: const Icon(
-                      Icons.warning_amber,
-                      size: 20,
-                      color: AppColors.error,
-                    ),
-                    title: Text(entry.$2, style: textTheme.bodySmall),
                     dense: true,
+                    leading: Icon(
+                      hasCount && item.count! > 0
+                          ? Icons.warning_amber
+                          : Icons.info_outline,
+                      size: 20,
+                      color: hasCount && item.count! > 0
+                          ? AppColors.error
+                          : AppColors.muted,
+                    ),
+                    title: Text(item.label, style: textTheme.bodySmall),
+                    trailing: hasCount
+                        ? Text(
+                            '${_grouped(item.count!)}건',
+                            style: textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
+                        : _MetricStatusBadge(status: item.status),
                   ),
-                  if (entry.$1 < pendingItems.length - 1)
+                  if (entry.$1 < summary.pendingItems.length - 1)
                     const Divider(height: 1),
                 ],
               );
@@ -202,27 +202,42 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         // ── Recent Activity ──
         Text('최근 활동', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
-        Card(
-          child: Column(
-            children: recentActivity.indexed.map((entry) {
-              return Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: AppColors.muted,
+        if (summary.recentActivities.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Text(
+                '최근 활동이 없습니다.',
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+            ),
+          )
+        else
+          Card(
+            child: Column(
+              children: summary.recentActivities.indexed.map((entry) {
+                final activity = entry.$2;
+                return Column(
+                  children: [
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(
+                        Icons.circle,
+                        size: 8,
+                        color: AppColors.muted,
+                      ),
+                      title: Text(
+                        _formatActivity(activity),
+                        style: textTheme.bodySmall,
+                      ),
                     ),
-                    title: Text(entry.$2, style: textTheme.bodySmall),
-                    dense: true,
-                  ),
-                  if (entry.$1 < recentActivity.length - 1)
-                    const Divider(height: 1),
-                ],
-              );
-            }).toList(),
+                    if (entry.$1 < summary.recentActivities.length - 1)
+                      const Divider(height: 1),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
-        ),
 
         const SizedBox(height: AppSpacing.xl),
 
@@ -287,6 +302,73 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       ],
     );
   }
+
+  String _formatUsageValue(AdminUsageItem item) {
+    final value = item.value;
+    if (value == null) return '-';
+    return switch (item.unit) {
+      // 백엔드 금액은 통화 최소단위 합계(통화 정보 없음) — 숫자만 그대로 보여준다.
+      'count' || 'minor_unit' => _grouped(value),
+      _ => '${_grouped(value)} ${item.unit}',
+    };
+  }
+
+  String _formatActivity(AdminRecentActivity activity) {
+    final parts = [
+      activity.action,
+      if (activity.resourceType.isNotEmpty) activity.resourceType,
+      _relativeTime(activity.createdAt),
+    ];
+    return parts.join(' · ');
+  }
+
+  String _relativeTime(DateTime? time) {
+    if (time == null) return '';
+    final diff = DateTime.now().difference(time.toLocal());
+    if (diff.inMinutes < 1) return '방금 전';
+    if (diff.inHours < 1) return '${diff.inMinutes}분 전';
+    if (diff.inDays < 1) return '${diff.inHours}시간 전';
+    if (diff.inDays < 7) return '${diff.inDays}일 전';
+    final local = time.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}'
+        '-${local.day.toString().padLeft(2, '0')}';
+  }
+}
+
+String _grouped(int value) {
+  final text = value.abs().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < text.length; i++) {
+    if (i > 0 && (text.length - i) % 3 == 0) buffer.write(',');
+    buffer.write(text[i]);
+  }
+  return value < 0 ? '-$buffer' : buffer.toString();
+}
+
+/// 타 서비스 정본이라 값이 없는 항목의 상태 표시.
+class _MetricStatusBadge extends StatelessWidget {
+  const _MetricStatusBadge({required this.status});
+  final AdminMetricStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(
+        status == AdminMetricStatus.notImplemented ? '준비 중' : '미연동',
+        style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+      ),
+    );
+  }
 }
 
 class _KpiData {
@@ -331,15 +413,4 @@ class _KpiCard extends StatelessWidget {
       ),
     );
   }
-}
-
-class _UsageGauge {
-  const _UsageGauge({
-    required this.label,
-    required this.value,
-    required this.display,
-  });
-  final String label;
-  final double value;
-  final String display;
 }

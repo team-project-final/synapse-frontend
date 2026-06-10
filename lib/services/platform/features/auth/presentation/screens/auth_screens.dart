@@ -7,10 +7,8 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
-import 'dart:async';
 
 part 'auth_screens/login_screen.dart';
 part 'auth_screens/signup_screen.dart';
 part 'auth_screens/mfa_screen.dart';
 part 'auth_screens/password_reset_screen.dart';
-part 'auth_screens/oauth_consent_screen.dart';

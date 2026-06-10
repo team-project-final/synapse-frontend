@@ -32,7 +32,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         AppRoutes.signup,
         AppRoutes.mfa,
         AppRoutes.passwordReset,
-        AppRoutes.oauthConsent,
         AppRoutes.authCallback,
       ];
       const publicRoutes = [
@@ -54,6 +53,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.status == AuthStatus.authenticated && isAuthEntryRoute) {
         return AppRoutes.dashboard;
       }
+      // admin 영역은 ROLE_ADMIN만 접근 — 비관리자는 대시보드로.
+      // ('/admin' 정확히 또는 '/admin/...' 하위만. startsWith('/admin')은
+      //  '/administrators' 같은 경로까지 잡으므로 정밀하게 매칭한다.)
+      final location = state.matchedLocation;
+      final isAdminArea = location == AppRoutes.admin ||
+          location.startsWith('${AppRoutes.admin}/');
+      if (authState.status == AuthStatus.authenticated &&
+          isAdminArea &&
+          !authState.isAdmin) {
+        return AppRoutes.dashboard;
+      }
       return null;
     },
     routes: [
@@ -73,10 +83,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.passwordReset,
         builder: (context, state) => const PasswordResetScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.oauthConsent,
-        builder: (context, state) => const OAuthConsentScreen(),
       ),
       GoRoute(
         path: AppRoutes.authCallback,
@@ -198,12 +204,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const BillingPlansScreen(),
           ),
           GoRoute(
-            path: AppRoutes.billingUsage,
-            builder: (context, state) => const BillingUsageScreen(),
-          ),
-          GoRoute(
             path: AppRoutes.billingHistory,
             builder: (context, state) => const BillingHistoryScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsHubScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsProfile,
@@ -216,10 +222,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.settingsNotifications,
             builder: (context, state) => const NotificationSettingsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.settingsData,
-            builder: (context, state) => const DataSettingsScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsTenant,

@@ -11,7 +11,6 @@ class MfaScreen extends ConsumerStatefulWidget {
 
 class _MfaScreenState extends ConsumerState<MfaScreen> {
   static const int _codeLength = 6;
-  static const int _timerDuration = 30;
 
   final List<TextEditingController> _controllers = List.generate(
     _codeLength,
@@ -22,19 +21,10 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     (_) => FocusNode(),
   );
 
-  int _secondsRemaining = _timerDuration;
-  Timer? _timer;
   bool _isVerifying = false;
 
   @override
-  void initState() {
-    super.initState();
-    _startTimer();
-  }
-
-  @override
   void dispose() {
-    _timer?.cancel();
     for (final c in _controllers) {
       c.dispose();
     }
@@ -42,18 +32,6 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
       f.dispose();
     }
     super.dispose();
-  }
-
-  void _startTimer() {
-    _timer?.cancel();
-    setState(() => _secondsRemaining = _timerDuration);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining <= 0) {
-        timer.cancel();
-        return;
-      }
-      setState(() => _secondsRemaining--);
-    });
   }
 
   String get _code => _controllers.map((c) => c.text).join();
@@ -74,15 +52,12 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     setState(() => _isVerifying = true);
     // TODO: 팀원 구현 — platform-svc POST /auth/mfa/verify (TOTP 코드 검증)
     Future<void>.delayed(const Duration(seconds: 1)).then((_) {
-      if (mounted) {
-        setState(() => _isVerifying = false);
-      }
+      if (!mounted) return;
+      setState(() => _isVerifying = false);
+      // 검증 성공(목업) → 인증 완료 처리 후 대시보드로 이동.
+      ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
+      context.go(AppRoutes.dashboard);
     });
-  }
-
-  void _resendCode() {
-    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/resend (TOTP 코드 재발송)
-    _startTimer();
   }
 
   @override
@@ -137,25 +112,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                   }),
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                if (_isVerifying)
-                  const CircularProgressIndicator()
-                else ...[
-                  Text(
-                    _secondsRemaining > 0
-                        ? '남은 시간: $_secondsRemaining초'
-                        : '코드가 만료되었습니다',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: _secondsRemaining > 0
-                          ? AppColors.muted
-                          : AppColors.error,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextButton(
-                    onPressed: _secondsRemaining <= 0 ? _resendCode : null,
-                    child: const Text('코드 재발송'),
-                  ),
-                ],
+                if (_isVerifying) const CircularProgressIndicator(),
                 const SizedBox(height: AppSpacing.sm),
                 TextButton(
                   onPressed: () {

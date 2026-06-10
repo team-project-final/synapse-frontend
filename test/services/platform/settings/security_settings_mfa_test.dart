@@ -3,14 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
+import 'package:synapse_frontend/services/platform/features/settings/data/account_api.dart';
 import 'package:synapse_frontend/services/platform/features/settings/presentation/screens/settings_screens.dart';
+
+import 'account_api_fakes.dart';
 
 void main() {
   testWidgets('enabling MFA displays setup secret', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           platformAuthApiProvider.overrideWithValue(_FakePlatformAuthApi()),
+          accountApiProvider.overrideWithValue(FakeAccountApi()),
         ],
         child: const MaterialApp(
           home: Scaffold(body: SecuritySettingsScreen()),
@@ -18,6 +24,7 @@ void main() {
       ),
     );
 
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byType(Switch).first);
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
@@ -26,10 +33,13 @@ void main() {
   });
 
   testWidgets('verifies MFA setup code', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           platformAuthApiProvider.overrideWithValue(_FakePlatformAuthApi()),
+          accountApiProvider.overrideWithValue(FakeAccountApi()),
         ],
         child: const MaterialApp(
           home: Scaffold(body: SecuritySettingsScreen()),
@@ -37,6 +47,7 @@ void main() {
       ),
     );
 
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.byType(Switch).first);
     await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();

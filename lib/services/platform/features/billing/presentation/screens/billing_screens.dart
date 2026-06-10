@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/services/platform/features/billing/data/billing_api.dart';
@@ -413,142 +415,6 @@ class BillingReturnScreen extends StatelessWidget {
   }
 }
 
-// ── BillingUsageScreen (SCR-W-BILLING-002) ──
-
-class BillingUsageScreen extends ConsumerWidget {
-  const BillingUsageScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-
-    // TODO: 팀원 구현 — platform-svc 사용량 API 연동
-    const usageItems = [
-      _UsageItem(
-        label: '노트',
-        current: 45,
-        max: 100,
-        unit: '개',
-        progress: 0.45,
-        isLocked: false,
-      ),
-      _UsageItem(
-        label: '카드',
-        current: 360,
-        max: 500,
-        unit: '장',
-        progress: 0.72,
-        isLocked: false,
-      ),
-      _UsageItem(
-        label: 'AI 생성',
-        current: 0,
-        max: 0,
-        unit: '',
-        progress: 0.0,
-        isLocked: true,
-      ),
-      _UsageItem(
-        label: 'API 호출',
-        current: 300,
-        max: 1000,
-        unit: '회',
-        progress: 0.3,
-        isLocked: false,
-      ),
-    ];
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        Text('사용량 현황', style: textTheme.headlineSmall),
-        const SizedBox(height: AppSpacing.xl),
-        ...usageItems.map((item) => _UsageCard(item: item)),
-      ],
-    );
-  }
-}
-
-class _UsageItem {
-  const _UsageItem({
-    required this.label,
-    required this.current,
-    required this.max,
-    required this.unit,
-    required this.progress,
-    required this.isLocked,
-  });
-  final String label;
-  final int current;
-  final int max;
-  final String unit;
-  final double progress;
-  final bool isLocked;
-}
-
-class _UsageCard extends StatelessWidget {
-  const _UsageCard({required this.item});
-  final _UsageItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    final progressColor = item.isLocked
-        ? AppColors.muted
-        : item.progress >= 0.7
-        ? AppColors.warning
-        : AppColors.success;
-
-    final labelText = item.isLocked
-        ? 'Pro 플랜 필요'
-        : '${item.current} / ${item.max}${item.unit}';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(item.label, style: textTheme.titleSmall),
-                Text(
-                  labelText,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: item.isLocked
-                        ? AppColors.muted
-                        : item.progress >= 0.7
-                        ? AppColors.warning
-                        : AppColors.muted,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            LinearProgressIndicator(
-              value: item.progress,
-              backgroundColor: AppColors.border,
-              color: progressColor,
-              borderRadius: BorderRadius.circular(AppSpacing.xs),
-              minHeight: 8,
-            ),
-            if (item.isLocked) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '현재 플랜에서 사용할 수 없습니다',
-                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── BillingHistoryScreen (SCR-W-BILLING-003) ──
 
 class BillingHistoryScreen extends ConsumerStatefulWidget {
@@ -560,42 +426,60 @@ class BillingHistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
-  // Toggle to show paid plan data vs free plan empty state
-  bool _isFreePlan = true;
+  bool _loading = true;
+  String? _error;
+  List<PaymentHistoryItem> _payments = const [];
+  String? _openingReceiptId;
 
-  // TODO: 팀원 구현 — platform-svc 결제 이력 API 연동
-  static const _mockInvoices = [
-    {
-      'date': '2026-05-01',
-      'description': 'Pro 플랜 — 5월',
-      'amount': '₩9,900',
-      'status': '완료',
-    },
-    {
-      'date': '2026-04-01',
-      'description': 'Pro 플랜 — 4월',
-      'amount': '₩9,900',
-      'status': '완료',
-    },
-    {
-      'date': '2026-03-01',
-      'description': 'Pro 플랜 — 3월',
-      'amount': '₩9,900',
-      'status': '완료',
-    },
-    {
-      'date': '2026-02-01',
-      'description': 'Pro 플랜 — 2월',
-      'amount': '₩9,900',
-      'status': '완료',
-    },
-    {
-      'date': '2026-01-15',
-      'description': 'Pro 플랜 업그레이드 (일할 계산)',
-      'amount': '₩4,950',
-      'status': '대기',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(_load);
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final page = await ref.read(billingApiProvider).getPayments(size: 50);
+      if (!mounted) return;
+      setState(() {
+        _payments = page.items;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '결제 이력을 불러오지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _openReceipt(PaymentHistoryItem item) async {
+    setState(() => _openingReceiptId = item.id);
+    try {
+      final receipt = await ref.read(billingApiProvider).getReceipt(item.id);
+      if (!mounted) return;
+      setState(() => _openingReceiptId = null);
+      final url = receipt.bestUrl;
+      if (receipt.available && url != null && url.isNotEmpty) {
+        ref.read(billingCheckoutRedirectProvider)(url);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('영수증을 사용할 수 없습니다.')),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _openingReceiptId = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('영수증을 불러오지 못했습니다.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -606,8 +490,23 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
       children: [
         Text('결제 이력', style: textTheme.headlineSmall),
         const SizedBox(height: AppSpacing.xl),
-        if (_isFreePlan)
-          // Free plan empty state
+        if (_loading)
+          const Padding(
+            padding: EdgeInsets.all(AppSpacing.xxl),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_error != null)
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_error!, style: textTheme.bodyMedium),
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton(onPressed: _load, child: const Text('다시 시도')),
+              ],
+            ),
+          )
+        else if (_payments.isEmpty)
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -620,53 +519,44 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'Free 플랜은 결제 이력이 없습니다',
+                  '결제 이력이 없습니다',
                   style: textTheme.bodyLarge?.copyWith(color: AppColors.muted),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Free 플랜을 사용 중입니다',
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
-                  onPressed: () {
-                    // TODO: 팀원 구현 — 업그레이드 페이지로 이동
-                    setState(() => _isFreePlan = false);
-                  },
-                  child: const Text('업그레이드'),
+                  onPressed: () => context.go(AppRoutes.billingPlans),
+                  child: const Text('요금제 보기'),
                 ),
               ],
             ),
           )
         else
-          // Invoice DataTable
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
               columns: const [
                 DataColumn(label: Text('날짜')),
-                DataColumn(label: Text('설명')),
                 DataColumn(label: Text('금액')),
                 DataColumn(label: Text('상태')),
-                DataColumn(label: Text('PDF')),
+                DataColumn(label: Text('영수증')),
               ],
-              rows: _mockInvoices.map((invoice) {
-                final isCompleted = invoice['status'] == '완료';
+              rows: _payments.map((payment) {
+                final completed = _isPaid(payment.status);
                 return DataRow(
                   cells: [
-                    DataCell(Text(invoice['date']!)),
-                    DataCell(Text(invoice['description']!)),
-                    DataCell(Text(invoice['amount']!)),
+                    DataCell(Text(_formatDate(payment.date))),
+                    DataCell(
+                      Text(_formatAmount(payment.amount, payment.currency)),
+                    ),
                     DataCell(
                       Chip(
                         label: Text(
-                          invoice['status']!,
+                          _statusLabel(payment.status),
                           style: textTheme.labelSmall?.copyWith(
-                            color: isCompleted ? Colors.white : Colors.black87,
+                            color: completed ? Colors.white : Colors.black87,
                           ),
                         ),
-                        backgroundColor: isCompleted
+                        backgroundColor: completed
                             ? AppColors.success
                             : AppColors.warning,
                         padding: EdgeInsets.zero,
@@ -674,18 +564,7 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
-                    DataCell(
-                      IconButton(
-                        icon: const Icon(
-                          Icons.picture_as_pdf,
-                          color: AppColors.error,
-                        ),
-                        onPressed: () {
-                          // TODO: 팀원 구현 — PDF 영수증 다운로드
-                        },
-                        tooltip: 'PDF 다운로드',
-                      ),
-                    ),
+                    DataCell(_receiptCell(payment)),
                   ],
                 );
               }).toList(),
@@ -693,5 +572,63 @@ class _BillingHistoryScreenState extends ConsumerState<BillingHistoryScreen> {
           ),
       ],
     );
+  }
+
+  Widget _receiptCell(PaymentHistoryItem payment) {
+    if (!payment.receiptAvailable) {
+      return const Text('—', style: TextStyle(color: AppColors.muted));
+    }
+    if (_openingReceiptId == payment.id) {
+      return const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    return IconButton(
+      icon: const Icon(Icons.picture_as_pdf, color: AppColors.error),
+      onPressed: _openingReceiptId == null ? () => _openReceipt(payment) : null,
+      tooltip: '영수증 보기',
+    );
+  }
+
+  bool _isPaid(String status) {
+    return const {
+      'paid',
+      'succeeded',
+      'completed',
+    }.contains(status.toLowerCase());
+  }
+
+  String _statusLabel(String status) {
+    return switch (status.toLowerCase()) {
+      'paid' || 'succeeded' || 'completed' => '완료',
+      'pending' || 'processing' => '대기',
+      'failed' || 'canceled' || 'cancelled' => '실패',
+      _ => status,
+    };
+  }
+
+  String _formatDate(DateTime date) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${date.year}-${two(date.month)}-${two(date.day)}';
+  }
+
+  String _formatAmount(int amount, String currency) {
+    final code = currency.toUpperCase();
+    if (code == 'KRW') return '₩${_grouped(amount)}';
+    if (code == 'JPY') return '¥${_grouped(amount)}';
+    // USD/EUR 등은 최소단위(센트) → 통화 코드와 함께 소수 표기.
+    return '$code ${(amount / 100).toStringAsFixed(2)}';
+  }
+
+  String _grouped(int value) {
+    final digits = value.abs().toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
+      buffer.write(digits[i]);
+    }
+    return '${value < 0 ? '-' : ''}$buffer';
   }
 }

@@ -22,6 +22,14 @@ class _SecuritySettingsScreenState
   bool _mfaVerified = false;
   MfaSetupResult? _mfaSetup;
   String? _mfaError;
+  bool _passwordLoading = false;
+  String? _passwordError;
+  bool _connectionsLoading = false;
+  String? _connectionsError;
+  List<OAuthConnection> _connections = const [];
+  bool _hasPassword = false;
+  String? _unlinkingProvider;
+  bool _deleting = false;
 
   final List<String> _backupCodes = [
     'A1B2-C3D4',
@@ -35,12 +43,176 @@ class _SecuritySettingsScreenState
   ];
 
   @override
+  void initState() {
+    super.initState();
+    Future<void>.microtask(_loadConnections);
+  }
+
+  @override
   void dispose() {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     _mfaCodeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    final current = _currentPasswordController.text;
+    final next = _newPasswordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    final validationError = _validatePasswordChange(current, next, confirm);
+    if (validationError != null) {
+      setState(() => _passwordError = validationError);
+      return;
+    }
+
+    setState(() {
+      _passwordLoading = true;
+      _passwordError = null;
+    });
+
+    try {
+      await ref.read(accountApiProvider).changePassword(
+            currentPassword: current,
+            newPassword: next,
+          );
+      if (!mounted) return;
+      // 비밀번호 변경 성공 → 백엔드는 refresh 세션만 무효화하므로,
+      // 남은 access token(최대 15분)을 프론트가 즉시 폐기하고 재로그인을 유도한다.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해주세요.')),
+      );
+      await ref.read(authNotifierProvider.notifier).logout();
+      if (mounted) setState(() => _passwordLoading = false);
+    } on AccountApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _passwordLoading = false;
+        _passwordError = error.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _passwordLoading = false;
+        _passwordError = '비밀번호 변경에 실패했습니다.';
+      });
+    }
+  }
+
+  String? _validatePasswordChange(String current, String next, String confirm) {
+    if (current.isEmpty) return '현재 비밀번호를 입력해주세요.';
+    if (next != confirm) return '새 비밀번호가 일치하지 않습니다.';
+    if (next.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+    if (!RegExp('[A-Za-z]').hasMatch(next)) return '영문을 포함해야 합니다.';
+    if (!RegExp(r'\d').hasMatch(next)) return '숫자를 포함해야 합니다.';
+    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(next)) return '특수문자를 포함해야 합니다.';
+    return null;
+  }
+
+  Future<void> _loadConnections() async {
+    setState(() {
+      _connectionsLoading = true;
+      _connectionsError = null;
+    });
+    try {
+      final api = ref.read(accountApiProvider);
+      final profile = await api.getProfile();
+      final connections = await api.listOAuthConnections();
+      if (!mounted) return;
+      setState(() {
+        _hasPassword = profile.hasPassword;
+        _connections = connections;
+        _connectionsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _connectionsLoading = false;
+        _connectionsError = '연결된 계정을 불러오지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _unlinkOAuth(String provider) async {
+    setState(() {
+      _unlinkingProvider = provider;
+      _connectionsError = null;
+    });
+    try {
+      await ref.read(accountApiProvider).unlinkOAuth(provider);
+      if (!mounted) return;
+      setState(() => _unlinkingProvider = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${_providerLabel(provider)} 연결을 해제했습니다.')),
+      );
+      await _loadConnections();
+    } on AccountApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _unlinkingProvider = null;
+        _connectionsError = error.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _unlinkingProvider = null;
+        _connectionsError = '연결 해제에 실패했습니다.';
+      });
+    }
+  }
+
+  // 비밀번호 로그인이 없고 OAuth 연결이 1개 이하면 그 연결이 마지막 로그인 수단이다.
+  bool get _isLastLoginMethod => !_hasPassword && _connections.length <= 1;
+
+  IconData _providerIcon(String provider) {
+    return switch (provider.toLowerCase()) {
+      'google' => Icons.g_mobiledata,
+      'github' => Icons.code,
+      'apple' => Icons.apple,
+      _ => Icons.link,
+    };
+  }
+
+  String _providerLabel(String provider) {
+    if (provider.isEmpty) return provider;
+    return provider[0].toUpperCase() + provider.substring(1);
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: '계정 삭제',
+      content: '정말로 계정을 삭제하시겠습니까?\n모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.',
+      confirmLabel: '삭제',
+      isDestructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref.read(accountApiProvider).deleteAccount();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정이 삭제되었습니다.')),
+      );
+      // 삭제 성공 → 클라이언트 세션을 즉시 정리하고 로그인 화면으로 보낸다.
+      await ref.read(authNotifierProvider.notifier).logout();
+      if (mounted) setState(() => _deleting = false);
+    } on AccountApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정 삭제에 실패했습니다.')),
+      );
+    }
   }
 
   Future<void> _toggleMfa(bool enabled) async {
@@ -129,7 +301,6 @@ class _SecuritySettingsScreenState
             filled: true,
             fillColor: AppColors.surface,
           ),
-          // TODO: 팀원 구현 — 비밀번호 변경 API 연동
         ),
         const SizedBox(height: AppSpacing.md),
         TextFormField(
@@ -156,11 +327,22 @@ class _SecuritySettingsScreenState
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        if (_passwordError != null) ...[
+          Text(
+            _passwordError!,
+            style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
         OutlinedButton(
-          onPressed: () {
-            // TODO: 팀원 구현 — auth-svc 비밀번호 변경 API 연동
-          },
-          child: const Text('변경'),
+          onPressed: _passwordLoading ? null : _changePassword,
+          child: _passwordLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('변경'),
         ),
 
         const SizedBox(height: AppSpacing.lg),
@@ -294,38 +476,104 @@ class _SecuritySettingsScreenState
         // Connected accounts section
         Text('연결된 계정', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
-        ListTile(
-          leading: const Icon(
-            Icons.g_mobiledata,
-            size: 28,
-            color: AppColors.info,
-          ),
-          title: const Text('Google'),
-          subtitle: const Text('user@gmail.com'),
-          trailing: OutlinedButton(
-            onPressed: () {
-              // TODO: 팀원 구현 — Google OAuth 연결 해제
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
-              side: const BorderSide(color: AppColors.error),
+        if (_connectionsLoading)
+          const Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else ...[
+          if (_connectionsError != null) ...[
+            Text(
+              _connectionsError!,
+              style: textTheme.bodySmall?.copyWith(color: AppColors.error),
             ),
-            child: const Text('연결 해제'),
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.code, size: 24, color: AppColors.text),
-          title: const Text('GitHub'),
-          subtitle: const Text('github-user'),
-          trailing: OutlinedButton(
-            onPressed: () {
-              // TODO: 팀원 구현 — GitHub OAuth 연결 해제
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
-              side: const BorderSide(color: AppColors.error),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          if (_connections.isEmpty && _connectionsError == null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Text(
+                '연결된 소셜 계정이 없습니다.',
+                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+              ),
+            )
+          else
+            ..._connections.map((connection) {
+              final isUnlinking = _unlinkingProvider == connection.provider;
+              final disabled = _isLastLoginMethod || _unlinkingProvider != null;
+              return ListTile(
+                leading: Icon(_providerIcon(connection.provider), size: 26),
+                title: Text(_providerLabel(connection.provider)),
+                subtitle: connection.email != null
+                    ? Text(connection.email!)
+                    : null,
+                trailing: OutlinedButton(
+                  onPressed: disabled
+                      ? null
+                      : () => _unlinkOAuth(connection.provider),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                  ),
+                  child: isUnlinking
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('연결 해제'),
+                ),
+              );
+            }),
+          if (_isLastLoginMethod && _connections.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '마지막 로그인 수단은 해제할 수 없습니다. 비밀번호를 먼저 설정하세요.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
             ),
-            child: const Text('연결 해제'),
+          ],
+        ],
+
+        const SizedBox(height: AppSpacing.lg),
+        const Divider(),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Danger zone — 계정 삭제
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            side: const BorderSide(color: AppColors.error),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '계정 삭제',
+                  style: textTheme.titleMedium?.copyWith(color: AppColors.error),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '계정을 삭제하면 모든 노트, 카드, 학습 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                FilledButton(
+                  onPressed: _deleting ? null : _deleteAccount,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
+                  child: _deleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('계정 삭제'),
+                ),
+              ],
+            ),
           ),
         ),
       ],

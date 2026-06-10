@@ -8,8 +8,22 @@ class ReviewResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final reviewState = ref.watch(reviewNotifierProvider);
+    final session = reviewState.completedSession;
+    final results = reviewState.submittedResults;
 
-    // TODO: 팀원 구현 — learning-svc 세션 결과 데이터 연동
+    final reviewedCount = session?.reviewedCards ?? results.length;
+    final accuracyPct = (reviewState.accuracy * 100).round();
+    final xp = reviewState.earnedXp;
+
+    // submittedResults와 queue를 매핑해서 카드 앞면 텍스트 + dueDate 구성
+    final cardById = {for (final c in reviewState.queue) c.cardId: c};
+    final nextReviews = results
+        .where((r) => r.dueDate != null)
+        .take(5)
+        .map((r) => (front: cardById[r.cardId]?.frontContent ?? r.cardId, dueDate: r.dueDate!))
+        .toList();
+
     return ConceptPage(
       children: [
         const SizedBox(height: AppSpacing.md),
@@ -34,12 +48,12 @@ class ReviewResultScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.xs),
         Center(
           child: Text(
-            '오늘 25장을 모두 끝냈어요',
+            '오늘 $reviewedCount장을 모두 끝냈어요',
             style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        // Streak bar
+        // Streak bar (mock — gamification 서비스 연동 전까지 고정값)
         Container(
           padding: const EdgeInsets.all(AppSpacing.md - 2),
           decoration: BoxDecoration(
@@ -71,18 +85,17 @@ class ReviewResultScreen extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         // Stats
-        const ConceptStatRow(
+        ConceptStatRow(
           children: [
-            ConceptStat(value: '+85', label: '획득 XP', color: AppColors.primary),
-            ConceptStat(value: '25', label: '복습 카드'),
-            ConceptStat(value: '80%', label: '정답률', color: AppColors.success),
+            ConceptStat(value: '+$xp', label: '획득 XP', color: AppColors.primary),
+            ConceptStat(value: '$reviewedCount', label: '복습 카드'),
+            ConceptStat(value: '$accuracyPct%', label: '정답률', color: AppColors.success),
           ],
         ),
         const SizedBox(height: AppSpacing.md),
         // AI comment
         const ConceptAiComment(
-          text:
-              '정답률이 지난주보다 6%p 올랐어요! 다만 「과적합」 관련 카드에서 막혔으니, 내일은 그 노트를 한 번 더 보면 좋겠어요. 🙌',
+          text: '오늘도 복습을 완료했어요! 꾸준히 하면 장기 기억으로 이어집니다. 🙌',
         ),
         // Accuracy donut chart
         const ConceptSectionLabel('정확도'),
@@ -92,13 +105,13 @@ class ReviewResultScreen extends ConsumerWidget {
             height: 120,
             child: CustomPaint(
               painter: _DonutChartPainter(
-                correctRatio: 0.78,
+                correctRatio: reviewState.accuracy,
                 correctColor: AppColors.primary,
                 incorrectColor: AppColors.surface2,
               ),
               child: Center(
                 child: Text(
-                  '78%',
+                  '$accuracyPct%',
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -108,36 +121,32 @@ class ReviewResultScreen extends ConsumerWidget {
           ),
         ),
         // Next review schedule
-        const ConceptSectionLabel('다음 복습 예정'),
-        ConceptCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (int i = 0; i < _kNextReviews.length; i++) ...[
-                if (i > 0) const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(
-                    Icons.schedule,
-                    size: 18,
-                    color: AppColors.muted,
-                  ),
-                  title: Text(
-                    _kNextReviews[i]['title']!,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+        if (nextReviews.isNotEmpty) ...[
+          const ConceptSectionLabel('다음 복습 예정'),
+          ConceptCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (int i = 0; i < nextReviews.length; i++) ...[
+                  if (i > 0) const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.schedule, size: 18, color: AppColors.muted),
+                    title: Text(
+                      nextReviews[i].front,
+                      style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      _formatDate(nextReviews[i].dueDate),
+                      style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
                     ),
                   ),
-                  trailing: Text(
-                    _kNextReviews[i]['date']!,
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.muted,
-                    ),
-                  ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
           onPressed: () => context.go(AppRoutes.dashboard),
@@ -154,11 +163,8 @@ class ReviewResultScreen extends ConsumerWidget {
   }
 }
 
-const _kNextReviews = [
-  {'title': 'L1 정규화란?', 'date': '2026-05-22'},
-  {'title': '동적 프로그래밍 정의', 'date': '2026-05-23'},
-  {'title': 'AWS S3 버킷 정책 차이', 'date': '2026-05-25'},
-];
+String _formatDate(DateTime date) =>
+    '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
 class _DonutChartPainter extends CustomPainter {
   _DonutChartPainter({

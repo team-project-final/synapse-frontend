@@ -35,22 +35,40 @@ class AiRemoteDatasource {
       data: {'question': question, 'stream': true},
       options: Options(
         responseType: ResponseType.stream,
-        headers: {'Accept': 'text/event-stream'},
+        headers: {
+          'Accept': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+        },
       ),
     );
 
     final lineBuffer = StringBuffer();
-    await for (final bytes in response.data!.stream) {
-      lineBuffer.write(utf8.decode(bytes));
+    String? currentEvent;
+
+    outer:
+    await for (final chunk
+        in response.data!.stream
+            .cast<List<int>>()
+            .transform(const Utf8Decoder(allowMalformed: true))) {
+      lineBuffer.write(chunk);
       final raw = lineBuffer.toString();
       final lines = raw.split('\n');
       lineBuffer.clear();
 
       for (int i = 0; i < lines.length - 1; i++) {
         final line = lines[i].trim();
+        if (line.isEmpty) {
+          currentEvent = null;
+          continue;
+        }
+        if (line.startsWith('event: ')) {
+          currentEvent = line.substring(7);
+          continue;
+        }
         if (!line.startsWith('data: ')) continue;
         final payload = line.substring(6);
-        if (payload == '[DONE]') return;
+        if (payload == '[DONE]') break outer;
+        if (currentEvent == 'error') throw Exception(payload);
         try {
           final json = jsonDecode(payload) as Map<String, dynamic>;
           final text = json['text'];

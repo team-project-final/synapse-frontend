@@ -47,19 +47,18 @@ class _AiCardGenerationScreenState
 
     final cards = <Map<String, String>>[];
     final conv = ref.read(cardGenNotifierProvider).conversation;
-    for (final entry in _selectedByMsgIndex.entries) {
-      final msgIndex = entry.key;
-      final selectedIndices = entry.value;
-      if (msgIndex < conv.length && conv[msgIndex] is AiCardsMsg) {
-        final aiCards = (conv[msgIndex] as AiCardsMsg).cards;
-        for (final i in selectedIndices) {
-          if (i < aiCards.length) {
-            cards.add({
-              'frontContent': aiCards[i].front,
-              'backContent': aiCards[i].back,
-              'cardType': 'BASIC',
-            });
-          }
+    for (int i = 0; i < conv.length; i++) {
+      if (conv[i] is! AiCardsMsg) continue;
+      final aiCards = (conv[i] as AiCardsMsg).cards;
+      final selectedIndices = _selectedByMsgIndex[i] ??
+          Set<int>.from(Iterable<int>.generate(aiCards.length));
+      for (final idx in selectedIndices) {
+        if (idx < aiCards.length) {
+          cards.add({
+            'frontContent': aiCards[idx].front,
+            'backContent': aiCards[idx].back,
+            'cardType': 'BASIC',
+          });
         }
       }
     }
@@ -96,9 +95,16 @@ class _AiCardGenerationScreenState
 
     ref.listen(cardGenNotifierProvider, (_, __) => _scrollToBottom());
 
-    // 선택 카드 총 개수 계산
-    final selectedCount =
-        _selectedByMsgIndex.values.fold(0, (sum, s) => sum + s.length);
+    // 선택 카드 총 개수 계산 — 맵에 없는 AiCardsMsg는 전체 선택으로 간주
+    int selectedCount = 0;
+    for (int i = 0; i < cardGenState.conversation.length; i++) {
+      final item = cardGenState.conversation[i];
+      if (item is AiCardsMsg) {
+        final s = _selectedByMsgIndex[i] ??
+            Set<int>.from(Iterable<int>.generate(item.cards.length));
+        selectedCount += s.length;
+      }
+    }
 
     return Column(
       children: [

@@ -161,6 +161,14 @@ class QaNotifier extends Notifier<QaState> {
       return;
     }
 
+    if (buffer.isEmpty) {
+      final updated = List<QaMessage>.from(state.messages);
+      updated[aiIndex] =
+          updated[aiIndex].copyWithText('응답을 받지 못했습니다. 다시 시도해주세요.');
+      state = state.copyWith(messages: updated, isStreaming: false);
+      return;
+    }
+
     state = state.copyWith(isStreaming: false);
   }
 }

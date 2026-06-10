@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/auth/auth_notifier.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 
-class AdminShell extends StatelessWidget {
+class AdminShell extends ConsumerWidget {
   const AdminShell({required this.child, super.key});
 
   final Widget child;
@@ -41,7 +43,7 @@ class AdminShell extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute = GoRouterState.of(context).matchedLocation;
     final textTheme = Theme.of(context).textTheme;
 
@@ -53,18 +55,6 @@ class AdminShell extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             const Text('Synapse Admin'),
             const Spacer(),
-            // Environment selector
-            DropdownButton<String>(
-              value: 'prod',
-              underline: const SizedBox.shrink(),
-              items: ['dev', 'staging', 'prod']
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                  .toList(),
-              onChanged: (_) {
-                // TODO: 팀원 구현 — 환경 전환 로직
-              },
-            ),
-            const SizedBox(width: AppSpacing.md),
             PopupMenuButton<String>(
               icon: const CircleAvatar(
                 radius: 16,
@@ -76,7 +66,10 @@ class AdminShell extends StatelessWidget {
               ],
               onSelected: (v) {
                 if (v == 'profile') context.go(AppRoutes.settingsProfile);
-                // TODO: 팀원 구현 — 로그아웃 처리
+                // 로그아웃은 상태만 비우면 라우터 가드가 /login으로 보낸다.
+                if (v == 'logout') {
+                  ref.read(authNotifierProvider.notifier).logout();
+                }
               },
             ),
           ],

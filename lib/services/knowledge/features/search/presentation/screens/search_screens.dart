@@ -7,6 +7,10 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/services/learning/features/ai/providers/ai_providers.dart';
+import 'package:synapse_frontend/services/knowledge/features/search/domain/entities/knowledge_search_item.dart';
+import 'package:synapse_frontend/services/knowledge/features/search/domain/entities/knowledge_search_mode.dart';
+import 'package:synapse_frontend/services/knowledge/features/search/domain/entities/knowledge_search_result.dart';
+import 'package:synapse_frontend/services/knowledge/features/search/providers/search_providers.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
@@ -21,33 +25,6 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
-  bool _hasQuery = false;
-  bool _semantic = true;
-
-  // TODO: 팀원 구현 — knowledge-svc / learning-svc 통합 검색 API 연동
-  final _mockResults = [
-    {
-      'title': '정규화 기법 (Regularization)',
-      'snippet': 'L1/L2 정규화는 과적합을 방지하기 위한 기법입니다.',
-      'tags': ['머신러닝', '딥러닝'],
-      'time': '2시간 전',
-      'id': '1',
-    },
-    {
-      'title': '동적 프로그래밍 기초',
-      'snippet': '메모이제이션과 타뷸레이션을 사용하여 중복 계산을 피합니다.',
-      'tags': ['알고리즘'],
-      'time': '어제',
-      'id': '2',
-    },
-    {
-      'title': 'Ridge vs Lasso 비교',
-      'snippet': 'L2 정규화(Ridge)와 L1 정규화(Lasso)의 차이를 분석합니다.',
-      'tags': ['머신러닝', '정규화'],
-      'time': '3일 전',
-      'id': '3',
-    },
-  ];
 
   @override
   void dispose() {
@@ -93,6 +70,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final searchState = ref.watch(knowledgeSearchNotifierProvider);
+    final searchNotifier = ref.read(knowledgeSearchNotifierProvider.notifier);
+    final resultState = searchState.result;
+    final query = searchState.query;
+    final isSemanticMode = searchState.mode == KnowledgeSearchMode.semantic;
 
     return ConceptPage(
       children: [
@@ -119,17 +101,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     border: InputBorder.none,
                     isCollapsed: true,
                   ),
-                  onChanged: (v) => setState(() => _hasQuery = v.isNotEmpty),
+                  onChanged: searchNotifier.updateQuery,
+                  onSubmitted: (_) => searchNotifier.submitSearch(),
                 ),
               ),
-              if (_hasQuery)
+              if (searchState.hasQuery)
                 IconButton(
                   icon: const Icon(Icons.clear, size: 18),
                   color: AppColors.muted,
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _hasQuery = false);
+                    searchNotifier.clear();
                   },
                 ),
             ],
@@ -141,134 +124,110 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           children: [
             ConceptFilterPill(
               label: '✦ 의미 검색',
-              selected: _semantic,
-              onTap: () => setState(() => _semantic = true),
+              selected: isSemanticMode,
+              onTap: () => searchNotifier.setMode(KnowledgeSearchMode.semantic),
             ),
             const SizedBox(width: AppSpacing.sm),
             ConceptFilterPill(
               label: '키워드',
-              selected: !_semantic,
-              onTap: () => setState(() => _semantic = false),
+              selected: !isSemanticMode,
+              onTap: () => searchNotifier.setMode(KnowledgeSearchMode.keyword),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          _semantic
+          isSemanticMode
               ? '키워드를 넘어 의미로 — pgvector + Elasticsearch 하이브리드'
               : '제목·본문 키워드 일치 검색',
           style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
         ),
-        if (!_hasQuery)
+        if (isSemanticMode &&
+            resultState.asData?.value.semanticFallback == true) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '의미 검색을 사용할 수 없어 키워드 결과로 대체되었습니다.',
+            style: textTheme.labelMedium?.copyWith(color: AppColors.warning),
+          ),
+        ],
+        if (!searchState.hasQuery)
           const ConceptEmptyState(
             emoji: '🔍',
             title: '검색어를 입력하세요',
             body: '노트, 카드, 태그를 한번에 검색할 수 있습니다',
           )
-        else ...[
-          // 의미 검색일 때 AI 답변 카드
-          if (_semantic) ...[
-            const ConceptSectionLabel('AI 답변'),
-            ConceptGradientCard(
-              child: Column(
+        else
+          resultState.when(
+            data: (KnowledgeSearchResult result) {
+              if (result.items.isEmpty) {
+                return const ConceptEmptyState(
+                  emoji: '🗂️',
+                  title: '검색 결과가 없습니다',
+                  body: '다른 검색어로 다시 시도해보세요',
+                );
+              }
+
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const SynapseOrb(size: 26, glyphScale: 0.5),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'AI 답변',
-                        style: textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
+                  const ConceptSectionLabel('관련 결과'),
+                  for (final KnowledgeSearchItem result in result.items)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: ConceptCard(
+                        onTap: () => context.go(
+                          AppRoutes.noteDetailPath(result.noteId),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '정규화는 과적합을 막기 위한 기법입니다. L1(Lasso)은 일부 가중치를 0으로 만들어 feature selection 효과를 주고, L2(Ridge)는 가중치를 작게 유지합니다. 신경망에서는 드롭아웃도 정규화 역할을 합니다.',
-                    style: textTheme.bodyMedium?.copyWith(height: 1.6),
-                  ),
-                  const SizedBox(height: AppSpacing.sm + 2),
-                  const Wrap(
-                    spacing: AppSpacing.xs + 2,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      _SourceChip('ML 정규화 기법'),
-                      _SourceChip('Lasso'),
-                      _SourceChip('Ridge'),
-                      _SourceChip('과적합'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const ConceptSectionLabel('관련 결과'),
-          for (final result in _mockResults)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: ConceptCard(
-                onTap: () => context.go(
-                  AppRoutes.noteDetailPath(result['id'] as String),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(
-                              children: _highlightText(
-                                result['title'] as String,
-                                _searchController.text,
-                                textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            RichText(
+                              text: TextSpan(
+                                children: _highlightText(
+                                  result.title,
+                                  query,
+                                  textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          result['time'] as String,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    RichText(
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        children: _highlightText(
-                          result['snippet'] as String,
-                          _searchController.text,
-                          textTheme.bodySmall?.copyWith(
-                            color: AppColors.muted,
-                            height: 1.5,
-                          ),
+                            if (result.snippet.isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              RichText(
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                text: TextSpan(
+                                  children: _highlightText(
+                                    result.snippet,
+                                    query,
+                                    textTheme.bodySmall?.copyWith(
+                                      color: AppColors.muted,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.xs + 2,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        for (final tag in result['tags'] as List<String>)
-                          ConceptTag('#$tag'),
-                      ],
-                    ),
-                  ],
-                ),
+                ],
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
             ),
-        ],
+            error: (_, __) => const ConceptEmptyState(
+              emoji: '⚠️',
+              title: '검색 결과를 불러오지 못했습니다',
+              body: '잠시 후 다시 시도해주세요',
+            ),
+          ),
         const SizedBox(height: AppSpacing.xl),
       ],
     );

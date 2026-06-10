@@ -1,0 +1,1 @@
+enum KnowledgeSearchMode { semantic, keyword }

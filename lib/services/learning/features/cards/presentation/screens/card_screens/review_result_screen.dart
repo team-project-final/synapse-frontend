@@ -149,12 +149,18 @@ class ReviewResultScreen extends ConsumerWidget {
         ],
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
-          onPressed: () => context.go(AppRoutes.dashboard),
+          onPressed: () {
+            ref.read(reviewNotifierProvider.notifier).reset();
+            context.go(AppRoutes.dashboard);
+          },
           child: const Text('대시보드로 이동'),
         ),
         const SizedBox(height: AppSpacing.sm),
         OutlinedButton(
-          onPressed: () => context.go(AppRoutes.review),
+          onPressed: () {
+            ref.read(reviewNotifierProvider.notifier).reset();
+            context.go(AppRoutes.review);
+          },
           child: const Text('다시 시작'),
         ),
         const SizedBox(height: AppSpacing.xl),

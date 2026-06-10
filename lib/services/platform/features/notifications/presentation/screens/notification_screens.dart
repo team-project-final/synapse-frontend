@@ -23,11 +23,16 @@ class NotificationCenterScreen extends ConsumerStatefulWidget {
 class _NotificationCenterScreenState
     extends ConsumerState<NotificationCenterScreen>
     with SingleTickerProviderStateMixin {
+  static const int _pageSize = 20;
+
   late final TabController _tabController;
   bool _loading = true;
+  bool _loadingMore = false;
   bool _markingAll = false;
   String? _error;
   List<NotificationItem> _items = const [];
+  int _page = 0;
+  int _totalPages = 1;
 
   @override
   void initState() {
@@ -50,10 +55,12 @@ class _NotificationCenterScreenState
     try {
       final result = await ref
           .read(notificationInboxApiProvider)
-          .list(size: 50);
+          .list(size: _pageSize);
       if (!mounted) return;
       setState(() {
         _items = result.items;
+        _page = result.page;
+        _totalPages = result.totalPages;
         _loading = false;
       });
       unawaited(ref.read(unreadNotificationCountProvider.notifier).refresh());
@@ -63,6 +70,31 @@ class _NotificationCenterScreenState
         _loading = false;
         _error = '알림을 불러오지 못했습니다.';
       });
+    }
+  }
+
+  bool get _hasMore => _page + 1 < _totalPages;
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore) return;
+    setState(() => _loadingMore = true);
+    try {
+      final result = await ref
+          .read(notificationInboxApiProvider)
+          .list(page: _page + 1, size: _pageSize);
+      if (!mounted) return;
+      setState(() {
+        _items = [..._items, ...result.items];
+        _page = result.page;
+        _totalPages = result.totalPages;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이전 알림을 불러오지 못했습니다.')),
+      );
     }
   }
 
@@ -84,6 +116,13 @@ class _NotificationCenterScreenState
         const SnackBar(content: Text('모두 읽음 처리에 실패했습니다.')),
       );
     }
+  }
+
+  /// 항목 탭: 읽음 처리 후 분류별 대표 화면으로 이동(시스템/미지 타입은 이동 없음).
+  void _openItem(NotificationItem item) {
+    unawaited(_markRead(item));
+    final route = notificationRouteOf(item.type);
+    if (route != null) context.go(route);
   }
 
   Future<void> _markRead(NotificationItem item) async {
@@ -206,10 +245,24 @@ class _NotificationCenterScreenState
             ),
             const SizedBox(height: AppSpacing.sm),
             ...section.items.map(
-              (n) => _NotificationItemView(item: n, onTap: () => _markRead(n)),
+              (n) => _NotificationItemView(item: n, onTap: () => _openItem(n)),
             ),
             const SizedBox(height: AppSpacing.md),
           ],
+          if (_hasMore)
+            Center(
+              child: OutlinedButton(
+                key: const Key('notification-load-more'),
+                onPressed: _loadingMore ? null : _loadMore,
+                child: _loadingMore
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('더 보기'),
+              ),
+            ),
         ],
       ),
     );
@@ -296,7 +349,7 @@ class _NotificationItemView extends StatelessWidget {
     final title = (item.title?.isNotEmpty ?? false) ? item.title! : '알림';
 
     return InkWell(
-      onTap: item.read ? null : onTap,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.sm),

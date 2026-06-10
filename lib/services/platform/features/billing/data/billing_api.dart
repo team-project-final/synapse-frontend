@@ -24,6 +24,79 @@ class CheckoutSession {
   final String checkoutUrl;
 }
 
+class PaymentHistoryItem {
+  const PaymentHistoryItem({
+    required this.id,
+    required this.amount,
+    required this.currency,
+    required this.status,
+    required this.createdAt,
+    required this.receiptAvailable,
+    this.paidAt,
+  });
+
+  factory PaymentHistoryItem.fromJson(Map<String, dynamic> json) {
+    return PaymentHistoryItem(
+      id: json['id'] as String? ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      currency: json['currency'] as String? ?? '',
+      status: json['status'] as String? ?? '',
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '')?.toLocal() ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      receiptAvailable: json['receiptAvailable'] as bool? ?? false,
+      paidAt: DateTime.tryParse(json['paidAt'] as String? ?? '')?.toLocal(),
+    );
+  }
+
+  final String id;
+  final int amount;
+  final String currency;
+  final String status;
+  final DateTime createdAt;
+  final bool receiptAvailable;
+  final DateTime? paidAt;
+
+  DateTime get date => paidAt ?? createdAt;
+}
+
+class PaymentHistoryPage {
+  const PaymentHistoryPage({
+    required this.items,
+    required this.page,
+    required this.totalElements,
+    required this.totalPages,
+  });
+
+  final List<PaymentHistoryItem> items;
+  final int page;
+  final int totalElements;
+  final int totalPages;
+}
+
+class BillingReceipt {
+  const BillingReceipt({
+    required this.available,
+    this.invoiceUrl,
+    this.invoicePdfUrl,
+  });
+
+  factory BillingReceipt.fromJson(Map<String, dynamic> json) {
+    return BillingReceipt(
+      available: json['available'] as bool? ?? false,
+      invoiceUrl: json['invoiceUrl'] as String?,
+      invoicePdfUrl: json['invoicePdfUrl'] as String?,
+    );
+  }
+
+  final bool available;
+  final String? invoiceUrl;
+  final String? invoicePdfUrl;
+
+  /// PDF 우선, 없으면 일반 인보이스 URL.
+  String? get bestUrl => invoicePdfUrl ?? invoiceUrl;
+}
+
 class BillingApi {
   const BillingApi(this._dio);
 
@@ -69,5 +142,30 @@ class BillingApi {
     }
 
     return CheckoutSession(checkoutUrl);
+  }
+
+  Future<PaymentHistoryPage> getPayments({int page = 0, int size = 20}) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/billing/payments',
+      queryParameters: {'page': page, 'size': size},
+    );
+    final data = response.data ?? const <String, dynamic>{};
+    final items = (data['items'] as List? ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(PaymentHistoryItem.fromJson)
+        .toList();
+    return PaymentHistoryPage(
+      items: items,
+      page: (data['page'] as num?)?.toInt() ?? 0,
+      totalElements: (data['totalElements'] as num?)?.toInt() ?? items.length,
+      totalPages: (data['totalPages'] as num?)?.toInt() ?? 1,
+    );
+  }
+
+  Future<BillingReceipt> getReceipt(String paymentId) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/billing/payments/$paymentId/receipt',
+    );
+    return BillingReceipt.fromJson(response.data ?? const <String, dynamic>{});
   }
 }

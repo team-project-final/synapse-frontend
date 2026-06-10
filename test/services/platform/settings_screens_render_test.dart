@@ -38,7 +38,6 @@ void main() {
     'ProfileSettingsScreen': const ProfileSettingsScreen(),
     'SecuritySettingsScreen': const SecuritySettingsScreen(),
     'NotificationSettingsScreen': const NotificationSettingsScreen(),
-    'DataSettingsScreen': const DataSettingsScreen(),
     'TenantSettingsScreen': const TenantSettingsScreen(),
   }.entries) {
     testWidgets('${entry.key} 데스크탑 렌더', (tester) async {

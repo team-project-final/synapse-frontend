@@ -15,20 +15,15 @@ class CardEditorScreen extends ConsumerStatefulWidget {
 class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   final _frontController = TextEditingController();
   final _backController = TextEditingController();
-  String _cardType = 'basic';
-  late String _selectedDeck;
+  String _cardType = 'BASIC';
+  String? _selectedDeckId;
+  bool _isSubmitting = false;
   final Set<String> _selectedTags = {};
 
   @override
   void initState() {
     super.initState();
-    // 진입한 덱이 있으면 그 덱으로 고정, 없으면 첫 덱 기본 선택.
-    final id = widget.deckId;
-    _selectedDeck = id == null
-        ? _mockDecks.first.name
-        : _mockDecks
-              .firstWhere((d) => d.id == id, orElse: () => _mockDecks.first)
-              .name;
+    _selectedDeckId = widget.deckId;
   }
 
   @override
@@ -39,19 +34,59 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   }
 
   OutlineInputBorder get _inputBorder => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(AppRadius.md),
-    borderSide: const BorderSide(color: AppColors.border),
-  );
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderSide: const BorderSide(color: AppColors.border),
+      );
+
+  Future<void> _save(List<Deck> decks) async {
+    final deckId = _selectedDeckId ?? (decks.isNotEmpty ? decks.first.id : null);
+    final front = _frontController.text.trim();
+    final back = _backController.text.trim();
+    if (_isSubmitting) return;
+    if (deckId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('덱을 선택해주세요')));
+      return;
+    }
+    if (front.isEmpty || back.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('앞면과 뒷면을 입력해주세요')));
+      return;
+    }
+    setState(() => _isSubmitting = true);
+    try {
+      await ref.read(createCardUseCaseProvider).call(
+            deckId,
+            frontContent: front,
+            backContent: back,
+            cardType: _cardType,
+          );
+      ref.invalidate(cardListProvider(deckId));
+      if (mounted) {
+        context.go(AppRoutes.deckCardsPath(deckId));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('저장 실패: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final decks = ref.watch(deckListNotifierProvider).asData?.value ?? [];
+    if (_selectedDeckId == null && decks.isNotEmpty) {
+      _selectedDeckId = widget.deckId ?? decks.first.id;
+    }
+
     return ConceptPage(
       children: [
         const ConceptViewHead(title: '카드 생성'),
         SegmentedButton<String>(
           segments: const [
-            ButtonSegment(value: 'basic', label: Text('Basic')),
-            ButtonSegment(value: 'cloze', label: Text('Cloze')),
+            ButtonSegment(value: 'BASIC', label: Text('Basic')),
+            ButtonSegment(value: 'CLOZE', label: Text('Cloze')),
           ],
           selected: {_cardType},
           onSelectionChanged: (s) => setState(() => _cardType = s.first),
@@ -67,7 +102,6 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             border: _inputBorder,
             enabledBorder: _inputBorder,
           ),
-          // TODO: 팀원 구현 — 카드 앞면 데이터 연동
         ),
         const SizedBox(height: AppSpacing.md),
         TextFormField(
@@ -81,27 +115,26 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             border: _inputBorder,
             enabledBorder: _inputBorder,
           ),
-          // TODO: 팀원 구현 — 카드 뒷면 데이터 연동
         ),
         const SizedBox(height: AppSpacing.md),
-        DropdownButtonFormField<String>(
-          initialValue: _selectedDeck,
-          decoration: InputDecoration(
-            labelText: '덱 선택',
-            filled: true,
-            fillColor: AppColors.surface,
-            border: _inputBorder,
-            enabledBorder: _inputBorder,
+        if (decks.isNotEmpty)
+          DropdownButtonFormField<String>(
+            initialValue: _selectedDeckId,
+            decoration: InputDecoration(
+              labelText: '덱 선택',
+              filled: true,
+              fillColor: AppColors.surface,
+              border: _inputBorder,
+              enabledBorder: _inputBorder,
+            ),
+            items: [
+              for (final d in decks)
+                DropdownMenuItem(value: d.id, child: Text(d.name)),
+            ],
+            onChanged: (v) => setState(() {
+              if (v != null) _selectedDeckId = v;
+            }),
           ),
-          items: [
-            for (final d in _mockDecks)
-              DropdownMenuItem(value: d.name, child: Text(d.name)),
-          ],
-          onChanged: (v) => setState(() {
-            if (v != null) _selectedDeck = v;
-          }),
-          // TODO: 팀원 구현 — learning-svc 덱 목록 API 연동
-        ),
         const ConceptSectionLabel('태그'),
         Wrap(
           spacing: AppSpacing.sm,
@@ -138,9 +171,10 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   '이미지 추가',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
@@ -148,14 +182,14 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
         ),
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
-          onPressed: () {
-            // TODO: 팀원 구현 — learning-svc 카드 저장 API 연동
-            final id = widget.deckId;
-            context.go(
-              id != null ? AppRoutes.deckCardsPath(id) : AppRoutes.decks,
-            );
-          },
-          child: const Text('저장'),
+          onPressed: _isSubmitting ? null : () => _save(decks),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('저장'),
         ),
         const SizedBox(height: AppSpacing.xl),
       ],

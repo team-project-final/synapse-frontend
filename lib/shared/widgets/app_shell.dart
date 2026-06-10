@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/platform/features/notifications/providers/unread_notification_count_provider.dart';
 import 'package:synapse_frontend/shared/widgets/bottom_nav.dart';
 import 'package:synapse_frontend/shared/widgets/command_palette.dart';
 import 'package:synapse_frontend/shared/widgets/side_nav.dart';
@@ -142,10 +143,14 @@ class AppShell extends ConsumerWidget {
                   onPressed: () => context.go('/search'),
                   tooltip: '검색',
                 ),
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => context.go('/notifications'),
-                tooltip: '알림',
+              Badge.count(
+                count: ref.watch(unreadNotificationCountProvider),
+                isLabelVisible: ref.watch(unreadNotificationCountProvider) > 0,
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_outlined),
+                  onPressed: () => context.go('/notifications'),
+                  tooltip: '알림',
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               InkWell(

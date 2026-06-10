@@ -15,5 +15,4 @@ part 'settings_screens/settings_hub_screen.dart';
 part 'settings_screens/profile_settings_screen.dart';
 part 'settings_screens/security_settings_screen.dart';
 part 'settings_screens/notification_settings_screen.dart';
-part 'settings_screens/data_settings_screen.dart';
 part 'settings_screens/tenant_settings_screen.dart';

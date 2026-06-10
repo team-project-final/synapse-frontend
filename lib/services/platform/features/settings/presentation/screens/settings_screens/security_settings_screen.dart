@@ -29,6 +29,7 @@ class _SecuritySettingsScreenState
   List<OAuthConnection> _connections = const [];
   bool _hasPassword = false;
   String? _unlinkingProvider;
+  bool _deleting = false;
 
   final List<String> _backupCodes = [
     'A1B2-C3D4',
@@ -177,6 +178,41 @@ class _SecuritySettingsScreenState
   String _providerLabel(String provider) {
     if (provider.isEmpty) return provider;
     return provider[0].toUpperCase() + provider.substring(1);
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: '계정 삭제',
+      content: '정말로 계정을 삭제하시겠습니까?\n모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.',
+      confirmLabel: '삭제',
+      isDestructive: true,
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deleting = true);
+    try {
+      await ref.read(accountApiProvider).deleteAccount();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정이 삭제되었습니다.')),
+      );
+      // 삭제 성공 → 클라이언트 세션을 즉시 정리하고 로그인 화면으로 보낸다.
+      await ref.read(authNotifierProvider.notifier).logout();
+      if (mounted) setState(() => _deleting = false);
+    } on AccountApiException catch (error) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _deleting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('계정 삭제에 실패했습니다.')),
+      );
+    }
   }
 
   Future<void> _toggleMfa(bool enabled) async {
@@ -497,6 +533,49 @@ class _SecuritySettingsScreenState
             ),
           ],
         ],
+
+        const SizedBox(height: AppSpacing.lg),
+        const Divider(),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Danger zone — 계정 삭제
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            side: const BorderSide(color: AppColors.error),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '계정 삭제',
+                  style: textTheme.titleMedium?.copyWith(color: AppColors.error),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '계정을 삭제하면 모든 노트, 카드, 학습 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                FilledButton(
+                  onPressed: _deleting ? null : _deleteAccount,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
+                  child: _deleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('계정 삭제'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

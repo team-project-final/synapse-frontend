@@ -1,3 +1,4 @@
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -26,4 +27,6 @@ abstract class AdminRepository {
     int page = 0,
     int size = 20,
   });
+
+  Future<AdminAnalyticsSummary> getAnalyticsSummary();
 }

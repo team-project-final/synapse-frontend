@@ -6,6 +6,7 @@ import 'package:synapse_frontend/services/platform/features/admin/domain/reposit
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/get_admin_analytics_summary_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_tenants_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_users_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_audit_logs_usecase.dart';
@@ -45,4 +46,9 @@ final changeTenantStatusUseCaseProvider =
 
 final listAuditLogsUseCaseProvider = Provider<ListAuditLogsUseCase>((ref) {
   return ListAuditLogsUseCase(ref.watch(_adminRepositoryProvider));
+});
+
+final getAdminAnalyticsSummaryUseCaseProvider =
+    Provider<GetAdminAnalyticsSummaryUseCase>((ref) {
+  return GetAdminAnalyticsSummaryUseCase(ref.watch(_adminRepositoryProvider));
 });

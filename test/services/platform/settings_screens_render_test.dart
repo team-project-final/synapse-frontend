@@ -3,11 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/platform/features/settings/data/account_api.dart';
+import 'package:synapse_frontend/services/platform/features/settings/data/tenant_api.dart';
 import 'package:synapse_frontend/services/platform/features/settings/presentation/screens/settings_screens.dart';
 
 import 'settings/account_api_fakes.dart';
 
-// 설정 화면(프로필/보안/알림/데이터/테넌트) reskin 후 데스크탑/모바일 렌더 검증.
+// 설정 화면(프로필/보안/알림/테넌트) reskin 후 데스크탑/모바일 렌더 검증.
 void main() {
   Future<void> pump(WidgetTester tester, Widget child, Size size) async {
     await tester.binding.setSurfaceSize(size);
@@ -16,6 +17,7 @@ void main() {
       ProviderScope(
         overrides: [
           accountApiProvider.overrideWithValue(FakeAccountApi()),
+          tenantApiProvider.overrideWithValue(FakeTenantApi()),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),

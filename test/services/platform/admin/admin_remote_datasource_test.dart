@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/datasources/admin_remote_datasource.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 
 void main() {
   test('listUsers는 검색/상태 쿼리를 전달하고 페이지 응답을 파싱한다', () async {
@@ -162,6 +163,88 @@ void main() {
     expect(page.content.single.toEntity().targetLabel,
         'USER:11111111-1111-1111-1111-111111111111');
     expect(page.page, 0);
+  });
+
+  test('getAnalyticsSummary는 분석 요약 응답을 엔티티로 파싱한다', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/admin/analytics/summary');
+        expect(options.method, 'GET');
+        return _jsonResponse({
+          'generatedAt': '2026-06-10T12:00:00Z',
+          'users': {
+            'total': 1200,
+            'active': 1100,
+            'suspended': 50,
+            'deleted': 50,
+            'newToday': 12,
+            'dau': 340,
+            'mau': 980,
+            'activitySource': 'USERS_LAST_LOGIN_AT',
+          },
+          'tenants': {
+            'total': 80,
+            'active': 75,
+            'suspended': 5,
+            'plans': {'free': 60, 'pro': 20},
+          },
+          'usage': [
+            {
+              'key': 'notifications.sent.today',
+              'label': '오늘 발송 알림',
+              'value': 152,
+              'unit': 'count',
+              'status': 'OK',
+              'source': 'notifications',
+            },
+            {
+              'key': 'ai.tokens.monthly',
+              'label': 'AI 토큰',
+              'value': null,
+              'unit': 'tokens',
+              'status': 'NOT_CONNECTED',
+              'source': 'learning-ai',
+            },
+          ],
+          'pendingItems': [
+            {
+              'key': 'data-requests',
+              'label': 'GDPR 요청',
+              'count': null,
+              'severity': 'INFO',
+              'status': 'NOT_IMPLEMENTED',
+            },
+          ],
+          'recentActivities': [
+            {
+              'id': '33333333-3333-3333-3333-333333333333',
+              'action': 'USER_REGISTERED',
+              'userId': '11111111-1111-1111-1111-111111111111',
+              'resourceType': 'USER',
+              'resourceId': '11111111-1111-1111-1111-111111111111',
+              'createdAt': '2026-06-10T11:55:00Z',
+            },
+          ],
+        });
+      });
+
+    final summary =
+        (await AdminRemoteDatasource(dio).getAnalyticsSummary()).toEntity();
+
+    expect(summary.users.total, 1200);
+    expect(summary.users.dau, 340);
+    expect(summary.users.mau, 980);
+    expect(summary.tenants.plans, {'free': 60, 'pro': 20});
+    expect(summary.usage.first.value, 152);
+    expect(summary.usage.first.status, AdminMetricStatus.ok);
+    expect(summary.usage.last.value, isNull);
+    expect(summary.usage.last.status, AdminMetricStatus.notConnected);
+    expect(
+      summary.pendingItems.single.status,
+      AdminMetricStatus.notImplemented,
+    );
+    expect(summary.recentActivities.single.action, 'USER_REGISTERED');
+    expect(summary.recentActivities.single.createdAt, isNotNull);
   });
 }
 

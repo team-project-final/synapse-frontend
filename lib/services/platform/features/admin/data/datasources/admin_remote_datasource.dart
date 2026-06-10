@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_analytics_summary_model.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_audit_log_model.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_page_model.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_tenant_model.dart';
@@ -80,6 +81,15 @@ class AdminRemoteDatasource {
     return AdminPageModel.fromJson(
       response.data ?? const <String, dynamic>{},
       AdminAuditLogModel.fromJson,
+    );
+  }
+
+  Future<AdminAnalyticsSummaryModel> getAnalyticsSummary() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/admin/analytics/summary',
+    );
+    return AdminAnalyticsSummaryModel.fromJson(
+      response.data ?? const <String, dynamic>{},
     );
   }
 }

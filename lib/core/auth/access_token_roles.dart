@@ -14,6 +14,12 @@ List<String> rolesFromAccessToken(String? token) {
   return const [];
 }
 
+/// access token(JWT)의 `sub`(사용자 id)를 읽는다. 디코드 실패 시 null.
+String? userIdFromAccessToken(String? token) {
+  final sub = _decodePayload(token)?['sub'];
+  return sub is String && sub.isNotEmpty ? sub : null;
+}
+
 Map<String, dynamic>? _decodePayload(String? token) {
   if (token == null || token.isEmpty) return null;
   final parts = token.split('.');

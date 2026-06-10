@@ -15,6 +15,14 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
   String _selectedSort = '최신순';
   String _selectedType = '전체';
   final Set<String> _checkedCardIds = {};
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +65,37 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.xs),
-                      ConceptSearchBar(hint: '카드 검색…', onTap: () {}),
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                        decoration: InputDecoration(
+                          hintText: '카드 검색…',
+                          prefixIcon: const Icon(Icons.search, size: 18, color: AppColors.muted),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.close, size: 18, color: AppColors.muted),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: AppColors.surface,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm + 3,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -123,12 +161,15 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                         const Center(child: CircularProgressIndicator()),
                     error: (e, _) => Center(child: Text('오류: $e')),
                     data: (cards) {
-                      final filtered = _selectedType == '전체'
-                          ? cards
-                          : cards
-                              .where((c) =>
-                                  c.cardType.toUpperCase() == _selectedType)
-                              .toList();
+                      final q = _searchQuery.toLowerCase();
+                      final filtered = cards.where((c) {
+                        final matchesType = _selectedType == '전체' ||
+                            c.cardType.toUpperCase() == _selectedType;
+                        final matchesSearch = q.isEmpty ||
+                            c.frontContent.toLowerCase().contains(q) ||
+                            c.backContent.toLowerCase().contains(q);
+                        return matchesType && matchesSearch;
+                      }).toList();
                       return CustomScrollView(
                         slivers: [
                           SliverPadding(

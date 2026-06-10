@@ -16,116 +16,50 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final badgesAsync = ref.watch(badgesProvider);
+    final profileAsync = ref.watch(myGamificationProvider);
 
-    // TODO: 팀원 구현 — engagement-svc 배지 갤러리 API 연동
-    const acquiredBadges = [
-      _Badge(
-        name: '첫 노트',
-        icon: Icons.article_outlined,
-        acquired: true,
-        condition: '첫 번째 노트 작성',
-        progress: 1.0,
-      ),
-      _Badge(
-        name: '첫 복습',
-        icon: Icons.refresh,
-        acquired: true,
-        condition: '첫 번째 복습 완료',
-        progress: 1.0,
-      ),
-      _Badge(
-        name: '7일 연속',
-        icon: Icons.local_fire_department,
-        acquired: true,
-        condition: '7일 연속 학습',
-        progress: 1.0,
-      ),
-      _Badge(
-        name: '노트 마스터',
-        icon: Icons.star,
-        acquired: true,
-        condition: '노트 50개 작성',
-        progress: 1.0,
-      ),
-      _Badge(
-        name: '지식 탐험가',
-        icon: Icons.explore,
-        acquired: true,
-        condition: '레벨 7 달성',
-        progress: 1.0,
-      ),
-      _Badge(
-        name: 'AI 활용',
-        icon: Icons.auto_awesome,
-        acquired: true,
-        condition: 'AI 카드 생성 10회',
-        progress: 1.0,
-      ),
-    ];
-    const lockedBadges = [
-      _Badge(
-        name: '30일 연속',
-        icon: Icons.military_tech,
-        acquired: false,
-        condition: '30일 연속 학습',
-        progress: 0.47,
-      ),
-      _Badge(
-        name: '카드 100장',
-        icon: Icons.style,
-        acquired: false,
-        condition: '카드 100장 생성',
-        progress: 0.72,
-      ),
-      _Badge(
-        name: '그룹 참여',
-        icon: Icons.groups,
-        acquired: false,
-        condition: '그룹 3개 참여',
-        progress: 0.33,
-      ),
-      _Badge(
-        name: '공유 왕',
-        icon: Icons.share,
-        acquired: false,
-        condition: '덱 5개 공유',
-        progress: 0.2,
-      ),
-      _Badge(
-        name: '레벨 10',
-        icon: Icons.emoji_events,
-        acquired: false,
-        condition: '레벨 10 달성',
-        progress: 0.7,
-      ),
-      _Badge(
-        name: '1000 XP',
-        icon: Icons.workspace_premium,
-        acquired: false,
-        condition: '1000 XP 달성',
-        progress: 0.65,
-      ),
-    ];
+    return badgesAsync.when(
+      data: (allBadges) {
+        final earnedCodes = profileAsync.maybeWhen(
+          data: (profile) => profile.badges.map((badge) => badge.code).toSet(),
+          orElse: () => <String>{},
+        );
+        final badges = allBadges
+            .map(
+              (badge) => _Badge(
+                name: badge.name,
+                icon: _badgeIcon(badge.code),
+                acquired: earnedCodes.contains(badge.code) || badge.acquired,
+                condition: badge.description.isEmpty
+                    ? '${badge.conditionType} ${badge.conditionValue}'
+                    : badge.description,
+                progress: earnedCodes.contains(badge.code) || badge.acquired
+                    ? 1.0
+                    : 0.0,
+              ),
+            )
+            .where((badge) {
+              return switch (_filterSelection) {
+                '획득' => badge.acquired,
+                '미획득' => !badge.acquired,
+                _ => true,
+              };
+            })
+            .toList(growable: false);
+        final acquiredCount = allBadges
+            .where((badge) => earnedCodes.contains(badge.code) || badge.acquired)
+            .length;
 
-    List<_Badge> filteredBadges;
-    switch (_filterSelection) {
-      case '획득':
-        filteredBadges = acquiredBadges;
-      case '미획득':
-        filteredBadges = lockedBadges;
-      default:
-        filteredBadges = [...acquiredBadges, ...lockedBadges];
-    }
-
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
+        return ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
         Row(
           children: [
             Text('배지 갤러리', style: textTheme.titleLarge),
             const Spacer(),
             Text(
-              '12/30 획득',
+              '$acquiredCount/${allBadges.length} 획득',
               style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
             ),
           ],
@@ -155,13 +89,20 @@ class _BadgeGalleryScreenState extends ConsumerState<BadgeGalleryScreen> {
             mainAxisSpacing: AppSpacing.sm,
             childAspectRatio: 0.85,
           ),
-          itemCount: filteredBadges.length,
+          itemCount: badges.length,
           itemBuilder: (context, i) => _BadgeTile(
-            badge: filteredBadges[i],
-            onTap: () => _showBadgeBottomSheet(context, filteredBadges[i]),
+            badge: badges[i],
+            onTap: () => _showBadgeBottomSheet(context, badges[i]),
           ),
         ),
-      ],
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => _GameErrorState(
+        message: '배지를 불러오지 못했습니다',
+        onRetry: () => ref.invalidate(badgesProvider),
+      ),
     );
   }
 

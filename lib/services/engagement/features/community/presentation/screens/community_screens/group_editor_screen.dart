@@ -33,6 +33,7 @@ class _CommunityGroupEditorScreenState
   String _joinType = 'open';
   double _maxMembers = 20;
   String _emoji = _emojiChoices.first;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -61,7 +62,6 @@ class _CommunityGroupEditorScreenState
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
           ),
-          // TODO: 팀원 구현 — 그룹 이름 입력
         ),
         const SizedBox(height: AppSpacing.md),
 
@@ -76,7 +76,6 @@ class _CommunityGroupEditorScreenState
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
           ),
-          // TODO: 팀원 구현 — 그룹 설명 입력
         ),
         const SizedBox(height: AppSpacing.md),
 
@@ -141,17 +140,61 @@ class _CommunityGroupEditorScreenState
           divisions: 19,
           label: '${_maxMembers.toInt()}명',
           onChanged: (v) => setState(() => _maxMembers = v),
-          // TODO: 팀원 구현 — 최대 멤버 수 설정
         ),
         const SizedBox(height: AppSpacing.xl),
 
         // Create button
         FilledButton(
-          onPressed: () {
-            // TODO: 팀원 구현 — engagement-svc 그룹 생성 API 연동
-            context.go(AppRoutes.communityGroups);
-          },
-          child: const Text('만들기'),
+          onPressed: _submitting
+              ? null
+              : () async {
+                  final name = _nameController.text.trim();
+                  if (name.isEmpty) {
+                    AppToast.show(
+                      context,
+                      message: '그룹 이름을 입력해주세요',
+                      type: ToastType.error,
+                    );
+                    return;
+                  }
+                  setState(() => _submitting = true);
+                  try {
+                    final group = await ref
+                        .read(communityApiProvider)
+                        .createGroup(
+                          name: name,
+                          description: _descController.text.trim(),
+                          isPublic: _joinType == 'open',
+                        );
+                    ref.invalidate(communityGroupsProvider);
+                    if (context.mounted) {
+                      AppToast.show(
+                        context,
+                        message: '그룹을 만들었습니다',
+                        type: ToastType.success,
+                      );
+                      context.go(AppRoutes.communityGroupDetailPath(group.id));
+                    }
+                  } catch (_) {
+                    if (context.mounted) {
+                      AppToast.show(
+                        context,
+                        message: '그룹 생성에 실패했습니다',
+                        type: ToastType.error,
+                      );
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() => _submitting = false);
+                    }
+                  }
+                },
+          child: _submitting
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                )
+              : const Text('만들기'),
         ),
       ],
     );

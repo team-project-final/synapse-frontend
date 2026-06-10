@@ -25,8 +25,43 @@ class _GroupData {
   final List<String> memberAvatars;
 }
 
-// 탐색 탭용 공개 그룹 mock.
-// TODO: 팀원 구현 — engagement-svc 공개 그룹 검색 API 연동.
+_GroupData _groupDataFromApi(
+  CommunityGroup group, {
+  int memberCount = 0,
+  bool joined = false,
+}) {
+  return _GroupData(
+    id: group.id,
+    name: group.name,
+    emoji: group.isPublic ? '🌐' : '🔒',
+    accessLabel: group.isPublic ? '공개' : '승인제',
+    memberCount: memberCount,
+    maxMembers: 100,
+    sharedDeckCount: 0,
+    joined: joined || group.joined,
+    lastActivity: _formatRelativeTime(group.createdAt),
+    memberAvatars: [
+      if (group.name.isNotEmpty) _initial(group.name),
+      if (group.ownerId.isNotEmpty) group.ownerId.substring(group.ownerId.length - 1),
+    ],
+  );
+}
+
+String _initial(String value) => value.isEmpty ? '?' : value.substring(0, 1);
+
+String _formatRelativeTime(DateTime? dateTime) {
+  if (dateTime == null) {
+    return '최근';
+  }
+  final diff = DateTime.now().difference(dateTime.toLocal());
+  if (diff.inMinutes < 1) return '방금';
+  if (diff.inHours < 1) return '${diff.inMinutes}분 전';
+  if (diff.inDays < 1) return '${diff.inHours}시간 전';
+  if (diff.inDays < 7) return '${diff.inDays}일 전';
+  return '${dateTime.month}/${dateTime.day}';
+}
+
+// 탐색 API 실패 시 보여주는 공개 그룹 fallback.
 const _exploreGroups = [
   _GroupData(
     id: 'e1',

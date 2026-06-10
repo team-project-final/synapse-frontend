@@ -24,35 +24,11 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final filters = ['전체', '최근', '인기', '내 그룹'];
-
-    // TODO: 팀원 구현 — engagement-svc 공유 노트 목록 API 연동
-    const mockNotes = [
-      _SharedNote(
-        title: '정규화 기법 완전 정리',
-        author: '이러닝',
-        tags: ['머신러닝', '딥러닝'],
-        rating: 4.7,
-        timeAgo: '2시간 전',
-        preview: '배치 정규화, 레이어 정규화, 그룹 정규화 등 주요 정규화 기법의 원리와 적용 시나리오를 비교합니다.',
-      ),
-      _SharedNote(
-        title: '알고리즘 문제 풀이 전략',
-        author: '김알고',
-        tags: ['알고리즘', '코딩'],
-        rating: 4.5,
-        timeAgo: '1일 전',
-        preview: '그리디, DP, 이분탐색 등 유형별 접근 전략과 시간복잡도 분석 방법을 정리합니다.',
-      ),
-      _SharedNote(
-        title: 'AWS 아키텍처 가이드',
-        author: '박클라우드',
-        tags: ['AWS', '클라우드'],
-        rating: 4.3,
-        timeAgo: '3일 전',
-        preview:
-            'Well-Architected Framework의 5가지 기둥을 기반으로 실제 아키텍처 설계 사례를 다룹니다.',
-      ),
-    ];
+    final query = SharedContentQuery(
+      query: _searchController.text,
+      contentType: SharedContentType.note,
+    );
+    final notesAsync = ref.watch(sharedContentsProvider(query));
 
     return ConceptPage(
       children: [
@@ -96,33 +72,33 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        // Notes list
-        ...mockNotes.map((note) => _SharedNoteItem(note: note)),
+        notesAsync.when(
+          data: (notes) => Column(
+            children: notes.isEmpty
+                ? <Widget>[const _EmptyGroupList(message: '공유 노트가 없습니다')]
+                : notes
+                    .map<Widget>((note) => _SharedNoteItem(note: note))
+                    .toList(),
+          ),
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(AppSpacing.xl),
+              child: CircularProgressIndicator.adaptive(),
+            ),
+          ),
+          error: (_, _) => _ErrorState(
+            message: '공유 노트를 불러오지 못했습니다',
+            onRetry: () => ref.invalidate(sharedContentsProvider(query)),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _SharedNote {
-  const _SharedNote({
-    required this.title,
-    required this.author,
-    required this.tags,
-    required this.rating,
-    required this.timeAgo,
-    this.preview = '',
-  });
-  final String title;
-  final String author;
-  final List<String> tags;
-  final double rating;
-  final String timeAgo;
-  final String preview;
-}
-
 class _SharedNoteItem extends StatelessWidget {
   const _SharedNoteItem({required this.note});
-  final _SharedNote note;
+  final SharedContent note;
 
   @override
   Widget build(BuildContext context) {
@@ -132,8 +108,7 @@ class _SharedNoteItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         onTap: () {
-          // TODO: 팀원 구현 — 실제 noteId 연결
-          context.go(AppRoutes.communitySharedNoteDetailPath('1'));
+          context.go(AppRoutes.communitySharedNoteDetailPath(note.shareToken));
         },
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: Padding(
@@ -149,11 +124,9 @@ class _SharedNoteItem extends StatelessWidget {
                     color: AppColors.primaryAmber,
                   ),
                   const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Text(note.title, style: textTheme.titleSmall),
-                  ),
+                  Expanded(child: Text(note.title, style: textTheme.titleSmall)),
                   Text(
-                    note.timeAgo,
+                    _formatRelativeTime(note.createdAt),
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.stone400,
                     ),
@@ -170,7 +143,7 @@ class _SharedNoteItem extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.xxs),
                   Text(
-                    note.author,
+                    'User ${note.ownerId}',
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.stone400,
                     ),
@@ -179,7 +152,7 @@ class _SharedNoteItem extends StatelessWidget {
                   const Icon(Icons.star, size: 12, color: AppColors.warning),
                   const SizedBox(width: AppSpacing.xxs),
                   Text(
-                    note.rating.toStringAsFixed(1),
+                    '4.0',
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.stone500,
                     ),
@@ -187,10 +160,10 @@ class _SharedNoteItem extends StatelessWidget {
                 ],
               ),
               // Preview text
-              if (note.preview.isNotEmpty) ...[
+              if (note.description.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  note.preview,
+                  note.description,
                   style: textTheme.bodySmall?.copyWith(
                     color: AppColors.stone500,
                   ),
@@ -199,13 +172,14 @@ class _SharedNoteItem extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: AppSpacing.sm),
-              Wrap(
+              if (note.tags.isNotEmpty)
+                Wrap(
                 spacing: AppSpacing.xs,
                 runSpacing: AppSpacing.xs,
                 children: note.tags
                     .map((tag) => StudyTag(label: '#$tag'))
                     .toList(),
-              ),
+                ),
             ],
           ),
         ),

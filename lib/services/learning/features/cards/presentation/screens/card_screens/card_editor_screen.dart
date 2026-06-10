@@ -3,10 +3,13 @@ part of '../card_screens.dart';
 // ── CardEditorScreen (SCR-W-CARD-003) ──
 
 class CardEditorScreen extends ConsumerStatefulWidget {
-  const CardEditorScreen({this.deckId, super.key});
+  const CardEditorScreen({this.deckId, this.cardId, super.key});
 
   /// 카드를 추가할 덱 id. null이면 폼에서 덱을 직접 선택.
   final String? deckId;
+
+  /// 편집할 카드 id. null이면 신규 생성, 값이 있으면 편집 모드.
+  final String? cardId;
 
   @override
   ConsumerState<CardEditorScreen> createState() => _CardEditorScreenState();
@@ -18,7 +21,10 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   String _cardType = 'BASIC';
   String? _selectedDeckId;
   bool _isSubmitting = false;
+  bool _initialized = false;
   final Set<String> _selectedTags = {};
+
+  bool get _isEditMode => widget.cardId != null;
 
   @override
   void initState() {
@@ -53,12 +59,22 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
     }
     setState(() => _isSubmitting = true);
     try {
-      await ref.read(createCardUseCaseProvider).call(
-            deckId,
-            frontContent: front,
-            backContent: back,
-            cardType: _cardType,
-          );
+      if (_isEditMode) {
+        await ref.read(updateCardUseCaseProvider).call(
+              deckId,
+              widget.cardId!,
+              frontContent: front,
+              backContent: back,
+              cardType: _cardType,
+            );
+      } else {
+        await ref.read(createCardUseCaseProvider).call(
+              deckId,
+              frontContent: front,
+              backContent: back,
+              cardType: _cardType,
+            );
+      }
       ref.invalidate(cardListProvider(deckId));
       if (mounted) {
         context.go(AppRoutes.deckCardsPath(deckId));
@@ -80,9 +96,31 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
       _selectedDeckId = widget.deckId ?? decks.first.id;
     }
 
+    // 편집 모드: 카드 목록 캐시에서 기존 값 초기화
+    if (_isEditMode && !_initialized && widget.deckId != null) {
+      final card = ref
+          .watch(cardListProvider(widget.deckId!))
+          .asData
+          ?.value
+          .where((c) => c.id == widget.cardId)
+          .firstOrNull;
+      if (card != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _frontController.text = card.frontContent;
+              _backController.text = card.backContent;
+              _cardType = card.cardType;
+              _initialized = true;
+            });
+          }
+        });
+      }
+    }
+
     return ConceptPage(
       children: [
-        const ConceptViewHead(title: '카드 생성'),
+        ConceptViewHead(title: _isEditMode ? '카드 수정' : '카드 생성'),
         SegmentedButton<String>(
           segments: const [
             ButtonSegment(value: 'BASIC', label: Text('Basic')),
@@ -189,7 +227,7 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
                   height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('저장'),
+              : Text(_isEditMode ? '수정 완료' : '저장'),
         ),
         const SizedBox(height: AppSpacing.xl),
       ],

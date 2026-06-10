@@ -202,8 +202,8 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                                             size: 20,
                                           ),
                                           onPressed: () => context.go(
-                                              AppRoutes.deckCardNewPath(
-                                                  widget.deckId)),
+                                              AppRoutes.deckCardEditPath(
+                                                  widget.deckId, card.id)),
                                         ),
                                       ],
                                     ),

@@ -23,6 +23,9 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _obscureNewPassword = true;
+  bool _submitting = false;
+  String? _errorMessage;
+  String? _resetToken;
 
   @override
   void dispose() {
@@ -33,26 +36,98 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
     super.dispose();
   }
 
-  void _onStepContinue() {
+  Future<void> _onStepContinue() async {
     switch (_currentStep) {
       case 0:
         if (!_emailFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/request (이메일로 인증코드 발송)
-        setState(() => _currentStep = 1);
+        await _submit(() async {
+          await ref
+              .read(platformAuthApiProvider)
+              .requestPasswordReset(_emailController.text.trim());
+          if (!mounted) return;
+          setState(() => _currentStep = 1);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('가입된 이메일이라면 인증 코드가 발송됩니다. 메일함을 확인해주세요.'),
+            ),
+          );
+        }, fallbackError: '인증 코드 발송에 실패했습니다.');
       case 1:
         if (!_codeFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/verify (인증코드 검증)
-        setState(() => _currentStep = 2);
+        await _submit(() async {
+          final result = await ref.read(platformAuthApiProvider)
+              .verifyPasswordReset(
+                email: _emailController.text.trim(),
+                code: _codeController.text.trim(),
+              );
+          if (!mounted) return;
+          setState(() {
+            _resetToken = result.resetToken;
+            _currentStep = 2;
+          });
+        }, fallbackError: '인증 코드 확인에 실패했습니다.');
       case 2:
         if (!_passwordFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/confirm (새 비밀번호 설정)
-        context.go(AppRoutes.login);
+        final resetToken = _resetToken;
+        if (resetToken == null) {
+          setState(() {
+            _errorMessage = '인증이 만료되었습니다. 처음부터 다시 시도해주세요.';
+            _currentStep = 0;
+          });
+          return;
+        }
+        await _submit(() async {
+          await ref.read(platformAuthApiProvider).confirmPasswordReset(
+                resetToken: resetToken,
+                newPassword: _newPasswordController.text,
+              );
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.')),
+          );
+          context.go(AppRoutes.login);
+        }, fallbackError: '비밀번호 변경에 실패했습니다.');
+    }
+  }
+
+  Future<void> _submit(
+    Future<void> Function() action, {
+    required String fallbackError,
+  }) async {
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+    try {
+      await action();
+      if (mounted) setState(() => _submitting = false);
+    } on PlatformAuthApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _errorMessage = error.message;
+        // 재설정 토큰 만료/불일치(PLAT-AUTH-070)는 어느 단계든 코드 재발급부터 다시 밟아야 한다.
+        if (error.code == 'PLAT-AUTH-070' && _currentStep == 2) {
+          _resetToken = null;
+          _currentStep = 0;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _errorMessage = fallbackError;
+      });
     }
   }
 
   void _onStepCancel() {
+    if (_submitting) return;
     if (_currentStep > 0) {
-      setState(() => _currentStep -= 1);
+      setState(() {
+        _currentStep -= 1;
+        _errorMessage = null;
+      });
     } else {
       context.go(AppRoutes.login);
     }
@@ -73,6 +148,16 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('비밀번호 재설정', style: textTheme.headlineSmall),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _errorMessage!,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.lg),
                 Stepper(
                   currentStep: _currentStep,
@@ -84,8 +169,17 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                       child: Row(
                         children: [
                           FilledButton(
-                            onPressed: details.onStepContinue,
-                            child: Text(_currentStep == 2 ? '비밀번호 변경' : '다음'),
+                            onPressed:
+                                _submitting ? null : details.onStepContinue,
+                            child: _submitting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(_currentStep == 2 ? '비밀번호 변경' : '다음'),
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           TextButton(
@@ -180,8 +274,18 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                               ),
                               obscureText: _obscureNewPassword,
                               validator: (v) {
+                                // 백엔드 confirm의 비밀번호 정책(8자+영문+숫자+특수)과 동일하게 검증한다.
                                 if (v == null || v.length < 8) {
                                   return '비밀번호는 8자 이상이어야 합니다';
+                                }
+                                if (!RegExp('[A-Za-z]').hasMatch(v)) {
+                                  return '영문을 포함해야 합니다';
+                                }
+                                if (!RegExp(r'\d').hasMatch(v)) {
+                                  return '숫자를 포함해야 합니다';
+                                }
+                                if (!RegExp(r'[^A-Za-z0-9]').hasMatch(v)) {
+                                  return '특수문자를 포함해야 합니다';
                                 }
                                 return null;
                               },

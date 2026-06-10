@@ -43,6 +43,9 @@ class AiRemoteDatasource {
     );
 
     final lineBuffer = StringBuffer();
+    String? currentEvent;
+
+    outer:
     await for (final chunk
         in response.data!.stream
             .cast<List<int>>()
@@ -54,9 +57,18 @@ class AiRemoteDatasource {
 
       for (int i = 0; i < lines.length - 1; i++) {
         final line = lines[i].trim();
+        if (line.isEmpty) {
+          currentEvent = null;
+          continue;
+        }
+        if (line.startsWith('event: ')) {
+          currentEvent = line.substring(7);
+          continue;
+        }
         if (!line.startsWith('data: ')) continue;
         final payload = line.substring(6);
-        if (payload == '[DONE]') return;
+        if (payload == '[DONE]') break outer;
+        if (currentEvent == 'error') throw Exception(payload);
         try {
           final json = jsonDecode(payload) as Map<String, dynamic>;
           final text = json['text'];

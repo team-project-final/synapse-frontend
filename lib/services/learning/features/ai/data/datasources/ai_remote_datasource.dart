@@ -41,7 +41,9 @@ class AiRemoteDatasource {
 
     final lineBuffer = StringBuffer();
     await for (final chunk
-        in response.data!.stream.cast<List<int>>().transform(utf8.decoder)) {
+        in response.data!.stream
+            .cast<List<int>>()
+            .transform(const Utf8Decoder(allowMalformed: true))) {
       lineBuffer.write(chunk);
       final raw = lineBuffer.toString();
       final lines = raw.split('\n');

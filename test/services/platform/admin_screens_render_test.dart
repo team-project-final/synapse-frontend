@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -10,6 +11,7 @@ import 'package:synapse_frontend/services/platform/features/admin/domain/reposit
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/get_admin_analytics_summary_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_tenants_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_users_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_audit_logs_usecase.dart';
@@ -36,6 +38,8 @@ void main() {
               ChangeTenantStatusUseCase(_FakeAdminRepository())),
           listAuditLogsUseCaseProvider
               .overrideWithValue(ListAuditLogsUseCase(_FakeAdminRepository())),
+          getAdminAnalyticsSummaryUseCaseProvider.overrideWithValue(
+              GetAdminAnalyticsSummaryUseCase(_FakeAdminRepository())),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -163,6 +167,66 @@ class _FakeAdminRepository implements AdminRepository {
       size: size,
       totalElements: 1,
       totalPages: 1,
+    );
+  }
+
+  @override
+  Future<AdminAnalyticsSummary> getAnalyticsSummary() async {
+    return AdminAnalyticsSummary(
+      generatedAt: DateTime.utc(2026, 6, 10),
+      users: const AdminUsersSummary(
+        total: 1200,
+        active: 1100,
+        suspended: 50,
+        deleted: 50,
+        newToday: 12,
+        dau: 340,
+        mau: 980,
+        activitySource: 'USERS_LAST_LOGIN_AT',
+      ),
+      tenants: const AdminTenantsSummary(
+        total: 80,
+        active: 75,
+        suspended: 5,
+        plans: {'free': 60, 'pro': 20},
+      ),
+      usage: const [
+        AdminUsageItem(
+          key: 'notifications.sent.today',
+          label: '오늘 발송 알림',
+          value: 152,
+          unit: 'count',
+          status: AdminMetricStatus.ok,
+          source: 'notifications',
+        ),
+        AdminUsageItem(
+          key: 'ai.tokens.monthly',
+          label: 'AI 토큰',
+          value: null,
+          unit: 'tokens',
+          status: AdminMetricStatus.notConnected,
+          source: 'learning-ai',
+        ),
+      ],
+      pendingItems: const [
+        AdminPendingItem(
+          key: 'data-requests',
+          label: 'GDPR 요청',
+          count: null,
+          severity: 'INFO',
+          status: AdminMetricStatus.notImplemented,
+        ),
+      ],
+      recentActivities: [
+        AdminRecentActivity(
+          id: '44444444-4444-4444-4444-444444444444',
+          action: 'USER_REGISTERED',
+          userId: '11111111-1111-1111-1111-111111111111',
+          resourceType: 'USER',
+          resourceId: '11111111-1111-1111-1111-111111111111',
+          createdAt: DateTime.utc(2026, 6, 10),
+        ),
+      ],
     );
   }
 }

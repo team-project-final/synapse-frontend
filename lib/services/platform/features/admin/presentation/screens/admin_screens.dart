@@ -9,6 +9,7 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/utils/csv.dart';
 import 'package:synapse_frontend/shared/widgets/admin_data_grid.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';

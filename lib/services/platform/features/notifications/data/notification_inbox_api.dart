@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/network/dio_client.dart';
 
 final notificationInboxApiProvider = Provider<NotificationInboxApi>((ref) {
@@ -36,6 +37,17 @@ NotificationCategory notificationCategoryOf(String type) {
     return NotificationCategory.achievement;
   }
   return NotificationCategory.other;
+}
+
+/// 알림 클릭 시 이동할 화면. 백엔드 알림에 딥링크 페이로드가 없어
+/// 분류 기반으로 대표 화면에 연결하며, 시스템/미지 타입은 이동하지 않는다(null).
+String? notificationRouteOf(String type) {
+  return switch (notificationCategoryOf(type)) {
+    NotificationCategory.review => AppRoutes.review,
+    NotificationCategory.community => AppRoutes.communityGroups,
+    NotificationCategory.achievement => AppRoutes.gamificationProfile,
+    NotificationCategory.other => null,
+  };
 }
 
 /// 알림 인박스 단건. platform-svc `NotificationItemResponse`를 화면용 엔티티로

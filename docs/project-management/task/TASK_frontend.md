@@ -286,3 +286,23 @@
 | **Assignee** | Frontend 전체 협업 |
 | **Reviewer** | @team-lead |
 | **Status** | TODO |
+
+---
+
+## Step 15: 컨테이너 이미지 파이프라인 신설 (이슈 #52)
+
+| 필드 | 내용 |
+|------|------|
+| **Step Name** | 컨테이너 이미지 빌드/배포 파이프라인 신설 |
+| **Step Goal** | frontend를 EKS에 배포 가능한 컨테이너 이미지로 빌드·ECR push하는 파이프라인을 추가해 ImagePullBackOff를 해소한다. |
+| **Done When** | ECR `synapse/frontend`에 이미지 존재 + EKS frontend Running |
+| **Scope** | **In**: Dockerfile, nginx 설정, deploy.yml, .dockerignore / **Out**: gitops 오버레이 변경(기존 정상), 앱 코드 변경 |
+| **Input** | ci-flutter.yml, gitops apps/frontend/base/deployment.yaml 계약, engagement-svc deploy.yml 패턴 |
+| **Instructions** | 1. 멀티스테이지 Dockerfile (Flutter web 빌드 → nginx-unprivileged 서빙)<br>2. nginx default.conf (8080·/healthz·SPA 폴백)<br>3. semver 태그 트리거 deploy.yml (ECR push)<br>4. .dockerignore로 빌드 컨텍스트 축소 |
+| **Output Format** | 신규 파일 4종 + REPORT.md 기록 |
+| **Constraints** | - gitops deployment.yaml 계약(8080·uid 101·RO 루트·/healthz) 정합 필수<br>- semver/image-updater 설정과 정합(shared SHA 모델 미사용)<br>- 액션 버전 shared 정합(`amazon-ecr-login@v2`) |
+| **Duration** | 0.5일 |
+| **RULE Reference** | 이슈 #52 · gitops apps/frontend |
+| **Assignee** | Frontend / Infra |
+| **Reviewer** | @team-lead |
+| **Status** | Done (2026-06-11, PR 대기) |

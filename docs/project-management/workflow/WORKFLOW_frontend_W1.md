@@ -72,12 +72,12 @@
 ### 1.1 TASK 시작
 - [x] Step Goal / Done When / Scope / Input 확인
 - [x] PRD_W1 해당 요구사항 확인 (FR-AU-xxx 인증 화면)
-- [ ] Duration 산정 확인 (2일)
+- [x] Duration 산정 확인 (2일)
 
 ### 1.2 요구사항 분석
 - [x] 로그인 화면 UI 요소 정의 (이메일/비밀번호 폼 + OAuth 버튼)
-- [ ] 회원가입 화면 UI 요소 정의 (이메일/비밀번호/확인 폼)
-- [ ] OAuth 2.0 + PKCE 플로우 분석
+- [x] 회원가입 화면 UI 요소 정의 (이메일/비밀번호/확인 폼)
+- [x] OAuth 2.0 + PKCE 플로우 분석
 - [ ] Instructions 초안 → TASK 문서 반영
 
 ### 1.3 Security 1차 검토
@@ -95,14 +95,14 @@
 
 ### 1.5 Security 2차 검토
 - [x] 토큰 SecureStorage 전용 저장 확인
-- [ ] 비밀번호 입력 마스킹 확인
+- [x] 비밀번호 입력 마스킹 확인
 - [x] platform-svc 베이스 URL 환경변수 관리
 - [ ] 결과 → TASK Constraints 반영
 
 ### 1.6 DTO / Entity 설계 (API First)
 - [x] LoginRequest 모델 정의 (email, password)
 - [x] SignupRequest 모델 정의 (email, password, confirmPassword)
-- [ ] AuthToken 모델 정의 (accessToken, expiresIn) — refreshToken은 httpOnly Cookie로 서버 관리, JSON body 미포함
+- [x] AuthToken 모델 정의 (accessToken) — refreshToken은 httpOnly Cookie로 서버 관리, expiresIn은 백엔드 응답 미포함으로 제외
 - [x] AuthState Provider 설계
 - [ ] Output Format → TASK 반영
 
@@ -129,10 +129,10 @@
 ### 1.10 View + Test
 - [x] 로그인 화면 렌더링 + OAuth 버튼 동작 확인
 - [x] 회원가입 화면 렌더링 + 유효성 검증 확인
-- [ ] Smoke Test 1건 (로그인 → 대시보드 이동)
+- [x] Smoke Test 1건 (로그인 → 대시보드 이동) — 위젯 테스트로 검증 (현재 dev 로그인 바이패스 경유)
 - [ ] RULE Reference → TASK 반영
 
-**Step 2 Status**: [x] In Progress (OAuth 프론트 연동, AuthRepositoryPort 경계, SecureStorage 토큰 저장 완료 / PLAT-009 email/password API 연동 완료 / AuthToken expiresIn 항목은 backend 응답 미포함으로 잔여)
+**Step 2 Status**: [x] Done (2026-06-10 기준 — OAuth 리다이렉트·email/password 로그인/회원가입·SecureStorage 완료. 이후 PR #33 인증 화면 정리(OAuth consent/MFA resend 제거), PR #45 비밀번호 재설정 3단계·MFA 백업 코드까지 머지. 단, 로그인 화면은 개발 편의용 바이패스 활성 상태 — 마무리 시 실 로그인 전환 예정)
 
 ---
 

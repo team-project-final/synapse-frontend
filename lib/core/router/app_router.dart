@@ -163,6 +163,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 CardEditorScreen(deckId: state.pathParameters['deckId']),
           ),
           GoRoute(
+            path: AppRoutes.deckCardEdit,
+            builder: (context, state) => CardEditorScreen(
+              deckId: state.pathParameters['deckId'],
+              cardId: state.pathParameters['cardId'],
+            ),
+          ),
+          GoRoute(
             path: AppRoutes.cardNew,
             builder: (context, state) => const CardEditorScreen(),
           ),
@@ -221,7 +228,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.settingsNotifications,
-            builder: (context, state) => const NotificationSettingsScreen(),
+            // 설정 허브의 알림 메뉴도 실연동된 알림 설정 화면을 재사용한다.
+            builder: (context, state) => const NotificationPreferenceScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsTenant,

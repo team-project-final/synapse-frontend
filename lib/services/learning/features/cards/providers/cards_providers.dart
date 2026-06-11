@@ -6,6 +6,7 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/entitie
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_session.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_submit_result.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/repositories/cards_repository.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/batch_create_cards_usecase.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/complete_review_session_usecase.dart';
@@ -136,6 +137,7 @@ class ReviewState {
     this.isSubmitting = false,
     this.isCompleted = false,
     this.completedSession,
+    this.submittedResults = const [],
     this.error,
   });
 
@@ -146,6 +148,7 @@ class ReviewState {
   final bool isSubmitting;
   final bool isCompleted;
   final ReviewSession? completedSession;
+  final List<ReviewSubmitResult> submittedResults;
   final String? error;
 
   ReviewCard? get currentCard =>
@@ -153,6 +156,14 @@ class ReviewState {
 
   int get total => queue.length;
   int get reviewed => currentIndex;
+
+  double get accuracy {
+    if (submittedResults.isEmpty) return 0;
+    final correct = submittedResults.where((r) => r.rating >= 3).length;
+    return correct / submittedResults.length;
+  }
+
+  int get earnedXp => submittedResults.fold(0, (sum, r) => sum + r.rating * 5);
 
   ReviewState copyWith({
     String? sessionId,
@@ -162,6 +173,7 @@ class ReviewState {
     bool? isSubmitting,
     bool? isCompleted,
     ReviewSession? completedSession,
+    List<ReviewSubmitResult>? submittedResults,
     String? error,
   }) {
     return ReviewState(
@@ -172,6 +184,7 @@ class ReviewState {
       isSubmitting: isSubmitting ?? this.isSubmitting,
       isCompleted: isCompleted ?? this.isCompleted,
       completedSession: completedSession ?? this.completedSession,
+      submittedResults: submittedResults ?? this.submittedResults,
       error: error ?? this.error,
     );
   }
@@ -197,11 +210,12 @@ class ReviewNotifier extends Notifier<ReviewState> {
     if (s.sessionId == null || s.currentCard == null || s.isSubmitting) return;
     state = s.copyWith(isSubmitting: true, error: null);
     try {
-      await ref.read(submitReviewUseCaseProvider).call(
+      final result = await ref.read(submitReviewUseCaseProvider).call(
         sessionId: s.sessionId!,
         cardId: s.currentCard!.cardId,
         rating: rating,
       );
+      final updatedResults = [...s.submittedResults, result];
       final nextIndex = s.currentIndex + 1;
       if (nextIndex >= s.queue.length) {
         final completed = await ref.read(completeReviewSessionUseCaseProvider).call(s.sessionId!);
@@ -210,9 +224,10 @@ class ReviewNotifier extends Notifier<ReviewState> {
           isSubmitting: false,
           isCompleted: true,
           completedSession: completed,
+          submittedResults: updatedResults,
         );
       } else {
-        state = s.copyWith(currentIndex: nextIndex, isSubmitting: false);
+        state = s.copyWith(currentIndex: nextIndex, isSubmitting: false, submittedResults: updatedResults);
       }
     } catch (e) {
       state = s.copyWith(isSubmitting: false, error: e.toString());

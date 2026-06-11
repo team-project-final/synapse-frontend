@@ -38,7 +38,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
     // 복습 완료 시 결과 화면으로 이동
     ref.listen(reviewNotifierProvider, (_, next) {
       if (next.isCompleted && mounted) {
-        ref.read(reviewNotifierProvider.notifier).reset();
         context.go(AppRoutes.reviewResult);
       }
     });

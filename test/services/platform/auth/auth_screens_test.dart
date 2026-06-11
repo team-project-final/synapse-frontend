@@ -183,6 +183,48 @@ void main() {
     expect(find.text('Signup completed. Please log in.'), findsOneWidget);
     expect(find.text('login-target'), findsOneWidget);
   });
+
+  testWidgets('mfa screen toggles to backup code mode and proceeds', (
+    tester,
+  ) async {
+    final router = GoRouter(
+      initialLocation: AppRoutes.mfa,
+      routes: [
+        GoRoute(
+          path: AppRoutes.mfa,
+          builder: (context, state) => const MfaScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dashboard,
+          builder: (context, state) =>
+              const Scaffold(body: Text('dashboard-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryPortProvider.overrideWithValue(_FakeAuthRepository()),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('mfa-backup-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('백업 코드 입력'), findsOneWidget);
+    final backupField = find.byKey(const Key('mfa-backup-code-field'));
+    expect(backupField, findsOneWidget);
+
+    await tester.enterText(backupField, 'AAAA-1111');
+    await tester.tap(find.byKey(const Key('mfa-backup-verify-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('dashboard-target'), findsOneWidget);
+  });
 }
 
 Widget _app({required AuthRepositoryPort repository, required Widget child}) {

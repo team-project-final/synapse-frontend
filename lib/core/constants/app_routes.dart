@@ -17,6 +17,7 @@ abstract final class AppRoutes {
   static const deckNew = '/decks/new';
   static const deckCards = '/decks/:deckId/cards';
   static const deckCardNew = '/decks/:deckId/cards/new';
+  static const deckCardEdit = '/decks/:deckId/cards/:cardId/edit';
   static const cardNew = '/cards/new';
   static const aiCards = '/ai/cards';
   static const review = '/review';
@@ -77,6 +78,7 @@ abstract final class AppRoutes {
   static String noteVersionsPath(String noteId) => '/notes/$noteId/versions';
   static String deckCardsPath(String deckId) => '/decks/$deckId/cards';
   static String deckCardNewPath(String deckId) => '/decks/$deckId/cards/new';
+  static String deckCardEditPath(String deckId, String cardId) => '/decks/$deckId/cards/$cardId/edit';
   static String graphNotePath(String noteId) => '/graph/notes/$noteId';
   static String communityGroupDetailPath(String groupId) =>
       '/community/groups/$groupId';

@@ -4,7 +4,8 @@ on:
   push:
     tags:
       # argocd-image-updater가 semver tag만 감지하므로 branch push가 아니라 release tag로 배포한다.
-      # (gitops apps/frontend dev overlay가 semver update-strategy + 1.0.0 핀)
+      # gitops apps/frontend dev overlay가 semver update-strategy + 1.0.0 핀이라 SHA 모델(shared
+      # deploy-service.yml)과 충돌 → engagement-svc식 semver 자체 deploy로 통일(2026-06-11 결정).
       - "*.*.*"
   workflow_dispatch:
     inputs:
@@ -62,6 +63,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           # gitops dev overlay는 image-updater가 ECR의 semver image tag를 보고 자동 bump한다.
+          # main Dockerfile(--dart-define API_BASE_URL/APP_ENV, 동일 오리진)을 그대로 사용.
           IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${TAG}"
           docker build -f Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"

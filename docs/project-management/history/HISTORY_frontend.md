@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-11 | dev 배포 인프라를 main 정본에 정합(재발산 방지): Dockerfile(dart-define 동일오리진)·루트 nginx.conf로 교체, `nginx/default.conf` 삭제, deploy.yml semver 통일. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-11 | 컨테이너 이미지 파이프라인 신설 (이슈 #52): Dockerfile·nginx/default.conf·deploy.yml·.dockerignore. semver 태그 배포 모델, nginx-unprivileged 8080/healthz. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-10 | Platform 경계 연동 섹션 추가 (PR #33~#46), W1 Step 2·W3 Step 8/9 상태 실측 반영 |
 | 2026-05-11 | W2/W3/W4 대시보드 및 로그 템플릿 추가 |

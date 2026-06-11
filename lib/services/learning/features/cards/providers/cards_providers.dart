@@ -22,6 +22,8 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/usecase
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/update_card_usecase.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/update_deck_usecase.dart';
 
+typedef SharedDeckParams = ({String deckId, String sharedContentId, String shareToken});
+
 // ── DI 체인 ──
 
 final _cardsRemoteDatasourceProvider = Provider<CardsRemoteDatasource>((ref) {
@@ -239,3 +241,20 @@ class ReviewNotifier extends Notifier<ReviewState> {
 
 final reviewNotifierProvider =
     NotifierProvider<ReviewNotifier, ReviewState>(ReviewNotifier.new);
+
+// ── 오늘 복습 큐 카드 수 (ReviewStartScreen에서 사용) ──
+
+final reviewQueueCountProvider = FutureProvider.family<int, String>((ref, deckId) async {
+  final queue = await ref.read(getReviewQueueUseCaseProvider).call(deckId);
+  return queue.length;
+});
+
+// ── 공유 덱 카드 미리보기 (SharedDeckDetailScreen에서 사용) ──
+
+final sharedDeckCardsProvider = FutureProvider.family<List<FlashCard>, SharedDeckParams>((ref, params) async {
+  return ref.read(_cardsRepositoryProvider).getSharedDeckCards(
+    params.deckId,
+    sharedContentId: params.sharedContentId,
+    shareToken: params.shareToken,
+  );
+});

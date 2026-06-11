@@ -110,7 +110,7 @@ class _DeckCard extends ConsumerWidget {
                   child: FilledButton(
                     onPressed: () {
                       ref.read(selectedDeckIdProvider.notifier).select(deck.id);
-                      context.go(AppRoutes.review);
+                      context.go(AppRoutes.reviewStart);
                     },
                     child: const Text('복습 시작'),
                   ),

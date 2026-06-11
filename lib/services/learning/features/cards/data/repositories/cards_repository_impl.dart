@@ -81,4 +81,30 @@ class CardsRepositoryImpl implements CardsRepository {
     final model = await _datasource.completeReviewSession(sessionId);
     return model.toEntity();
   }
+
+  @override
+  Future<List<FlashCard>> getSharedDeckCards(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    final detail = await _datasource.getSharedDeckDetail(
+      deckId,
+      sharedContentId: sharedContentId,
+      shareToken: shareToken,
+    );
+    return detail.cardsToEntities();
+  }
+
+  @override
+  Future<void> copyFromShare(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) =>
+      _datasource.copyFromShare(
+        deckId,
+        sharedContentId: sharedContentId,
+        shareToken: shareToken,
+      );
 }

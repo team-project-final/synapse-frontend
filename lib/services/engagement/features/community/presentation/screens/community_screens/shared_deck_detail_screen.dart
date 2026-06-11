@@ -3,9 +3,16 @@ part of '../community_screens.dart';
 // ── SharedDeckDetailScreen (SCR-W-COMM-005) ──
 
 class SharedDeckDetailScreen extends ConsumerStatefulWidget {
-  const SharedDeckDetailScreen({required this.deckId, super.key});
+  const SharedDeckDetailScreen({
+    required this.deckId,
+    this.sharedContentId,
+    this.shareToken,
+    super.key,
+  });
 
   final String deckId;
+  final String? sharedContentId;
+  final String? shareToken;
 
   @override
   ConsumerState<SharedDeckDetailScreen> createState() =>
@@ -29,12 +36,15 @@ class _SharedDeckDetailScreenState
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    // TODO: 팀원 구현 — engagement-svc 공유 덱 상세 API 연동 (deckId: ${widget.deckId})
-    const mockCards = [
-      'Big O 표기법이란 무엇인가?',
-      '재귀 알고리즘의 시간 복잡도 분석 방법은?',
-      '동적 프로그래밍과 분할 정복의 차이점은?',
-    ];
+    final hasShareParams =
+        widget.sharedContentId != null && widget.shareToken != null;
+    final cardsAsync = hasShareParams
+        ? ref.watch(sharedDeckCardsProvider((
+            deckId: widget.deckId,
+            sharedContentId: widget.sharedContentId!,
+            shareToken: widget.shareToken!,
+          )))
+        : null;
 
     return ConceptPage(
       children: [
@@ -132,43 +142,10 @@ class _SharedDeckDetailScreenState
         // Card preview PageView carousel
         Text('카드 미리보기', style: textTheme.titleMedium),
         const Divider(height: AppSpacing.md),
-        SizedBox(
-          height: 160,
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: mockCards.length,
-            itemBuilder: (context, i) {
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.quiz_outlined,
-                        color: AppColors.stone400,
-                        size: 28,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        mockCards[i],
-                        style: textTheme.bodyMedium,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        '${i + 1} / ${mockCards.length}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColors.stone400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+        _CardPreview(
+          cardsAsync: cardsAsync,
+          pageController: _pageController,
+          textTheme: textTheme,
         ),
         const SizedBox(height: AppSpacing.lg),
 
@@ -213,6 +190,87 @@ class _SharedDeckDetailScreenState
         ),
         // TODO: 팀원 구현 — 별점 평가 기능 연동
       ],
+    );
+  }
+}
+
+class _CardPreview extends StatelessWidget {
+  const _CardPreview({
+    required this.cardsAsync,
+    required this.pageController,
+    required this.textTheme,
+  });
+
+  final AsyncValue<List<FlashCard>>? cardsAsync;
+  final PageController pageController;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    if (cardsAsync == null) {
+      return const SizedBox(
+        height: 80,
+        child: Center(
+          child: Text(
+            '공유 링크로 접근하면 카드 미리보기를 볼 수 있어요.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return cardsAsync!.when(
+      loading: () => const SizedBox(
+        height: 80,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SizedBox(
+        height: 80,
+        child: Center(child: Text('카드를 불러오지 못했어요: $e')),
+      ),
+      data: (cards) => cards.isEmpty
+          ? const SizedBox(
+              height: 80,
+              child: Center(child: Text('카드가 없습니다.')),
+            )
+          : SizedBox(
+              height: 160,
+              child: PageView.builder(
+                controller: pageController,
+                itemCount: cards.length,
+                itemBuilder: (context, i) {
+                  return Card(
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.quiz_outlined,
+                            color: AppColors.stone400,
+                            size: 28,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            cards[i].frontContent,
+                            style: textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            '${i + 1} / ${cards.length}',
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: AppColors.stone400),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

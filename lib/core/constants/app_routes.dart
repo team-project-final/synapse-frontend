@@ -21,6 +21,7 @@ abstract final class AppRoutes {
   static const cardNew = '/cards/new';
   static const aiCards = '/ai/cards';
   static const review = '/review';
+  static const reviewStart = '/review/start';
   static const reviewResult = '/review/result';
 
   static const graph = '/graph';

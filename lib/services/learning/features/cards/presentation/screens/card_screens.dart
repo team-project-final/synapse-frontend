@@ -21,5 +21,6 @@ part 'card_screens/deck_create_screen.dart';
 part 'card_screens/card_list_screen.dart';
 part 'card_screens/card_editor_screen.dart';
 part 'card_screens/ai_card_generation_screen.dart';
+part 'card_screens/review_start_screen.dart';
 part 'card_screens/review_screen.dart';
 part 'card_screens/review_result_screen.dart';

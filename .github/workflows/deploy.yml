@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      # argocd-image-updater가 semver tag만 감지하므로 branch push가 아니라 release tag로 배포한다.
+      # gitops apps/frontend dev overlay가 semver update-strategy + 1.0.0 핀이라 SHA 모델(shared
+      # deploy-service.yml)과 충돌 → engagement-svc식 semver 자체 deploy로 통일(2026-06-11 결정).
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Semver image tag to publish, e.g. 1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ap-northeast-2
+      ECR_REPOSITORY: synapse/frontend
+    steps:
+      - name: Resolve semver tag
+        id: version
+        env:
+          DISPATCH_TAG: ${{ inputs.image_tag }}
+        run: |
+          # GitHub Actions tag glob은 정규식이 아니어서, 실제 semver 검증은 shell에서 한 번 더 한다.
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${DISPATCH_TAG}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if ! echo "$TAG" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Deploy tag must be semver without prefix, e.g. 1.0.0. Got: $TAG"
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push semver image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          # gitops dev overlay는 image-updater가 ECR의 semver image tag를 보고 자동 bump한다.
+          # main Dockerfile(--dart-define API_BASE_URL/APP_ENV, 동일 오리진)을 그대로 사용.
+          IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${TAG}"
+          docker build -f Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"

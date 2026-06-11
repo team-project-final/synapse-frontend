@@ -15,23 +15,23 @@ class AdminSystemSettingsScreen extends ConsumerStatefulWidget {
 class _AdminSystemSettingsScreenState
     extends ConsumerState<AdminSystemSettingsScreen>
     with TickerProviderStateMixin {
+  static const int _rateLimitMin = 1;
+  static const int _rateLimitMax = 10000;
+
   late final TabController _tabController;
+  final _rateLimitController = TextEditingController();
 
-  // TODO: 팀원 구현 — platform-svc 피처 플래그 API 연동
-  final Map<String, bool> _featureFlags = {
-    'AI 카드 자동 생성': true,
-    '소셜 로그인 (Google)': true,
-    '소셜 로그인 (GitHub)': false,
-    '실시간 협업 편집': false,
-    '베타: 음성 복습': false,
-  };
-
-  final _rateLimitController = TextEditingController(text: '100');
+  AdminSettings? _settings;
+  List<AdminFeatureFlag> _flags = const [];
+  bool _loading = true;
+  bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    Future<void>.microtask(_load);
   }
 
   @override
@@ -41,15 +41,121 @@ class _AdminSystemSettingsScreenState
     super.dispose();
   }
 
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final settings = await ref.read(getAdminSettingsUseCaseProvider)();
+      if (!mounted) return;
+      setState(() {
+        _applySettings(settings);
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '시스템 설정을 불러오지 못했습니다.';
+      });
+    }
+  }
+
+  void _applySettings(AdminSettings settings) {
+    _settings = settings;
+    _flags = settings.featureFlags;
+    _rateLimitController.text = '${settings.rateLimitPerMinute}';
+  }
+
+  int? _parseRateLimit() {
+    final value = int.tryParse(_rateLimitController.text.trim());
+    if (value == null || value < _rateLimitMin || value > _rateLimitMax) {
+      return null;
+    }
+    return value;
+  }
+
+  Future<void> _save() async {
+    final rateLimit = _parseRateLimit();
+    if (rateLimit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('속도 제한은 $_rateLimitMin~$_rateLimitMax 사이여야 합니다.'),
+        ),
+      );
+      _tabController.animateTo(2);
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final saved = await ref.read(updateAdminSettingsUseCaseProvider)(
+        AdminSettingsUpdate(
+          featureFlags: _flags,
+          rateLimitPerMinute: rateLimit,
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _applySettings(saved);
+        _saving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('설정이 저장되었습니다.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('설정 저장에 실패했습니다.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final settings = _settings;
+    if (_error != null || settings == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error ?? '시스템 설정을 불러오지 못했습니다.'),
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(onPressed: _load, child: const Text('다시 시도')),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('시스템 설정', style: textTheme.headlineSmall),
+          Row(
+            children: [
+              Text('시스템 설정', style: textTheme.headlineSmall),
+              const Spacer(),
+              FilledButton(
+                key: const Key('admin-settings-save'),
+                onPressed: _saving ? null : _save,
+                child: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('저장'),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.lg),
           TabBar(
             controller: _tabController,
@@ -64,55 +170,70 @@ class _AdminSystemSettingsScreenState
             child: TabBarView(
               controller: _tabController,
               children: [
-                // ── Tab 1: Plan Quota ──
+                // ── Tab 1: Plan Quota (조회 전용 — 백엔드 수정 계약 없음) ──
                 SingleChildScrollView(
-                  child: DataTable(
-                    headingRowColor: WidgetStateProperty.all(
-                      AppColors.surface2,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(
+                        AppColors.surface2,
+                      ),
+                      columns: const [
+                        DataColumn(label: Text('플랜')),
+                        DataColumn(label: Text('노트'), numeric: true),
+                        DataColumn(label: Text('카드'), numeric: true),
+                        DataColumn(label: Text('AI 토큰/월'), numeric: true),
+                        DataColumn(label: Text('AI 생성/월'), numeric: true),
+                        DataColumn(label: Text('스토리지'), numeric: true),
+                        DataColumn(label: Text('멤버 한도'), numeric: true),
+                      ],
+                      rows: settings.planQuotas.map((quota) {
+                        return DataRow(
+                          cells: [
+                            DataCell(Text(quota.displayName)),
+                            DataCell(Text(_quotaText(quota.maxNotes))),
+                            DataCell(Text(_quotaText(quota.maxCards))),
+                            DataCell(
+                              Text(_quotaText(quota.maxAiTokensMonthly)),
+                            ),
+                            DataCell(
+                              Text(
+                                _quotaText(quota.maxAiCardGenerationsMonthly),
+                              ),
+                            ),
+                            DataCell(Text(_storageText(quota.maxStorageBytes))),
+                            DataCell(Text(_quotaText(quota.maxUsersPerTenant))),
+                          ],
+                        );
+                      }).toList(),
                     ),
-                    columns: const [
-                      DataColumn(label: Text('플랜')),
-                      DataColumn(label: Text('AI 토큰/월'), numeric: true),
-                      DataColumn(label: Text('스토리지 (GB)'), numeric: true),
-                      DataColumn(label: Text('멤버 한도'), numeric: true),
-                    ],
-                    rows: const [
-                      DataRow(
-                        cells: [
-                          DataCell(Text('Free')),
-                          DataCell(Text('1,000')),
-                          DataCell(Text('1')),
-                          DataCell(Text('5')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('Pro')),
-                          DataCell(Text('50,000')),
-                          DataCell(Text('50')),
-                          DataCell(Text('100')),
-                        ],
-                      ),
-                      DataRow(
-                        cells: [
-                          DataCell(Text('Enterprise')),
-                          DataCell(Text('무제한')),
-                          DataCell(Text('500')),
-                          DataCell(Text('무제한')),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
 
                 // ── Tab 2: Feature Flags ──
                 ListView(
-                  children: _featureFlags.entries.map((entry) {
+                  children: _flags.map((flag) {
                     return SwitchListTile(
-                      title: Text(entry.key),
-                      value: entry.value,
+                      key: Key('flag-${flag.key}'),
+                      title: Text(flag.label),
+                      subtitle: Text(
+                        flag.key,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      value: flag.enabled,
                       onChanged: (v) {
-                        setState(() => _featureFlags[entry.key] = v);
+                        setState(() {
+                          _flags = _flags
+                              .map(
+                                (f) => f.key == flag.key
+                                    ? f.copyWith(enabled: v)
+                                    : f,
+                              )
+                              .toList();
+                        });
                       },
                     );
                   }).toList(),
@@ -130,22 +251,14 @@ class _AdminSystemSettingsScreenState
                       ),
                       const SizedBox(height: AppSpacing.md),
                       TextFormField(
+                        key: const Key('admin-settings-rate-limit'),
                         controller: _rateLimitController,
                         keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: '요청 수/분',
+                          helperText: '$_rateLimitMin ~ $_rateLimitMax',
                           border: OutlineInputBorder(),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      FilledButton(
-                        onPressed: () {
-                          // TODO: 팀원 구현 — platform-svc 설정 저장 API 연동
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('설정이 저장되었습니다.')),
-                          );
-                        },
-                        child: const Text('저장'),
                       ),
                     ],
                   ),
@@ -156,5 +269,16 @@ class _AdminSystemSettingsScreenState
         ],
       ),
     );
+  }
+
+  String _quotaText(int? value) => value == null ? '무제한' : _grouped(value);
+
+  String _storageText(int? bytes) {
+    if (bytes == null) return '무제한';
+    final gb = bytes / (1024 * 1024 * 1024);
+    final text = gb == gb.roundToDouble()
+        ? gb.toInt().toString()
+        : gb.toStringAsFixed(1);
+    return '$text GB';
   }
 }

@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_user.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/repositories/admin_repository.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/admin_settings_usecases.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/get_admin_analytics_summary_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_tenants_usecase.dart';
@@ -40,6 +42,10 @@ void main() {
               .overrideWithValue(ListAuditLogsUseCase(_FakeAdminRepository())),
           getAdminAnalyticsSummaryUseCaseProvider.overrideWithValue(
               GetAdminAnalyticsSummaryUseCase(_FakeAdminRepository())),
+          getAdminSettingsUseCaseProvider.overrideWithValue(
+              GetAdminSettingsUseCase(_FakeAdminRepository())),
+          updateAdminSettingsUseCaseProvider.overrideWithValue(
+              UpdateAdminSettingsUseCase(_FakeAdminRepository())),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -228,5 +234,34 @@ class _FakeAdminRepository implements AdminRepository {
         ),
       ],
     );
+  }
+
+  @override
+  Future<AdminSettings> getSettings() async {
+    return AdminSettings(
+      planQuotas: const [
+        AdminPlanQuota(
+          planCode: 'free',
+          displayName: 'Free',
+          maxNotes: 100,
+          maxCards: 1000,
+          maxStorageBytes: 1073741824,
+          maxAiTokensMonthly: 1000,
+          maxAiCardGenerationsMonthly: 20,
+          maxUsersPerTenant: 5,
+        ),
+        AdminPlanQuota(planCode: 'enterprise', displayName: 'Enterprise'),
+      ],
+      featureFlags: const [
+        AdminFeatureFlag(key: 'ai.card.generation', label: 'AI 카드 생성', enabled: true),
+      ],
+      rateLimitPerMinute: 100,
+      updatedAt: DateTime.utc(2026, 6, 10),
+    );
+  }
+
+  @override
+  Future<AdminSettings> updateSettings(AdminSettingsUpdate update) async {
+    return getSettings();
   }
 }

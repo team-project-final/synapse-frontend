@@ -271,6 +271,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.communitySharedDeckDetail,
             builder: (context, state) => SharedDeckDetailScreen(
               deckId: state.pathParameters['deckId'] ?? '',
+              sharedContentId: state.uri.queryParameters['sharedContentId'],
+              shareToken: state.uri.queryParameters['shareToken'],
             ),
           ),
           GoRoute(

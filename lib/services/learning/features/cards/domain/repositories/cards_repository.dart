@@ -20,4 +20,7 @@ abstract interface class CardsRepository {
   Future<List<ReviewCard>> getReviewQueue(String deckId);
   Future<ReviewSubmitResult> submitReview({required String sessionId, required String cardId, required int rating, int? timeSpentMs});
   Future<ReviewSession> completeReviewSession(String sessionId);
+
+  Future<List<FlashCard>> getSharedDeckCards(String deckId, {required String sharedContentId, required String shareToken});
+  Future<void> copyFromShare(String deckId, {required String sharedContentId, required String shareToken});
 }

@@ -4,6 +4,7 @@ import 'package:synapse_frontend/services/learning/features/cards/data/models/fl
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_card_model.dart';
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_session_model.dart';
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_submit_result_model.dart';
+import 'package:synapse_frontend/services/learning/features/cards/data/models/shared_deck_detail_model.dart';
 
 class CardsRemoteDatasource {
   const CardsRemoteDatasource(this._dio);
@@ -122,6 +123,29 @@ class CardsRemoteDatasource {
       '/reviews/sessions/$sessionId/complete',
     );
     return ReviewSessionModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
+  Future<SharedDeckDetailModel> getSharedDeckDetail(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/decks/$deckId/shared-detail',
+      queryParameters: {'sharedContentId': sharedContentId, 'shareToken': shareToken},
+    );
+    return SharedDeckDetailModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
+  Future<void> copyFromShare(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    await _dio.post<Map<String, dynamic>>(
+      '/decks/$deckId/copy-from-share',
+      data: {'sharedContentId': sharedContentId, 'shareToken': shareToken},
+    );
   }
 }
 

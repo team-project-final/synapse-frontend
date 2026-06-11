@@ -234,6 +234,32 @@ void main() {
       ),
     );
   });
+
+  test('PLAT-001 검증 덤프 detail은 노출하지 않고 정제 메시지로 대체한다', () async {
+    final repository = _repository(
+      adapter: _FakeAdapter(
+        (request) => _json({
+          'status': 400,
+          'code': 'PLAT-001',
+          'detail':
+              'Validation failed for argument [0] ... rejected value [...]',
+        }, 400),
+      ),
+    );
+
+    await expectLater(
+      repository.login(email: 'user@example.com', password: 'whatever'),
+      throwsA(
+        isA<AuthRepositoryException>()
+            .having((error) => error.code, 'code', 'PLAT-001')
+            .having(
+              (error) => error.detail,
+              'detail',
+              '입력한 정보를 다시 확인해주세요.',
+            ),
+      ),
+    );
+  });
 }
 
 OAuthRedirectService _oauthRedirectService() {

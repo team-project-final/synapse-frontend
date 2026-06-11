@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-06-11 — dev 배포 인프라를 main 정본에 정합 (재발산 방지)
+
+### 배경
+- 아래 #54로 dev에 추가한 인프라가 main 기존 인프라(#21 Dockerfile, #22 deploy.yml)와 **평행하게 발산**해 있었음. main은 PR #55로 deploy.yml을 semver 자체-deploy로 통일.
+- dev→main 재충돌을 막기 위해 dev 인프라를 main 정본과 **1:1 일치**시킴.
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `Dockerfile` | main 정본으로 교체 — `--dart-define=API_BASE_URL/APP_ENV`(동일 오리진), `--chown=nginx:nginx`, 루트 `nginx.conf` 참조 |
+| `nginx.conf` (신규, 루트) | main 정본. 기존 `nginx/default.conf`(하위폴더)는 **삭제** |
+| `.github/workflows/deploy.yml` | main #55 정본(semver 통일 주석 반영)과 동일화 |
+| `.dockerignore` | main 정본으로 정합 |
+
+### 근거
+- 배포 모델은 **semver로 통일**(2026-06-11 결정) — gitops `apps/frontend` 1.0.0 semver 핀과 정합. shared SHA caller 미사용.
+- main의 Dockerfile이 dart-define 동일오리진 빌드를 지원해 더 우수 → 이를 정본으로 채택, dev의 단순본은 폐기.
+
+---
+
 ## 2026-06-11 — 컨테이너 이미지 파이프라인 신설 (이슈 #52)
 
 ### 배경 / 이전 상태

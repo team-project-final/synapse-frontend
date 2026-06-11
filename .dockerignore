@@ -1,16 +1,12 @@
-# Flutter/Dart 빌드 산출물 및 캐시 — 빌드 컨텍스트에서 제외
-build/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-
-# VCS / IDE / OS
-.git/
-.github/
-.idea/
-.vscode/
+.git
+.github
+.dart_tool
+build
+ios
+android
+.idea
+.vscode
 *.iml
-.DS_Store
-
-# 문서 — 이미지 빌드에 불필요
-docs/
+.omc
+test
+coverage

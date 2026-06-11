@@ -1,25 +1,25 @@
 # syntax=docker/dockerfile:1
 
-# ---- Build: Flutter web ----
-# CI(ci-flutter.yml)와 동일하게 stable 채널 사용. cirruslabs 이미지는 Flutter SDK 사전설치본.
+# --- Stage 1: Flutter web 빌드 ---
+# 태그는 pubspec sdk(>=3.11.0)를 만족하는 stable 사용. 재현성 위해 후속에 버전 핀 권장.
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 WORKDIR /app
 
-# 의존성 레이어 캐시: pubspec만 먼저 복사해 소스 변경 시 pub get 재실행 회피
+# 의존성 캐시 레이어 (소스 변경과 분리)
 COPY pubspec.yaml pubspec.lock ./
 RUN flutter pub get
 
-# 소스 복사 후 web 릴리스 빌드 → build/web 생성
+# 소스 복사 후 웹 빌드. API_BASE_URL 빈 값 = 동일 오리진 상대경로.
 COPY . .
-RUN flutter build web --release
+ARG API_BASE_URL=""
+ARG APP_ENV="prod"
+RUN flutter build web --release \
+      --dart-define=API_BASE_URL=${API_BASE_URL} \
+      --dart-define=APP_ENV=${APP_ENV}
 
-# ---- Runtime: nginx-unprivileged ----
-# gitops apps/frontend/base/deployment.yaml 계약과 정합:
-#   - containerPort 8080 · runAsUser/Group 101 · readOnlyRootFilesystem
-#   - /healthz 프로브 (startup/liveness/readiness)
-# nginx-unprivileged는 uid 101로 8080을 listen하고 pid를 /tmp/nginx.pid에 쓴다
-# (deployment.yaml이 /tmp·/var/cache/nginx를 emptyDir로 제공하므로 RO 루트와 호환).
+# --- Stage 2: nginx 정적 서빙 (non-root) ---
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/build/web /usr/share/nginx/html
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build --chown=nginx:nginx /app/build/web /usr/share/nginx/html
 EXPOSE 8080
+# 베이스 이미지 기본 entrypoint(nginx) 사용 — uid 101, listen 8080.

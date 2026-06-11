@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/home_board_section.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/planner_section.dart';
 
@@ -243,106 +244,122 @@ class DashboardStatsScreen extends ConsumerStatefulWidget {
 class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   String _period = '주간';
 
-  // TODO: 팀원 구현 — learning-svc 학습 통계 데이터 연동
-  static const _kRetentionData = [0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
-  static const _kAccuracyByDay = [0.80, 0.75, 0.90, 0.85, 0.70, 0.88, 0.82];
-  static const _kStudyTimeHours = [1.5, 2.0, 1.0, 2.5, 1.8, 3.0, 2.2];
-  static const _kDayLabels = ['월', '화', '수', '목', '금', '토', '일'];
+  // 기억 유지율 차트는 /stats/retention 연동 전까지 폴백
+  static const _kRetentionFallback = [0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
+  static const _kDayLabelsFallback = ['월', '화', '수', '목', '금', '토', '일'];
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final statsAsync = ref.watch(reviewStatsOverviewProvider);
+    final daily = statsAsync.asData?.value.daily ?? [];
+    final last7 = daily.length > 7 ? daily.sublist(daily.length - 7) : daily;
+
+    final hasData = last7.isNotEmpty;
+    final accuracyData = hasData
+        ? last7.map((d) => d.correctRate).toList()
+        : const <double>[0.80, 0.75, 0.90, 0.85, 0.70, 0.88, 0.82];
+    final reviewCountData = hasData
+        ? last7.map((d) => d.reviewCount.toDouble()).toList()
+        : const <double>[12, 18, 8, 22, 15, 25, 20];
+    final dayLabels = hasData
+        ? last7.map((d) => '${d.date.month}/${d.date.day}').toList()
+        : _kDayLabelsFallback;
+    final maxCount = reviewCountData.reduce((a, b) => a > b ? a : b);
+    final maxY = maxCount < 10 ? 10.0 : (maxCount * 1.25).ceilToDouble();
 
     return Scaffold(
       appBar: AppBar(title: const Text('학습 통계 상세')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          // ── Period filter ──
-          Center(
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: '주간', label: Text('주간')),
-                ButtonSegment(value: '월간', label: Text('월간')),
-                ButtonSegment(value: '전체', label: Text('전체')),
+      body: statsAsync.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                // ── Period filter ──
+                Center(
+                  child: SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(value: '주간', label: Text('주간')),
+                      ButtonSegment(value: '월간', label: Text('월간')),
+                      ButtonSegment(value: '전체', label: Text('전체')),
+                    ],
+                    selected: {_period},
+                    onSelectionChanged: (selected) {
+                      setState(() => _period = selected.first);
+                    },
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Retention curve (TODO: /stats/retention 연동 예정) ──
+                Text('기억 유지율', style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: SizedBox(
+                      height: 180,
+                      child: CustomPaint(
+                        size: Size.infinite,
+                        painter: _LineChartPainter(
+                          values: _kRetentionFallback,
+                          labels: _kDayLabelsFallback,
+                          color: AppColors.primaryAmber,
+                          maxY: 1.0,
+                          formatY: (v) => '${(v * 100).toInt()}%',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Accuracy by day (실데이터) ──
+                Text('일별 정답률', style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: SizedBox(
+                      height: 180,
+                      child: CustomPaint(
+                        size: Size.infinite,
+                        painter: _BarChartPainter(
+                          values: accuracyData,
+                          labels: dayLabels,
+                          color: AppColors.success,
+                          maxY: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Daily review count (실데이터) ──
+                Text('일별 복습 수', style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.md),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: SizedBox(
+                      height: 180,
+                      child: CustomPaint(
+                        size: Size.infinite,
+                        painter: _LineChartPainter(
+                          values: reviewCountData,
+                          labels: dayLabels,
+                          color: AppColors.info,
+                          maxY: maxY,
+                          formatY: (v) => '${v.toInt()}',
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
               ],
-              selected: {_period},
-              onSelectionChanged: (selected) {
-                setState(() => _period = selected.first);
-              },
             ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ── Retention curve ──
-          Text('기억 유지율', style: textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: SizedBox(
-                height: 180,
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: _LineChartPainter(
-                    values: _kRetentionData,
-                    labels: _kDayLabels,
-                    color: AppColors.primaryAmber,
-                    maxY: 1.0,
-                    formatY: (v) => '${(v * 100).toInt()}%',
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ── Accuracy by day ──
-          Text('요일별 정확도', style: textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: SizedBox(
-                height: 180,
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: _BarChartPainter(
-                    values: _kAccuracyByDay,
-                    labels: _kDayLabels,
-                    color: AppColors.success,
-                    maxY: 1.0,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // ── Study time ──
-          Text('일별 학습 시간', style: textTheme.titleMedium),
-          const SizedBox(height: AppSpacing.md),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: SizedBox(
-                height: 180,
-                child: CustomPaint(
-                  size: Size.infinite,
-                  painter: _LineChartPainter(
-                    values: _kStudyTimeHours,
-                    labels: _kDayLabels,
-                    color: AppColors.info,
-                    maxY: 4.0,
-                    formatY: (v) => '${v.toStringAsFixed(1)}h',
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-        ],
-      ),
     );
   }
 }

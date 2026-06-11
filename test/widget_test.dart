@@ -32,16 +32,16 @@ void main() {
     expect(find.text('로그인'), findsWidgets);
   });
 
-  testWidgets('dev login bypass reaches dashboard through app router', (
+  // ⚠ 로그인 버튼은 개발용 바이패스 적용 중 — 입력 없이 눌러도 대시보드로 진입한다.
+  // (성공 인트로 애니메이션 후 라우터가 대시보드로 이동.)
+  testWidgets('login bypass reaches dashboard through app router', (
     tester,
   ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
-          authRepositoryPortProvider.overrideWith(
-            (ref) => ref.watch(authRepositoryProvider),
-          ),
+          authRepositoryPortProvider.overrideWithValue(_StubLoginRepository()),
         ],
         child: const SynapseApp(),
       ),
@@ -166,4 +166,34 @@ class _DelayedTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async {}
+}
+
+class _StubLoginRepository implements AuthRepositoryPort {
+  @override
+  Future<AuthTokens?> restoreSession() async => null;
+
+  @override
+  Future<AuthTokens> completeOAuthLogin({required String accessToken}) async {
+    return AuthTokens(accessToken: accessToken);
+  }
+
+  @override
+  Future<AuthTokens> login({
+    required String email,
+    required String password,
+  }) async {
+    return const AuthTokens(accessToken: 'stub-access');
+  }
+
+  @override
+  Future<void> signup({
+    required String email,
+    required String password,
+  }) async {}
+
+  @override
+  void loginWithOAuth(String provider) {}
+
+  @override
+  Future<void> logout() async {}
 }

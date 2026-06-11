@@ -236,33 +236,46 @@ class DashboardStatsScreen extends ConsumerStatefulWidget {
 class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   String _period = '주간';
 
-  // 기억 유지율 차트는 /stats/retention 연동 전까지 폴백
-  static const _kRetentionFallback = [0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
   static const _kDayLabelsFallback = ['월', '화', '수', '목', '금', '토', '일'];
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
+    // ── overview (정확도 + 복습 수) ──
     final statsAsync = ref.watch(reviewStatsOverviewProvider);
     final daily = statsAsync.asData?.value.daily ?? [];
     final last7 = daily.length > 7 ? daily.sublist(daily.length - 7) : daily;
-
-    final hasData = last7.isNotEmpty;
-    final accuracyData = hasData
+    final hasOverview = last7.isNotEmpty;
+    final accuracyData = hasOverview
         ? last7.map((d) => d.correctRate).toList()
         : const <double>[0.80, 0.75, 0.90, 0.85, 0.70, 0.88, 0.82];
-    final reviewCountData = hasData
+    final reviewCountData = hasOverview
         ? last7.map((d) => d.reviewCount.toDouble()).toList()
         : const <double>[12, 18, 8, 22, 15, 25, 20];
-    final dayLabels = hasData
+    final dayLabels = hasOverview
         ? last7.map((d) => '${d.date.month}/${d.date.day}').toList()
         : _kDayLabelsFallback;
     final maxCount = reviewCountData.reduce((a, b) => a > b ? a : b);
     final maxY = maxCount < 10 ? 10.0 : (maxCount * 1.25).ceilToDouble();
 
+    // ── retention ──
+    final retentionAsync = ref.watch(reviewStatsRetentionProvider);
+    final retentionPoints = retentionAsync.asData?.value.points ?? [];
+    // 백엔드: index 0 = 오늘, 29 = 29일전 → 오래된 것부터 정렬 후 마지막 7개
+    final sorted = retentionPoints.reversed.toList();
+    final last7Ret = sorted.length > 7 ? sorted.sublist(sorted.length - 7) : sorted;
+    final hasRetention = last7Ret.isNotEmpty;
+    final retentionData = hasRetention
+        ? last7Ret.map((p) => p.retentionRate / 100.0).toList()
+        : const <double>[0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
+    final retentionLabels = hasRetention
+        ? last7Ret.map((p) => '${p.date.month}/${p.date.day}').toList()
+        : _kDayLabelsFallback;
+
     return Scaffold(
       appBar: AppBar(title: const Text('학습 통계 상세')),
-      body: statsAsync.isLoading
+      body: (statsAsync.isLoading || retentionAsync.isLoading)
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -283,7 +296,7 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // ── Retention curve (TODO: /stats/retention 연동 예정) ──
+                // ── Retention curve (실데이터) ──
                 Text('기억 유지율', style: textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.md),
                 Card(
@@ -294,8 +307,8 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
                       child: CustomPaint(
                         size: Size.infinite,
                         painter: _LineChartPainter(
-                          values: _kRetentionFallback,
-                          labels: _kDayLabelsFallback,
+                          values: retentionData,
+                          labels: retentionLabels,
                           color: AppColors.primaryAmber,
                           maxY: 1.0,
                           formatY: (v) => '${(v * 100).toInt()}%',

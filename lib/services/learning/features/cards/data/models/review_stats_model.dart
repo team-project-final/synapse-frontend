@@ -1,5 +1,51 @@
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 
+class RetentionPointModel {
+  const RetentionPointModel({
+    required this.date,
+    required this.daysAgo,
+    required this.reviewCount,
+    required this.retentionRate,
+  });
+
+  factory RetentionPointModel.fromJson(Map<String, dynamic> json) {
+    return RetentionPointModel(
+      date: DateTime.tryParse(json['date']?.toString() ?? '') ?? DateTime.now(),
+      daysAgo: (json['daysAgo'] as num?)?.toInt() ?? 0,
+      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      retentionRate: (json['retentionRate'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  final DateTime date;
+  final int daysAgo;
+  final int reviewCount;
+  final double retentionRate;
+
+  RetentionPoint toEntity() => RetentionPoint(
+        date: date,
+        daysAgo: daysAgo,
+        reviewCount: reviewCount,
+        retentionRate: retentionRate,
+      );
+}
+
+class ReviewRetentionModel {
+  const ReviewRetentionModel({required this.points});
+
+  factory ReviewRetentionModel.fromJson(Map<String, dynamic> json) {
+    final list = (json['points'] as List<dynamic>? ?? [])
+        .map((e) => RetentionPointModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return ReviewRetentionModel(points: list);
+  }
+
+  final List<RetentionPointModel> points;
+
+  ReviewRetention toEntity() =>
+      ReviewRetention(points: points.map((e) => e.toEntity()).toList());
+}
+
 class WeeklyHeatmapEntryModel {
   const WeeklyHeatmapEntryModel({
     required this.weekStart,

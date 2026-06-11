@@ -27,4 +27,5 @@ abstract interface class CardsRepository {
 
   Future<ReviewStats> getStatsOverview();
   Future<ReviewHeatmap> getStatsHeatmap();
+  Future<ReviewRetention> getStatsRetention();
 }

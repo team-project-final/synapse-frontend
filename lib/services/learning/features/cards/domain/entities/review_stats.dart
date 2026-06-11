@@ -1,3 +1,22 @@
+class RetentionPoint {
+  const RetentionPoint({
+    required this.date,
+    required this.daysAgo,
+    required this.reviewCount,
+    required this.retentionRate,
+  });
+
+  final DateTime date;
+  final int daysAgo;
+  final int reviewCount;
+  final double retentionRate; // 0–100
+}
+
+class ReviewRetention {
+  const ReviewRetention({required this.points});
+  final List<RetentionPoint> points;
+}
+
 class WeeklyHeatmapEntry {
   const WeeklyHeatmapEntry({
     required this.weekStart,

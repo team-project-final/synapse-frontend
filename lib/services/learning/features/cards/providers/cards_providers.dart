@@ -271,3 +271,9 @@ final reviewStatsOverviewProvider = FutureProvider<ReviewStats>((ref) async {
 final reviewStatsHeatmapProvider = FutureProvider<ReviewHeatmap>((ref) async {
   return ref.read(_cardsRepositoryProvider).getStatsHeatmap();
 });
+
+// ── 기억 유지율 (DashboardStatsScreen 기억 유지율 차트) ──
+
+final reviewStatsRetentionProvider = FutureProvider<ReviewRetention>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsRetention();
+});

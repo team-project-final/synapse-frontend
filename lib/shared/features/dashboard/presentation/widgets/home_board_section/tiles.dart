@@ -310,37 +310,46 @@ class _SuggestContent extends StatelessWidget {
 
 // ── 타일 content: 이번 주 인사이트 (_InsightStat 3개) ────────────────────────
 
-class _InsightContent extends StatelessWidget {
+class _InsightContent extends ConsumerWidget {
   const _InsightContent({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(reviewStatsOverviewProvider);
+    final stats = statsAsync.asData?.value;
+
+    final totalReviews = stats?.totalReviews ?? _kWeeklyReviews;
+    final accuracy = stats != null
+        ? (stats.overallCorrectRate * 100).round()
+        : _kWeeklyAccuracy;
+    final xp = stats != null ? stats.totalReviews * 5 : _kWeeklyXp;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const Row(
+        Row(
           children: <Widget>[
             Expanded(
               child: _InsightStat(
-                value: '$_kWeeklyReviews',
+                value: '$totalReviews',
                 label: '복습',
                 color: AppColors.text,
               ),
             ),
-            SizedBox(width: AppSpacing.sm + 2),
+            const SizedBox(width: AppSpacing.sm + 2),
             Expanded(
               child: _InsightStat(
-                value: '$_kWeeklyAccuracy%',
+                value: '$accuracy%',
                 label: '정답률',
                 color: AppColors.success,
               ),
             ),
-            SizedBox(width: AppSpacing.sm + 2),
+            const SizedBox(width: AppSpacing.sm + 2),
             Expanded(
               child: _InsightStat(
-                value: '+$_kWeeklyXp',
+                value: '+$xp',
                 label: 'XP',
                 color: AppColors.primary,
               ),
@@ -416,14 +425,20 @@ class _InsightStat extends StatelessWidget {
 
 // ── 타일 content: 스트릭 ──────────────────────────────────────────────────────
 
-class _StreakContent extends StatelessWidget {
+class _StreakContent extends ConsumerWidget {
   const _StreakContent({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final statsAsync = ref.watch(reviewStatsOverviewProvider);
+    final stats = statsAsync.asData?.value;
+
+    final streak = stats?.currentStreak ?? _kStreakDays;
+    final best = stats?.longestStreak ?? _kStreakBest;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -431,7 +446,7 @@ class _StreakContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            '$_kStreakDays일',
+            '$streak일',
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -440,7 +455,7 @@ class _StreakContent extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            '최고 $_kStreakBest일',
+            '최고 $best일',
             style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
           ),
         ],

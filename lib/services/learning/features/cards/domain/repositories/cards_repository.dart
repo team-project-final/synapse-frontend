@@ -2,6 +2,7 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/entitie
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_session.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_submit_result.dart';
 
 abstract interface class CardsRepository {
@@ -23,4 +24,6 @@ abstract interface class CardsRepository {
 
   Future<List<FlashCard>> getSharedDeckCards(String deckId, {required String sharedContentId, required String shareToken});
   Future<void> copyFromShare(String deckId, {required String sharedContentId, required String shareToken});
+
+  Future<ReviewStats> getStatsOverview();
 }

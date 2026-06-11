@@ -1,0 +1,27 @@
+class DailyStat {
+  const DailyStat({
+    required this.date,
+    required this.reviewCount,
+    required this.correctRate,
+  });
+
+  final DateTime date;
+  final int reviewCount;
+  final double correctRate;
+}
+
+class ReviewStats {
+  const ReviewStats({
+    required this.daily,
+    required this.totalReviews,
+    required this.overallCorrectRate,
+    required this.currentStreak,
+    required this.longestStreak,
+  });
+
+  final List<DailyStat> daily;
+  final int totalReviews;
+  final double overallCorrectRate;
+  final int currentStreak;
+  final int longestStreak;
+}

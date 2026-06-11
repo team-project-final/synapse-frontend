@@ -6,6 +6,7 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/entitie
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_session.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_submit_result.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/repositories/cards_repository.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/batch_create_cards_usecase.dart';
@@ -257,4 +258,10 @@ final sharedDeckCardsProvider = FutureProvider.family<List<FlashCard>, SharedDec
     sharedContentId: params.sharedContentId,
     shareToken: params.shareToken,
   );
+});
+
+// ── 복습 통계 개요 (대시보드 타일 + DashboardStatsScreen) ──
+
+final reviewStatsOverviewProvider = FutureProvider<ReviewStats>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsOverview();
 });

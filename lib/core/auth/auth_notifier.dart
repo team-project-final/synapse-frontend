@@ -58,7 +58,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (_) {
       state = const AuthState(
         status: AuthStatus.unauthenticated,
-        errorMessage: 'Login failed.',
+        errorMessage: '로그인에 실패했습니다.',
       );
     }
   }
@@ -67,10 +67,12 @@ class AuthNotifier extends Notifier<AuthState> {
     ref.read(authRepositoryPortProvider).loginWithOAuth(provider);
   }
 
+  /// 개발용 로그인 바이패스. 실제 인증 없이 인증 상태로 진입한다.
+  /// 진짜 JWT가 아니라 토큰의 roles를 디코드할 수 없으므로, 개발 편의를 위해
+  /// ROLE_ADMIN을 부여해 admin 화면까지 둘러볼 수 있게 한다.
+  /// ⚠ 토큰이 가짜라 실제 보호 API 호출은 401이 난다(화면 탐색용).
+  /// 실 로그인 복구는 login_screen._submit의 안내 참고.
   void bypassLoginForDevelopment() {
-    // 개발용 바이패스는 진짜 JWT가 아니라 roles를 디코드할 수 없으므로,
-    // 개발 편의를 위해 ROLE_ADMIN을 부여해 admin 화면까지 확인 가능하게 한다.
-    // (실제 인증 활성화 시에는 토큰의 진짜 roles가 사용된다.)
     state = const AuthState(
       status: AuthStatus.authenticated,
       accessToken: 'dev-bypass-token',
@@ -96,7 +98,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (_) {
       state = const AuthState(
         status: AuthStatus.unauthenticated,
-        errorMessage: 'Signup failed.',
+        errorMessage: '회원가입에 실패했습니다.',
       );
     }
   }

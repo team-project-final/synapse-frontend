@@ -199,7 +199,11 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                           : StepState.indexed,
                       content: Form(
                         key: _emailFormKey,
-                        child: TextFormField(
+                        // Stepper 내용 상단 여백이 좁아 OutlineInputBorder의
+                        // 떠 있는 라벨이 잘리므로 약간의 top 여백을 준다.
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
+                          child: TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: '이메일',
@@ -217,6 +221,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                             }
                             return null;
                           },
+                          ),
                         ),
                       ),
                     ),
@@ -228,7 +233,9 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                           : StepState.indexed,
                       content: Form(
                         key: _codeFormKey,
-                        child: TextFormField(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.sm),
+                          child: TextFormField(
                           controller: _codeController,
                           decoration: const InputDecoration(
                             labelText: '인증 코드 (6자리)',
@@ -244,6 +251,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                             }
                             return null;
                           },
+                          ),
                         ),
                       ),
                     ),
@@ -254,6 +262,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                         key: _passwordFormKey,
                         child: Column(
                           children: [
+                            const SizedBox(height: AppSpacing.sm),
                             TextFormField(
                               controller: _newPasswordController,
                               decoration: InputDecoration(

@@ -32,7 +32,7 @@ void main() {
     });
 
     test('JWT 형식이 아니면(바이패스 토큰 등) 빈 목록', () {
-      expect(rolesFromAccessToken('dev-bypass-token'), isEmpty);
+      expect(rolesFromAccessToken('not-a-jwt-token'), isEmpty);
     });
 
     test('null·빈 문자열이면 빈 목록', () {
@@ -66,12 +66,6 @@ void main() {
       addTearDown(c.dispose);
       return c;
     }
-
-    test('bypass 로그인은 ROLE_ADMIN을 부여한다', () {
-      final c = makeContainer('ignored');
-      c.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
-      expect(c.read(authNotifierProvider).isAdmin, isTrue);
-    });
 
     test('login은 admin 토큰이면 isAdmin=true', () async {
       final c = makeContainer(

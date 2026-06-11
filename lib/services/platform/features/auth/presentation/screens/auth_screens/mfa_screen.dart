@@ -24,6 +24,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
 
   bool _isVerifying = false;
   bool _useBackupCode = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -51,22 +52,49 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     }
   }
 
-  void _verifyCode() {
-    // TODO: 개발 초기 임시 처리 - 실제 인증 재활성화 시 platformAuthApiProvider의
-    // verifyMfa(TOTP) / verifyMfaBackupCode(백업 코드) 호출 복구.
-    setState(() => _isVerifying = true);
-    Future<void>.delayed(const Duration(seconds: 1)).then((_) {
-      if (!mounted) return;
-      setState(() => _isVerifying = false);
-      // 검증 성공(목업) → 인증 완료 처리 후 대시보드로 이동.
-      ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
-      context.go(AppRoutes.dashboard);
+  Future<void> _verifyCode() async {
+    setState(() {
+      _isVerifying = true;
+      _error = null;
     });
+    try {
+      final api = ref.read(platformAuthApiProvider);
+      final verified = _useBackupCode
+          ? await api.verifyMfaBackupCode(_backupCodeController.text.trim())
+          : await api.verifyMfa(_code);
+      if (!mounted) return;
+      if (verified) {
+        context.go(AppRoutes.dashboard);
+        return;
+      }
+      _failVerification();
+    } catch (_) {
+      if (!mounted) return;
+      _failVerification();
+    }
+  }
+
+  // 백엔드는 코드 불일치 시 400(PLAT-003)으로 응답하므로 실패 사유를 구분하지 않는다.
+  void _failVerification() {
+    setState(() {
+      _isVerifying = false;
+      _error = _useBackupCode
+          ? '백업 코드가 올바르지 않습니다. 다시 확인해주세요.'
+          : '인증 코드가 올바르지 않습니다. 다시 확인해주세요.';
+      _backupCodeController.clear();
+      for (final c in _controllers) {
+        c.clear();
+      }
+    });
+    if (!_useBackupCode) {
+      _focusNodes.first.requestFocus();
+    }
   }
 
   void _toggleBackupCode() {
     setState(() {
       _useBackupCode = !_useBackupCode;
+      _error = null;
       _backupCodeController.clear();
       for (final c in _controllers) {
         c.clear();
@@ -157,6 +185,16 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                             }
                           },
                     child: const Text('확인'),
+                  ),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    _error!,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.error,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
                 const SizedBox(height: AppSpacing.lg),

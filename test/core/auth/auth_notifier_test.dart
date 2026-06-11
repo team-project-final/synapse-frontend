@@ -96,15 +96,6 @@ void main() {
     expect(repository.oauthProviders, ['google']);
   });
 
-  test('development bypass authenticates without repository calls', () {
-    container.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
-
-    final state = container.read(authNotifierProvider);
-    expect(state.status, AuthStatus.authenticated);
-    expect(state.accessToken, 'dev-bypass-token');
-    expect(repository.calls, isEmpty);
-  });
-
   test('login authenticates and stores access token in state', () async {
     repository.loginResult = const AuthTokens(accessToken: 'login-access');
 

@@ -4,6 +4,7 @@ import 'package:synapse_frontend/services/learning/features/cards/data/models/fl
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_card_model.dart';
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_session_model.dart';
 import 'package:synapse_frontend/services/learning/features/cards/data/models/review_submit_result_model.dart';
+import 'package:synapse_frontend/services/learning/features/cards/data/models/review_stats_model.dart';
 import 'package:synapse_frontend/services/learning/features/cards/data/models/shared_deck_detail_model.dart';
 
 class CardsRemoteDatasource {
@@ -123,6 +124,21 @@ class CardsRemoteDatasource {
       '/reviews/sessions/$sessionId/complete',
     );
     return ReviewSessionModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
+  Future<ReviewStatsModel> getStatsOverview() async {
+    final response = await _dio.get<Map<String, dynamic>>('/stats/overview');
+    return ReviewStatsModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
+  Future<ReviewHeatmapModel> getStatsHeatmap() async {
+    final response = await _dio.get<Map<String, dynamic>>('/stats/heatmap');
+    return ReviewHeatmapModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
+  Future<ReviewRetentionModel> getStatsRetention() async {
+    final response = await _dio.get<Map<String, dynamic>>('/stats/retention');
+    return ReviewRetentionModel.fromJson(_unwrap(response) as Map<String, dynamic>);
   }
 
   Future<SharedDeckDetailModel> getSharedDeckDetail(

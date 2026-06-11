@@ -6,6 +6,7 @@ import 'package:synapse_frontend/services/platform/features/admin/domain/reposit
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/admin_settings_usecases.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/get_admin_analytics_summary_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_tenants_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/list_admin_users_usecase.dart';
@@ -51,4 +52,15 @@ final listAuditLogsUseCaseProvider = Provider<ListAuditLogsUseCase>((ref) {
 final getAdminAnalyticsSummaryUseCaseProvider =
     Provider<GetAdminAnalyticsSummaryUseCase>((ref) {
   return GetAdminAnalyticsSummaryUseCase(ref.watch(_adminRepositoryProvider));
+});
+
+final getAdminSettingsUseCaseProvider = Provider<GetAdminSettingsUseCase>((
+  ref,
+) {
+  return GetAdminSettingsUseCase(ref.watch(_adminRepositoryProvider));
+});
+
+final updateAdminSettingsUseCaseProvider =
+    Provider<UpdateAdminSettingsUseCase>((ref) {
+  return UpdateAdminSettingsUseCase(ref.watch(_adminRepositoryProvider));
 });

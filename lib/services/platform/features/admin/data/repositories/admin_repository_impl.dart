@@ -1,6 +1,7 @@
 import 'package:synapse_frontend/services/platform/features/admin/data/datasources/admin_remote_datasource.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_user.dart';
@@ -80,6 +81,18 @@ class AdminRepositoryImpl implements AdminRepository {
   @override
   Future<AdminAnalyticsSummary> getAnalyticsSummary() async {
     final model = await _datasource.getAnalyticsSummary();
+    return model.toEntity();
+  }
+
+  @override
+  Future<AdminSettings> getSettings() async {
+    final model = await _datasource.getSettings();
+    return model.toEntity();
+  }
+
+  @override
+  Future<AdminSettings> updateSettings(AdminSettingsUpdate update) async {
+    final model = await _datasource.updateSettings(update);
     return model.toEntity();
   }
 }

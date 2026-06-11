@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/datasources/admin_remote_datasource.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 
 void main() {
   test('listUsers는 검색/상태 쿼리를 전달하고 페이지 응답을 파싱한다', () async {
@@ -245,6 +246,93 @@ void main() {
     );
     expect(summary.recentActivities.single.action, 'USER_REGISTERED');
     expect(summary.recentActivities.single.createdAt, isNotNull);
+  });
+
+  test('getSettings는 설정 응답을 엔티티로 파싱한다(null=무제한)', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/admin/settings');
+        expect(options.method, 'GET');
+        return _jsonResponse({
+          'planQuotas': [
+            {
+              'planCode': 'free',
+              'displayName': 'Free',
+              'maxNotes': 100,
+              'maxCards': 1000,
+              'maxStorageBytes': 1073741824,
+              'maxAiTokensMonthly': 1000,
+              'maxAiCardGenerationsMonthly': 20,
+              'maxUsersPerTenant': 5,
+            },
+            {
+              'planCode': 'enterprise',
+              'displayName': 'Enterprise',
+              'maxNotes': null,
+              'maxCards': null,
+              'maxStorageBytes': null,
+              'maxAiTokensMonthly': null,
+              'maxAiCardGenerationsMonthly': null,
+              'maxUsersPerTenant': null,
+            },
+          ],
+          'featureFlags': [
+            {'key': 'ai.card.generation', 'label': 'AI 카드 생성', 'enabled': true},
+            {'key': 'social.login.github', 'label': 'GitHub 로그인', 'enabled': false},
+          ],
+          'rateLimit': {'apiRequestsPerMinute': 100},
+          'updatedAt': '2026-06-10T12:00:00Z',
+        });
+      });
+
+    final settings = (await AdminRemoteDatasource(dio).getSettings()).toEntity();
+
+    expect(settings.planQuotas, hasLength(2));
+    expect(settings.planQuotas.first.maxStorageBytes, 1073741824);
+    expect(settings.planQuotas.last.maxNotes, isNull);
+    expect(settings.featureFlags.first.enabled, isTrue);
+    expect(settings.featureFlags.last.enabled, isFalse);
+    expect(settings.rateLimitPerMinute, 100);
+    expect(settings.updatedAt, isNotNull);
+  });
+
+  test('updateSettings는 플래그와 레이트리밋만 PUT 페이로드로 보낸다', () async {
+    late Map<String, dynamic> sentBody;
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/admin/settings');
+        expect(options.method, 'PUT');
+        sentBody = options.data as Map<String, dynamic>;
+        return _jsonResponse({
+          'planQuotas': const [],
+          'featureFlags': [
+            {'key': 'ai.card.generation', 'label': 'AI 카드 생성', 'enabled': false},
+          ],
+          'rateLimit': {'apiRequestsPerMinute': 200},
+          'updatedAt': '2026-06-10T13:00:00Z',
+        });
+      });
+
+    final saved = await AdminRemoteDatasource(dio).updateSettings(
+      const AdminSettingsUpdate(
+        featureFlags: [
+          AdminFeatureFlag(
+            key: 'ai.card.generation',
+            label: 'AI 카드 생성',
+            enabled: false,
+          ),
+        ],
+        rateLimitPerMinute: 200,
+      ),
+    );
+
+    expect(sentBody, {
+      'featureFlags': [
+        {'key': 'ai.card.generation', 'enabled': false},
+      ],
+      'rateLimit': {'apiRequestsPerMinute': 200},
+    });
+    expect(saved.toEntity().rateLimitPerMinute, 200);
   });
 }
 

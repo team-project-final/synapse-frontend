@@ -131,6 +131,11 @@ class CardsRemoteDatasource {
     return ReviewStatsModel.fromJson(_unwrap(response) as Map<String, dynamic>);
   }
 
+  Future<ReviewHeatmapModel> getStatsHeatmap() async {
+    final response = await _dio.get<Map<String, dynamic>>('/stats/heatmap');
+    return ReviewHeatmapModel.fromJson(_unwrap(response) as Map<String, dynamic>);
+  }
+
   Future<SharedDeckDetailModel> getSharedDeckDetail(
     String deckId, {
     required String sharedContentId,

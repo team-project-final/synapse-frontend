@@ -265,3 +265,9 @@ final sharedDeckCardsProvider = FutureProvider.family<List<FlashCard>, SharedDec
 final reviewStatsOverviewProvider = FutureProvider<ReviewStats>((ref) async {
   return ref.read(_cardsRepositoryProvider).getStatsOverview();
 });
+
+// ── 복습 히트맵 (DashboardHeatmapScreen) ──
+
+final reviewStatsHeatmapProvider = FutureProvider<ReviewHeatmap>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsHeatmap();
+});

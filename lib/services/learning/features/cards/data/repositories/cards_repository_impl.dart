@@ -114,4 +114,10 @@ class CardsRepositoryImpl implements CardsRepository {
     final model = await _datasource.getStatsOverview();
     return model.toEntity();
   }
+
+  @override
+  Future<ReviewHeatmap> getStatsHeatmap() async {
+    final model = await _datasource.getStatsHeatmap();
+    return model.toEntity();
+  }
 }

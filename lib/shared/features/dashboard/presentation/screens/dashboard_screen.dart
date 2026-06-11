@@ -1,26 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/home_board_section.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/planner_section.dart';
-
-// ── Mock data ──────────────────────────────────────────────────────────────
-
-List<int> _generateHeatmapData(int days) {
-  final rng = math.Random(42);
-  return List.generate(days, (_) {
-    final roll = rng.nextDouble();
-    if (roll < 0.3) return 0;
-    if (roll < 0.55) return rng.nextInt(2) + 1;
-    if (roll < 0.8) return rng.nextInt(3) + 3;
-    if (roll < 0.95) return rng.nextInt(4) + 6;
-    return rng.nextInt(6) + 10;
-  });
-}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DASH-001  DashboardScreen
@@ -70,18 +55,9 @@ class _DashboardHeatmapScreenState
   static const double _cellSize = 14;
   static const double _gap = 3;
 
-  late final List<int> _data;
   String? _selectedInfo;
 
-  @override
-  void initState() {
-    super.initState();
-    // TODO: 팀원 구현 — learning-svc 학습 히트맵 데이터 연동
-    _data = _generateHeatmapData(_cols * _rows);
-  }
-
   Color _colorForCount(int count) {
-    // 컨셉 보라 스케일 (적음→많음)
     if (count == 0) return AppColors.surface2;
     if (count <= 2) return const Color(0xFFD8C6F5);
     if (count <= 5) return const Color(0xFFB388F0);
@@ -93,17 +69,31 @@ class _DashboardHeatmapScreenState
     final col = local.dx ~/ (_cellSize + _gap);
     final row = local.dy ~/ (_cellSize + _gap);
     if (col < 0 || col >= _cols || row < 0 || row >= _rows) return null;
-    final index = col * _rows + row;
-    if (index >= _data.length) return null;
-    return index;
+    return col * _rows + row;
   }
 
-  String _dateForIndex(int index) {
-    final today = DateTime.now();
-    const totalDays = _cols * _rows;
-    final daysAgo = totalDays - 1 - index;
-    final date = today.subtract(Duration(days: daysAgo));
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  // 12주 weekly 데이터를 52×7 그리드의 마지막 12컬럼에 매핑
+  List<int> _buildData(List<WeeklyHeatmapEntry> weekly) {
+    final data = List.filled(_cols * _rows, 0);
+    final recent = weekly.length > 12 ? weekly.sublist(weekly.length - 12) : weekly;
+    for (int wi = 0; wi < recent.length; wi++) {
+      final col = _cols - recent.length + wi;
+      final perDay = (recent[wi].reviewCount / 7).ceil();
+      for (int row = 0; row < _rows; row++) {
+        data[col * _rows + row] = perDay;
+      }
+    }
+    return data;
+  }
+
+  String _infoForCol(int col, List<WeeklyHeatmapEntry> weekly) {
+    final recent = weekly.length > 12 ? weekly.sublist(weekly.length - 12) : weekly;
+    final startCol = _cols - recent.length;
+    if (col < startCol || col - startCol >= recent.length) return '데이터 없음';
+    final entry = recent[col - startCol];
+    final d = entry.weekStart;
+    final ds = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    return '$ds 주 — ${entry.reviewCount}회 복습';
   }
 
   @override
@@ -112,72 +102,74 @@ class _DashboardHeatmapScreenState
     const gridWidth = _cols * (_cellSize + _gap) - _gap;
     const gridHeight = _rows * (_cellSize + _gap) - _gap;
 
+    final heatmapAsync = ref.watch(reviewStatsHeatmapProvider);
+    final weekly = heatmapAsync.asData?.value.weekly ?? [];
+    final data = _buildData(weekly);
+
     return Scaffold(
       appBar: AppBar(title: const Text('학습 히트맵')),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          if (_selectedInfo != null) ...[
-            Card(
-              color: AppColors.stone50,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Text(
-                  _selectedInfo!,
-                  style: textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: GestureDetector(
-              onTapDown: (details) {
-                final index = _hitTest(details.localPosition);
-                if (index != null) {
-                  setState(() {
-                    final date = _dateForIndex(index);
-                    final count = _data[index];
-                    _selectedInfo = '$date — $count회 학습';
-                  });
-                }
-              },
-              child: CustomPaint(
-                size: const Size(gridWidth, gridHeight),
-                painter: _HeatmapFullPainter(data: _data),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // ── Legend ──
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('적음', style: textTheme.bodySmall),
-              const SizedBox(width: AppSpacing.xs),
-              for (final count in [0, 1, 4, 7, 12])
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xxs,
+      body: heatmapAsync.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                if (_selectedInfo != null) ...[
+                  Card(
+                    color: AppColors.stone50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Text(
+                        _selectedInfo!,
+                        style: textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ),
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: _colorForCount(count),
-                      borderRadius: BorderRadius.circular(2),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: GestureDetector(
+                    onTapDown: (details) {
+                      final index = _hitTest(details.localPosition);
+                      if (index != null) {
+                        setState(() {
+                          _selectedInfo = _infoForCol(index ~/ _rows, weekly);
+                        });
+                      }
+                    },
+                    child: CustomPaint(
+                      size: const Size(gridWidth, gridHeight),
+                      painter: _HeatmapFullPainter(data: data),
                     ),
                   ),
                 ),
-              const SizedBox(width: AppSpacing.xs),
-              Text('많음', style: textTheme.bodySmall),
-            ],
-          ),
-        ],
-      ),
+                const SizedBox(height: AppSpacing.lg),
+
+                // ── Legend ──
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('적음', style: textTheme.bodySmall),
+                    const SizedBox(width: AppSpacing.xs),
+                    for (final count in [0, 1, 4, 7, 12])
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+                        child: Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: _colorForCount(count),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text('많음', style: textTheme.bodySmall),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }

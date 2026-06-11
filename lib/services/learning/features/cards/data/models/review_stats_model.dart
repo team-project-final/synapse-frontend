@@ -1,5 +1,47 @@
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 
+class WeeklyHeatmapEntryModel {
+  const WeeklyHeatmapEntryModel({
+    required this.weekStart,
+    required this.reviewCount,
+    required this.correctRate,
+  });
+
+  factory WeeklyHeatmapEntryModel.fromJson(Map<String, dynamic> json) {
+    return WeeklyHeatmapEntryModel(
+      weekStart: DateTime.tryParse(json['weekStart']?.toString() ?? '') ?? DateTime.now(),
+      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      correctRate: (json['correctRate'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  final DateTime weekStart;
+  final int reviewCount;
+  final double correctRate;
+
+  WeeklyHeatmapEntry toEntity() => WeeklyHeatmapEntry(
+        weekStart: weekStart,
+        reviewCount: reviewCount,
+        correctRate: correctRate,
+      );
+}
+
+class ReviewHeatmapModel {
+  const ReviewHeatmapModel({required this.weekly});
+
+  factory ReviewHeatmapModel.fromJson(Map<String, dynamic> json) {
+    final list = (json['weekly'] as List<dynamic>? ?? [])
+        .map((e) => WeeklyHeatmapEntryModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return ReviewHeatmapModel(weekly: list);
+  }
+
+  final List<WeeklyHeatmapEntryModel> weekly;
+
+  ReviewHeatmap toEntity() =>
+      ReviewHeatmap(weekly: weekly.map((e) => e.toEntity()).toList());
+}
+
 class DailyStatModel {
   const DailyStatModel({
     required this.date,

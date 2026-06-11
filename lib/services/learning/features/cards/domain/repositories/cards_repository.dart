@@ -26,4 +26,5 @@ abstract interface class CardsRepository {
   Future<void> copyFromShare(String deckId, {required String sharedContentId, required String shareToken});
 
   Future<ReviewStats> getStatsOverview();
+  Future<ReviewHeatmap> getStatsHeatmap();
 }

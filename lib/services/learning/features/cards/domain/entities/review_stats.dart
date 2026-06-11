@@ -1,3 +1,20 @@
+class WeeklyHeatmapEntry {
+  const WeeklyHeatmapEntry({
+    required this.weekStart,
+    required this.reviewCount,
+    required this.correctRate,
+  });
+
+  final DateTime weekStart;
+  final int reviewCount;
+  final double correctRate; // 0–100
+}
+
+class ReviewHeatmap {
+  const ReviewHeatmap({required this.weekly});
+  final List<WeeklyHeatmapEntry> weekly;
+}
+
 class DailyStat {
   const DailyStat({
     required this.date,

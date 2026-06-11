@@ -65,7 +65,7 @@ class _BoardTile extends StatelessWidget {
           onTap: () => _go(context, AppRoutes.dashboardStats),
         );
       case _BoardKind.streak:
-        return _StreakContent(onTap: () => _go(context, AppRoutes.dashboardStats));
+        return const _StreakContent();
       case _BoardKind.level:
         return _LevelContent(
           onTap: () => _go(context, AppRoutes.gamificationProfile),
@@ -426,9 +426,7 @@ class _InsightStat extends StatelessWidget {
 // ── 타일 content: 스트릭 ──────────────────────────────────────────────────────
 
 class _StreakContent extends ConsumerWidget {
-  const _StreakContent({required this.onTap});
-
-  final VoidCallback onTap;
+  const _StreakContent();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -439,10 +437,7 @@ class _StreakContent extends ConsumerWidget {
     final streak = stats?.currentStreak ?? _kStreakDays;
     final best = stats?.longestStreak ?? _kStreakBest;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
@@ -459,7 +454,6 @@ class _StreakContent extends ConsumerWidget {
             style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
           ),
         ],
-      ),
     );
   }
 }

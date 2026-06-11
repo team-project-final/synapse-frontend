@@ -1,5 +1,6 @@
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_data_request.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -34,4 +35,23 @@ abstract class AdminRepository {
   Future<AdminSettings> getSettings();
 
   Future<AdminSettings> updateSettings(AdminSettingsUpdate update);
+
+  Future<AdminPage<AdminDataRequest>> listDataRequests({
+    AdminDataRequestStatus? status,
+    String? query,
+    int page = 0,
+    int size = 20,
+  });
+
+  Future<AdminDataRequest> createDataRequest({
+    required String userId,
+    required AdminDataRequestType type,
+    String? reason,
+  });
+
+  Future<AdminDataRequest> applyDataRequestAction({
+    required String id,
+    required AdminDataRequestAction action,
+    String? reason,
+  });
 }

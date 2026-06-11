@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_data_request.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -201,6 +202,31 @@ class _FakeAdminRepository implements AdminRepository {
     String? userId,
     int page = 0,
     int size = 20,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminPage<AdminDataRequest>> listDataRequests({
+    AdminDataRequestStatus? status,
+    String? query,
+    int page = 0,
+    int size = 20,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminDataRequest> createDataRequest({
+    required String userId,
+    required AdminDataRequestType type,
+    String? reason,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminDataRequest> applyDataRequestAction({
+    required String id,
+    required AdminDataRequestAction action,
+    String? reason,
   }) =>
       throw UnimplementedError();
 }

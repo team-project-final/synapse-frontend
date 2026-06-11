@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_data_request.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -116,6 +117,32 @@ void main() {
     expect(find.text('USER_REGISTERED · USER · 5분 전'), findsOneWidget);
   });
 
+  testWidgets('ACTION_REQUIRED 상태의 pending 항목은 카운트를 표시한다', (tester) async {
+    final actionRequired = AdminAnalyticsSummary(
+      generatedAt: summary.generatedAt,
+      users: summary.users,
+      tenants: summary.tenants,
+      usage: summary.usage,
+      pendingItems: const [
+        AdminPendingItem(
+          key: 'data-requests',
+          label: 'GDPR 요청',
+          count: 3,
+          severity: 'INFO',
+          status: AdminMetricStatus.actionRequired,
+        ),
+      ],
+      recentActivities: summary.recentActivities,
+    );
+    await pumpDashboard(
+      tester,
+      _FakeAdminRepository(summary: actionRequired),
+    );
+
+    expect(find.text('3건'), findsOneWidget);
+    expect(find.text('준비 중'), findsNothing);
+  });
+
   testWidgets('shows error state with retry and recovers', (tester) async {
     final repository = _FakeAdminRepository(summary: summary, failOnce: true);
     await pumpDashboard(tester, repository);
@@ -182,5 +209,30 @@ class _FakeAdminRepository implements AdminRepository {
 
   @override
   Future<AdminSettings> updateSettings(AdminSettingsUpdate update) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminPage<AdminDataRequest>> listDataRequests({
+    AdminDataRequestStatus? status,
+    String? query,
+    int page = 0,
+    int size = 20,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminDataRequest> createDataRequest({
+    required String userId,
+    required AdminDataRequestType type,
+    String? reason,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AdminDataRequest> applyDataRequestAction({
+    required String id,
+    required AdminDataRequestAction action,
+    String? reason,
+  }) =>
       throw UnimplementedError();
 }

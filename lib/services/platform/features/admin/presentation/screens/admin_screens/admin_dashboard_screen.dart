@@ -164,8 +164,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           child: Column(
             children: summary.pendingItems.indexed.map((entry) {
               final item = entry.$2;
-              final hasCount =
-                  item.status == AdminMetricStatus.ok && item.count != null;
+              final hasCount = item.status.hasValue && item.count != null;
               return Column(
                 children: [
                   ListTile(

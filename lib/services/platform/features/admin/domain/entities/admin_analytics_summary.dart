@@ -56,19 +56,26 @@ class AdminTenantsSummary {
 }
 
 /// usage/pending 항목의 연결 상태. 백엔드가 타 서비스 정본 값은
-/// fake 대신 NOT_CONNECTED/NOT_IMPLEMENTED로 내려준다.
+/// fake 대신 NOT_CONNECTED/NOT_IMPLEMENTED로 내려주고,
+/// 미처리 건이 있는 항목은 ACTION_REQUIRED로 알린다.
 enum AdminMetricStatus {
   ok,
+  actionRequired,
   notConnected,
   notImplemented;
 
   static AdminMetricStatus parse(String? raw) {
     return switch (raw) {
       'OK' || 'INFO' => AdminMetricStatus.ok,
+      'ACTION_REQUIRED' => AdminMetricStatus.actionRequired,
       'NOT_IMPLEMENTED' => AdminMetricStatus.notImplemented,
       _ => AdminMetricStatus.notConnected,
     };
   }
+
+  /// 값(카운트)을 표시할 수 있는 상태인지.
+  bool get hasValue =>
+      this == AdminMetricStatus.ok || this == AdminMetricStatus.actionRequired;
 }
 
 class AdminUsageItem {

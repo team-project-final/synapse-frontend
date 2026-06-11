@@ -275,9 +275,7 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('학습 통계 상세')),
-      body: (statsAsync.isLoading || retentionAsync.isLoading)
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
+      body: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 // ── Period filter ──

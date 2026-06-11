@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_analytics_summary_model.dart';
+import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_settings_model.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_audit_log_model.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_page_model.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/models/admin_tenant_model.dart';
@@ -89,6 +91,25 @@ class AdminRemoteDatasource {
       '/api/v1/admin/analytics/summary',
     );
     return AdminAnalyticsSummaryModel.fromJson(
+      response.data ?? const <String, dynamic>{},
+    );
+  }
+
+  Future<AdminSettingsModel> getSettings() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/api/v1/admin/settings',
+    );
+    return AdminSettingsModel.fromJson(
+      response.data ?? const <String, dynamic>{},
+    );
+  }
+
+  Future<AdminSettingsModel> updateSettings(AdminSettingsUpdate update) async {
+    final response = await _dio.put<Map<String, dynamic>>(
+      '/api/v1/admin/settings',
+      data: adminSettingsUpdateToJson(update),
+    );
+    return AdminSettingsModel.fromJson(
       response.data ?? const <String, dynamic>{},
     );
   }

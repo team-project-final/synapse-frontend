@@ -239,3 +239,10 @@ class ReviewNotifier extends Notifier<ReviewState> {
 
 final reviewNotifierProvider =
     NotifierProvider<ReviewNotifier, ReviewState>(ReviewNotifier.new);
+
+// ── 오늘 복습 큐 카드 수 (ReviewStartScreen에서 사용) ──
+
+final reviewQueueCountProvider = FutureProvider.family<int, String>((ref, deckId) async {
+  final queue = await ref.read(getReviewQueueUseCaseProvider).call(deckId);
+  return queue.length;
+});

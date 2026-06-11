@@ -178,6 +178,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AiCardGenerationScreen(),
           ),
           GoRoute(
+            path: AppRoutes.reviewStart,
+            builder: (context, state) => const ReviewStartScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.review,
             builder: (context, state) => const ReviewScreen(),
           ),

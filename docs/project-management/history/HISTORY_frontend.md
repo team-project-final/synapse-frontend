@@ -185,5 +185,6 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-11 | (main) deploy.yml을 shared-caller(SHA) → semver 자체-deploy로 통일. gitops `apps/frontend` 1.0.0 semver 핀과 정합(ImagePullBackOff 근본 해소). Dockerfile/nginx.conf 보존. 이슈 #52. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-05-11 | W2/W3/W4 대시보드 및 로그 템플릿 추가 |
 | 2026-05-11 | 초기 템플릿 생성 |

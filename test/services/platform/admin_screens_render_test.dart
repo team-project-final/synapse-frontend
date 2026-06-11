@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_analytics_summary.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_audit_log.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_data_request.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_settings.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_page.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/entities/admin_tenant.dart';
@@ -11,6 +12,7 @@ import 'package:synapse_frontend/services/platform/features/admin/domain/entitie
 import 'package:synapse_frontend/services/platform/features/admin/domain/repositories/admin_repository.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_tenant_status_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/change_user_status_usecase.dart';
+import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/admin_data_request_usecases.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/admin_settings_usecases.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/delete_admin_user_usecase.dart';
 import 'package:synapse_frontend/services/platform/features/admin/domain/usecases/get_admin_analytics_summary_usecase.dart';
@@ -46,6 +48,12 @@ void main() {
               GetAdminSettingsUseCase(_FakeAdminRepository())),
           updateAdminSettingsUseCaseProvider.overrideWithValue(
               UpdateAdminSettingsUseCase(_FakeAdminRepository())),
+          listAdminDataRequestsUseCaseProvider.overrideWithValue(
+              ListAdminDataRequestsUseCase(_FakeAdminRepository())),
+          createAdminDataRequestUseCaseProvider.overrideWithValue(
+              CreateAdminDataRequestUseCase(_FakeAdminRepository())),
+          applyAdminDataRequestActionUseCaseProvider.overrideWithValue(
+              ApplyAdminDataRequestActionUseCase(_FakeAdminRepository())),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -263,5 +271,54 @@ class _FakeAdminRepository implements AdminRepository {
   @override
   Future<AdminSettings> updateSettings(AdminSettingsUpdate update) async {
     return getSettings();
+  }
+
+  @override
+  Future<AdminPage<AdminDataRequest>> listDataRequests({
+    AdminDataRequestStatus? status,
+    String? query,
+    int page = 0,
+    int size = 20,
+  }) async {
+    return AdminPage<AdminDataRequest>(
+      content: [
+        AdminDataRequest(
+          id: '55555555-5555-5555-5555-555555555555',
+          userId: '11111111-1111-1111-1111-111111111111',
+          userEmail: 'user@example.com',
+          userDisplayName: '사용자',
+          type: AdminDataRequestType.dataAccess,
+          typeLabel: '데이터 열람',
+          status: AdminDataRequestStatus.pending,
+          statusLabel: '대기',
+          receivedAt: DateTime.utc(2026, 6, 10),
+          dueAt: DateTime.utc(2026, 7, 10),
+          daysRemaining: 29,
+          executionLogs: const ['2026-06-10 접수'],
+        ),
+      ],
+      page: page,
+      size: size,
+      totalElements: 1,
+      totalPages: 1,
+    );
+  }
+
+  @override
+  Future<AdminDataRequest> createDataRequest({
+    required String userId,
+    required AdminDataRequestType type,
+    String? reason,
+  }) async {
+    return (await listDataRequests()).content.single;
+  }
+
+  @override
+  Future<AdminDataRequest> applyDataRequestAction({
+    required String id,
+    required AdminDataRequestAction action,
+    String? reason,
+  }) async {
+    return (await listDataRequests()).content.single;
   }
 }

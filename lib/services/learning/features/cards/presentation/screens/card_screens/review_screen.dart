@@ -132,13 +132,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '← 다시 · 보통 →',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                    ),
                   ],
                 ),
               ),

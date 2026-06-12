@@ -13,6 +13,7 @@ import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/services/service_boundary.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/auth_repository.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
+import 'package:synapse_frontend/services/platform/features/auth/presentation/widgets/login_intro_overlay.dart';
 import 'package:synapse_frontend/shared/features/dashboard/providers/board_config_providers.dart';
 
 import 'shared/features/dashboard/board_config_fakes.dart';
@@ -58,13 +59,24 @@ void main() {
     );
     await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
     await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-    // 인트로 오버레이(고정 타이머) 시퀀스가 끝나도록 충분히 진행.
     await tester.pump();
-    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 로그인 성공으로 라우터(Navigator)가 재생성된 뒤에도 인트로가 살아서
+    // 재생 중이어야 한다(앱 레벨 레이어). 회귀: 라우터 재생성이 Navigator
+    // Overlay 의 인트로를 파괴해 애니메이션이 보이지 않던 버그.
+    expect(find.byType(LoginIntroOverlay), findsOneWidget);
+    expect(find.byType(LoginScreen), findsNothing); // 이미 전환됨(스크림 아래)
+
+    // 인트로 시퀀스(고정 타이머 1.6s + 축소 0.32s)가 끝나도록 충분히 진행.
+    // 축소 애니메이션은 첫 틱에서 시작 시각이 기록되므로 프레임을 나눠 pump 한다.
+    await tester.pump(const Duration(seconds: 3)); // 타이머 소진 + 축소 시작 틱
+    await tester.pump(const Duration(milliseconds: 400)); // 축소 완료 틱
+    await tester.pump(); // hide 상태 반영 프레임
+    expect(find.byType(LoginIntroOverlay), findsNothing); // 재생 종료 후 숨김
 
     // 대시보드 히어로 카피가 AI Tutor 디자인으로 변경됨.
     expect(find.text('무엇을 학습해 볼까요?'), findsOneWidget);
-    expect(find.byType(LoginScreen), findsNothing);
 
     // 보드가 구성 로드 후 타일을 빌드하며 시작한 dio 호출의 0ms 타이머 드레인
     // (미소진 시 teardown 에서 pending timer 실패).

@@ -4,10 +4,6 @@ import 'package:synapse_frontend/core/theme/app_spacing.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CalendarSection — 대시보드 캘린더 섹션(월 캘린더 · 주간 스트립)
-//
-// 앱 셸 내부의 플래너 화면(PlannerSection)에 배치되는 BODY 전용 위젯이다. Scaffold/AppBar 없이
-// 스크롤 가능한 본문만 반환한다. 가용 폭이 넓으면(>=820) 월 캘린더를,
-// 좁으면 주간 스트립을 표시한다.
 // ═══════════════════════════════════════════════════════════════════════════
 
 class CalendarSection extends StatelessWidget {
@@ -18,17 +14,10 @@ class CalendarSection extends StatelessWidget {
     super.key,
   });
 
-  // false면 루트 ListView가 자체 스크롤하지 않고(shrinkWrap), 외부 스크롤 뷰가
-  // 스크롤을 담당한다(임베드 모드).
   final bool scrollable;
-
-  // 선택된 날짜. 플래너에서 이 날짜를 강조하고, 날짜 탭 시 onDateSelected로
-  // 알린다. null이면 날짜 탭/선택 강조가 비활성된다.
   final DateTime? selectedDate;
   final ValueChanged<DateTime>? onDateSelected;
 
-  // 월 캘린더/주간 스트립 분기 기준 폭. 창 전체가 아닌 LayoutBuilder
-  // 제약폭(셸 사이드바 제외 실제 가용 너비)으로 판단한다.
   static const double _wideBreakpoint = 820;
 
   @override
@@ -36,7 +25,6 @@ class CalendarSection extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool isWide = constraints.maxWidth >= _wideBreakpoint;
-
         return ListView(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
@@ -62,44 +50,12 @@ class CalendarSection extends StatelessWidget {
   }
 }
 
-// ── Mock data ──────────────────────────────────────────────────────────────
-// TODO: 팀원 구현 — learning-svc / knowledge-svc 연동 시 아래 mock 데이터를
-// Provider로 교체한다. Phase 1(디자인)에서는 mock 그대로 사용한다.
-
-/// 주간 스트립 — (요일, 일자, 복습 부하 0~1, 오늘 여부)
-const List<_WeekDay> _kWeekDays = <_WeekDay>[
-  _WeekDay('월', 28, 0.55, false),
-  _WeekDay('화', 29, 1.0, true),
-  _WeekDay('수', 30, 0.45, false),
-  _WeekDay('목', 31, 0.60, false),
-  _WeekDay('금', 1, 0.38, false),
-  _WeekDay('토', 2, 0.70, false),
-  _WeekDay('일', 3, 0.42, false),
-];
-
-class _WeekDay {
-  const _WeekDay(this.dow, this.day, this.load, this.isToday);
-  final String dow;
-  final int day;
-  final double load; // 0~1
-  final bool isToday;
-}
-
-/// 복습 부하(0~1)에 따른 톤. surface2 ↔ primary 사이를 보간.
-Color _loadColor(double load) {
-  return Color.lerp(AppColors.surface2, AppColors.primary, load.clamp(0, 1))!;
-}
-
-// 캘린더 그리드 기준 날짜(디자인 mock). 월 그리드는 4/26(일)부터 6주,
-// 주간 스트립은 5/28(월)부터 7일, 오늘은 5/29.
-// TODO: 팀원 구현 — 실제 달력은 DateTime.now() 기준으로 그리드를 생성한다.
-final DateTime _kMonthGridStart = DateTime(2026, 4, 26);
-final DateTime _kWeekStart = DateTime(2026, 5, 28);
+// ── 공통 유틸 ──────────────────────────────────────────────────────────────
 
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-// ── 주간 스트립(모바일) — 요일별 복습 부하 막대 ──────────────────────────────
+// ── 주간 스트립(모바일) ───────────────────────────────────────────────────
 
 class _WeekStrip extends StatelessWidget {
   const _WeekStrip({this.selectedDate, this.onDateSelected});
@@ -107,69 +63,53 @@ class _WeekStrip extends StatelessWidget {
   final DateTime? selectedDate;
   final ValueChanged<DateTime>? onDateSelected;
 
+  static const List<String> _dowLabels = ['월', '화', '수', '목', '금', '토', '일'];
+
+  // 이번 주 월요일
+  DateTime get _weekStart {
+    final now = DateTime.now();
+    return now.subtract(Duration(days: now.weekday - 1));
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final DateTime weekStart = _weekStart;
+    final DateTime today = DateTime.now();
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.md,
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                for (int i = 0; i < _kWeekDays.length; i++)
-                  Expanded(
-                    child: _dayCell(
-                      textTheme,
-                      _kWeekDays[i],
-                      _kWeekStart.add(Duration(days: i)),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  '복습 부하',
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+            for (int i = 0; i < 7; i++)
+              Expanded(
+                child: _dayCell(
+                  textTheme,
+                  _dowLabels[i],
+                  weekStart.add(Duration(days: i)),
+                  today,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                _scaleSwatch(0.38),
-                _scaleSwatch(0.6),
-                _scaleSwatch(1.0),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  '적음→많음',
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
-                ),
-              ],
-            ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _scaleSwatch(double load) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 1.5),
-    child: Container(
-      width: 11,
-      height: 11,
-      decoration: BoxDecoration(
-        color: _loadColor(load),
-        borderRadius: BorderRadius.circular(3),
-      ),
-    ),
-  );
-
-  Widget _dayCell(TextTheme textTheme, _WeekDay d, DateTime date) {
+  Widget _dayCell(
+    TextTheme textTheme,
+    String dow,
+    DateTime date,
+    DateTime today,
+  ) {
     final bool selected =
         selectedDate != null && _isSameDay(date, selectedDate!);
+    final bool isToday = _isSameDay(date, today);
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onDateSelected == null ? null : () => onDateSelected!(date),
@@ -178,8 +118,7 @@ class _WeekStrip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
-          // 선택되지 않은 오늘은 보더로 표시.
-          border: d.isToday && !selected
+          border: isToday && !selected
               ? Border.all(color: AppColors.primary)
               : null,
           borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -187,7 +126,7 @@ class _WeekStrip extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              d.dow,
+              dow,
               style: textTheme.labelSmall?.copyWith(
                 color: selected ? AppColors.primaryFg : AppColors.muted,
                 fontWeight: FontWeight.w700,
@@ -195,23 +134,10 @@ class _WeekStrip extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '${d.day}',
+              '${date.day}',
               style: textTheme.titleSmall?.copyWith(
                 color: selected ? AppColors.primaryFg : AppColors.text,
                 fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            // 부하 막대
-            Container(
-              width: 14,
-              height: 8 + 22 * d.load,
-              decoration: BoxDecoration(
-                color: selected ? AppColors.primaryFg : _loadColor(d.load),
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                  bottom: Radius.circular(2),
-                ),
               ),
             ),
           ],
@@ -221,89 +147,107 @@ class _WeekStrip extends StatelessWidget {
   }
 }
 
-// ── 월 캘린더 그리드(데스크탑) ──────────────────────────────────────────────
+// ── 월 캘린더 그리드(데스크탑) ───────────────────────────────────────────
 
-class _MonthCalendar extends StatelessWidget {
+class _MonthCalendar extends StatefulWidget {
   const _MonthCalendar({this.selectedDate, this.onDateSelected});
 
   final DateTime? selectedDate;
   final ValueChanged<DateTime>? onDateSelected;
 
+  @override
+  State<_MonthCalendar> createState() => _MonthCalendarState();
+}
+
+class _MonthCalendarState extends State<_MonthCalendar> {
+  late DateTime _displayMonth;
+
   static const List<String> _dows = ['일', '월', '화', '수', '목', '금', '토'];
 
-  /// 5월 2026 그리드. (일자, 이전/다음달 여부, 오늘 여부, 복습 due, 부하 0~1)
-  // TODO: 팀원 구현 — learning-svc 연동 시 월 그리드 셀을 Provider로 교체한다.
-  List<_CalCell> get _cells {
-    // 4/26(일) ~ 6/6 까지 6주 그리드. 부하/복습은 mock.
-    return const [
-      _CalCell(26, out: true),
-      _CalCell(27, out: true),
-      _CalCell(28, load: 0.65),
-      _CalCell(29, due: 6, load: 0.5),
-      _CalCell(30, load: 0.3),
-      _CalCell(1),
-      _CalCell(2, load: 0.55),
-      _CalCell(3),
-      _CalCell(4, due: 9, load: 0.75),
-      _CalCell(5, load: 0.35),
-      _CalCell(6),
-      _CalCell(7, load: 0.55),
-      _CalCell(8, due: 12, load: 0.9),
-      _CalCell(9, load: 0.4),
-      _CalCell(10),
-      _CalCell(11, load: 0.5),
-      _CalCell(12, due: 7, load: 0.55),
-      _CalCell(13, load: 0.3),
-      _CalCell(14),
-      _CalCell(15, load: 0.7),
-      _CalCell(16, load: 0.35),
-      _CalCell(17),
-      _CalCell(18, due: 8, load: 0.7),
-      _CalCell(19, load: 0.4),
-      _CalCell(20, load: 0.5),
-      _CalCell(21),
-      _CalCell(22, load: 0.6),
-      _CalCell(23, due: 11, load: 0.85),
-      _CalCell(24, load: 0.3),
-      _CalCell(25, load: 0.45),
-      _CalCell(26, due: 9, load: 0.5),
-      _CalCell(27, load: 0.5),
-      _CalCell(28, due: 11, load: 0.7),
-      _CalCell(29, today: true, due: 18, load: 1.0),
-      _CalCell(30, due: 9, load: 0.55),
-      _CalCell(31, due: 12, load: 0.65),
-      _CalCell(1, out: true, load: 0.35),
-      _CalCell(2, out: true, due: 14, load: 0.78),
-      _CalCell(3, out: true, load: 0.4),
-      _CalCell(4, out: true),
-      _CalCell(5, out: true, load: 0.5),
-      _CalCell(6, out: true, load: 0.3),
-    ];
+  @override
+  void initState() {
+    super.initState();
+    final DateTime now = DateTime.now();
+    _displayMonth = DateTime(now.year, now.month);
   }
+
+  // 표시 달의 1일이 속한 주의 일요일
+  DateTime get _gridStart {
+    final DateTime first = DateTime(_displayMonth.year, _displayMonth.month, 1);
+    final int offset = first.weekday % 7; // Mon=1..Sat=6, Sun=0
+    return first.subtract(Duration(days: offset));
+  }
+
+  // 6주 × 7일 = 42칸 동적 생성
+  List<_CalCell> get _cells {
+    final DateTime today = DateTime.now();
+    final DateTime start = _gridStart;
+    return List.generate(42, (int i) {
+      final DateTime date = start.add(Duration(days: i));
+      return _CalCell(
+        date.day,
+        out: date.month != _displayMonth.month ||
+            date.year != _displayMonth.year,
+        today: _isSameDay(date, today),
+      );
+    });
+  }
+
+  void _prevMonth() => setState(() {
+        _displayMonth =
+            DateTime(_displayMonth.year, _displayMonth.month - 1);
+      });
+
+  void _nextMonth() => setState(() {
+        _displayMonth =
+            DateTime(_displayMonth.year, _displayMonth.month + 1);
+      });
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final DateTime gridStart = _gridStart;
+    final List<_CalCell> cells = _cells;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
-            // 월 헤더 — 현재 표시 중인 달(YYYY년 M월)
+            // 월 헤더 + 이전/다음 버튼
             Padding(
               padding: const EdgeInsets.only(
                 bottom: AppSpacing.sm,
                 left: 2,
                 right: 2,
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '${_kWeekStart.year}년 ${_kWeekStart.month}월',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+              child: Row(
+                children: [
+                  Text(
+                    '${_displayMonth.year}년 ${_displayMonth.month}월',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _prevMonth,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    iconSize: 20,
+                    color: AppColors.muted,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: _nextMonth,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    iconSize: 20,
+                    color: AppColors.muted,
+                  ),
+                ],
               ),
             ),
             // 요일 헤더
@@ -315,7 +259,8 @@ class _MonthCalendar extends StatelessWidget {
                       child: Text(
                         _dows[i],
                         style: textTheme.labelSmall?.copyWith(
-                          color: i == 0 ? AppColors.error : AppColors.muted,
+                          color:
+                              i == 0 ? AppColors.error : AppColors.muted,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -324,22 +269,22 @@ class _MonthCalendar extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            // 날짜 그리드 (6주 x 7일)
+            // 날짜 그리드 (6주 × 7일)
             GridView.count(
               crossAxisCount: 7,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 6,
               crossAxisSpacing: 6,
-              childAspectRatio: 0.82,
+              childAspectRatio: 0.9,
               children: [
-                for (int i = 0; i < _cells.length; i++)
+                for (int i = 0; i < cells.length; i++)
                   _CalDayCell(
-                    cell: _cells[i],
+                    cell: cells[i],
                     isSunday: i % 7 == 0,
-                    date: _kMonthGridStart.add(Duration(days: i)),
-                    selectedDate: selectedDate,
-                    onDateSelected: onDateSelected,
+                    date: gridStart.add(Duration(days: i)),
+                    selectedDate: widget.selectedDate,
+                    onDateSelected: widget.onDateSelected,
                   ),
               ],
             ),
@@ -350,20 +295,16 @@ class _MonthCalendar extends StatelessWidget {
   }
 }
 
+// ── 캘린더 셀 데이터 ────────────────────────────────────────────────────────
+
 class _CalCell {
-  const _CalCell(
-    this.day, {
-    this.out = false,
-    this.today = false,
-    this.due = 0,
-    this.load = 0,
-  });
+  const _CalCell(this.day, {this.out = false, this.today = false});
   final int day;
   final bool out;
   final bool today;
-  final int due;
-  final double load;
 }
+
+// ── 날짜 셀 위젯 ────────────────────────────────────────────────────────────
 
 class _CalDayCell extends StatelessWidget {
   const _CalDayCell({
@@ -373,6 +314,7 @@ class _CalDayCell extends StatelessWidget {
     this.selectedDate,
     this.onDateSelected,
   });
+
   final _CalCell cell;
   final bool isSunday;
   final DateTime date;
@@ -390,7 +332,7 @@ class _CalDayCell extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onDateSelected == null ? null : () => onDateSelected!(date),
       child: Opacity(
-        opacity: cell.out ? 0.4 : 1,
+        opacity: cell.out ? 0.35 : 1,
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
@@ -415,7 +357,6 @@ class _CalDayCell extends StatelessWidget {
                       color: selected ? AppColors.primary : dayColor,
                     ),
                   ),
-                  // 오늘 표시 점(선택과 별개로 항상 노출)
                   if (cell.today) ...[
                     const SizedBox(width: 3),
                     Container(
@@ -429,45 +370,6 @@ class _CalDayCell extends StatelessWidget {
                   ],
                 ],
               ),
-              if (cell.due > 0) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    '복습 ${cell.due}',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      // 컴팩트한 달력 셀 — labelSmall(11)로 키우면 좁은 셀에서
-                      // 넘칠 수 있어 9.5 유지.
-                      fontSize: 9.5,
-                    ),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              if (cell.load > 0)
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: Container(
-                    width: 18,
-                    height: 4 + 16 * cell.load,
-                    decoration: BoxDecoration(
-                      color: _loadColor(cell.load),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(3),
-                        bottom: Radius.circular(1),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

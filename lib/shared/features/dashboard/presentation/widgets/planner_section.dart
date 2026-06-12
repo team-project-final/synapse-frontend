@@ -17,9 +17,7 @@ class PlannerSection extends StatefulWidget {
 }
 
 class _PlannerSectionState extends State<PlannerSection> {
-  // 기본 선택 = 오늘(디자인 mock 기준 2026-05-29).
-  // TODO: 팀원 구현 — 실제로는 DateTime.now() 기준으로 초기화한다.
-  DateTime _selected = DateTime(2026, 5, 29);
+  DateTime _selected = DateTime.now();
 
   final GlobalKey _boardKey = GlobalKey();
 

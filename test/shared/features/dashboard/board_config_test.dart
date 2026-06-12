@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +8,8 @@ import 'package:synapse_frontend/shared/features/dashboard/domain/board_config.d
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/home_board_section.dart';
 import 'package:synapse_frontend/shared/features/dashboard/providers/board_config_providers.dart';
 
+import 'board_config_fakes.dart';
+
 void main() {
   group('BoardConfigNotifier', () {
     test('저장값이 없으면 defaults 를 노출한다', () async {
@@ -13,7 +17,7 @@ void main() {
         retry: (_, _) => null,
         overrides: [
           boardConfigRepositoryProvider.overrideWithValue(
-            _FakeBoardConfigRepository(),
+            FakeBoardConfigRepository(),
           ),
         ],
       );
@@ -25,7 +29,7 @@ void main() {
     });
 
     test('저장값이 있으면 그 구성(순서 포함)을 복원한다', () async {
-      final repository = _FakeBoardConfigRepository(
+      final repository = FakeBoardConfigRepository(
         stored: const BoardConfig(widgetIds: ['streak', 'ask']),
       );
       final container = ProviderContainer(
@@ -46,7 +50,7 @@ void main() {
         retry: (_, _) => null,
         overrides: [
           boardConfigRepositoryProvider.overrideWithValue(
-            _FakeBoardConfigRepository(),
+            FakeBoardConfigRepository(),
           ),
         ],
       );
@@ -68,7 +72,7 @@ void main() {
     });
 
     test('apply 시점에만 저장된다', () async {
-      final repository = _FakeBoardConfigRepository();
+      final repository = FakeBoardConfigRepository();
       final container = ProviderContainer(
         retry: (_, _) => null,
         overrides: [
@@ -94,7 +98,7 @@ void main() {
     // 네트워크 불가 → AsyncError placeholder) retry 를 꺼서 타이머 누수를 막는다.
     Future<ProviderContainer> pumpBoard(
       WidgetTester tester,
-      _FakeBoardConfigRepository repository,
+      BoardConfigRepositoryPort repository,
     ) async {
       await tester.binding.setSurfaceSize(const Size(1440, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -116,12 +120,34 @@ void main() {
           ),
         ),
       );
+      // 두 번 pump: 1) 구성 로드 완료 → 타일 빌드, 2) 타일이 시작한 dio 호출의
+      // 0ms 타이머 드레인(미소진 시 teardown 에서 pending timer 실패).
+      await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 300));
       return container;
     }
 
+    testWidgets('로드 완료 전에는 보드 대신 로딩 인디케이터를 보여준다', (tester) async {
+      // 로드가 끝나기 전까지 디폴트 구성이 노출되면 안 된다(구성 점프 깜빡임).
+      final repository = _DelayedBoardConfigRepository(
+        stored: const BoardConfig(widgetIds: ['streak']),
+      );
+      await pumpBoard(tester, repository);
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('내 보드'), findsNothing);
+      expect(find.text('오늘 복습'), findsNothing);
+
+      repository.completer.complete();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100)); // 타일 dio 타이머 드레인
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('스트릭'), findsOneWidget);
+    });
+
     testWidgets('저장된 구성만 렌더링한다', (tester) async {
-      final repository = _FakeBoardConfigRepository(
+      final repository = FakeBoardConfigRepository(
         stored: const BoardConfig(widgetIds: ['streak']),
       );
       await pumpBoard(tester, repository);
@@ -131,7 +157,7 @@ void main() {
     });
 
     testWidgets('저장된 모르는 위젯 id 는 조용히 무시한다', (tester) async {
-      final repository = _FakeBoardConfigRepository(
+      final repository = FakeBoardConfigRepository(
         stored: const BoardConfig(widgetIds: ['removedInV2', 'streak']),
       );
       await pumpBoard(tester, repository);
@@ -141,7 +167,7 @@ void main() {
     });
 
     testWidgets('편집 → 제거 → 완료 시 구성이 저장된다', (tester) async {
-      final repository = _FakeBoardConfigRepository();
+      final repository = FakeBoardConfigRepository();
       await pumpBoard(tester, repository);
 
       await tester.tap(find.text('편집'));
@@ -164,18 +190,20 @@ void main() {
   });
 }
 
-class _FakeBoardConfigRepository implements BoardConfigRepositoryPort {
-  _FakeBoardConfigRepository({this.stored});
+/// load 가 [completer] 완료 전까지 끝나지 않는 fake — 로딩 상태 검증용.
+class _DelayedBoardConfigRepository implements BoardConfigRepositoryPort {
+  _DelayedBoardConfigRepository({this.stored});
 
-  BoardConfig? stored;
-  int saveCount = 0;
-
-  @override
-  Future<BoardConfig?> load() async => stored;
+  final BoardConfig? stored;
+  final Completer<void> completer = Completer<void>();
 
   @override
-  Future<void> save(BoardConfig config) async {
-    stored = config;
-    saveCount += 1;
+  Future<BoardConfig?> load() async {
+    await completer.future;
+    return stored;
   }
+
+  @override
+  Future<void> save(BoardConfig config) async {}
 }
+

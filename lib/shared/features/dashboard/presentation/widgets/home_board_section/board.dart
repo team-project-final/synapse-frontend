@@ -41,9 +41,16 @@ class _HomeBoardSectionState extends ConsumerState<HomeBoardSection> {
 
   @override
   Widget build(BuildContext context) {
-    // 저장값 로드 전(찰나)에는 defaults 로 그려 빈 화면 깜빡임을 피한다.
-    final BoardConfig config =
-        ref.watch(boardConfigProvider).asData?.value ?? BoardConfig.defaults;
+    final AsyncValue<BoardConfig> configAsync = ref.watch(boardConfigProvider);
+    // 로드 완료 전에는 보드를 그리지 않는다 — 디폴트 구성이 먼저 보였다가
+    // 저장 구성으로 점프하는 깜빡임 방지. 위젯들이 실데이터를 갖게 되면
+    // 이 로딩 구간이 데이터 선로딩 시간도 겸한다.
+    if (configAsync.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    // 미저장이면 repository 가 null 을 반환해 notifier 가 defaults 를 채우므로,
+    // 여기 폴백은 스토리지 장애(AsyncError) 방어용이다.
+    final BoardConfig config = configAsync.asData?.value ?? BoardConfig.defaults;
     // 저장된 id 중 더 이상 존재하지 않는 위젯(미래 버전 잔재)은 조용히 버린다.
     final Map<String, _BoardKind> byName = _BoardKind.values.asNameMap();
     final List<_BoardKind> items = config.widgetIds

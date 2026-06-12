@@ -13,6 +13,9 @@ import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/services/service_boundary.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/auth_repository.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
+import 'package:synapse_frontend/shared/features/dashboard/providers/board_config_providers.dart';
+
+import 'shared/features/dashboard/board_config_fakes.dart';
 
 void main() {
   testWidgets('unauthenticated user sees login screen', (tester) async {
@@ -42,6 +45,11 @@ void main() {
         overrides: [
           tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
           authRepositoryPortProvider.overrideWithValue(_StubLoginRepository()),
+          // 실제 Hive 구현은 파일 IO 라 위젯 테스트에서 완료되지 않아 보드가
+          // 로딩 스피너에 머물고 pumpAndSettle 이 타임아웃된다 → fake 필수.
+          boardConfigRepositoryProvider.overrideWithValue(
+            FakeBoardConfigRepository(),
+          ),
         ],
         child: const SynapseApp(),
       ),
@@ -54,6 +62,10 @@ void main() {
     // 대시보드 히어로 카피가 AI Tutor 디자인으로 변경됨.
     expect(find.text('무엇을 학습해 볼까요?'), findsOneWidget);
     expect(find.byType(LoginScreen), findsNothing);
+
+    // 보드가 구성 로드 후 타일을 빌드하며 시작한 dio 호출의 0ms 타이머 드레인
+    // (미소진 시 teardown 에서 pending timer 실패).
+    await tester.pump(const Duration(milliseconds: 300));
   });
 
   testWidgets('stored tokens restore authenticated session', (tester) async {
@@ -67,6 +79,9 @@ void main() {
           authRepositoryPortProvider.overrideWith(
             (ref) => ref.watch(authRepositoryProvider),
           ),
+          boardConfigRepositoryProvider.overrideWithValue(
+            FakeBoardConfigRepository(),
+          ),
         ],
         child: const SynapseApp(),
       ),
@@ -74,6 +89,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsNothing);
+
+    // 보드 타일 dio 호출의 0ms 타이머 드레인 (위 테스트와 동일 사유).
+    await tester.pump(const Duration(milliseconds: 300));
   });
 
   testWidgets('startup restore shows bootstrap state instead of login', (

@@ -306,3 +306,23 @@
 | **Assignee** | Frontend / Infra |
 | **Reviewer** | @team-lead |
 | **Status** | Done (2026-06-11, PR 대기) |
+
+---
+
+## Step 16: 대시보드 보드 위젯 구성 영속화
+
+| 필드 | 내용 |
+|------|------|
+| **Step Name** | 보드 위젯 구성 디바이스 영속화 (Hive) |
+| **Step Goal** | 위젯 추가/제거 후 '완료' 시 구성을 디바이스(웹·앱)에 저장하고, 재방문 시 복원한다. 저장값 없으면 디폴트 구성. |
+| **Done When** | 새로고침/재방문 후 편집한 보드 구성 유지 + 미저장 시 디폴트 표출 |
+| **Scope** | **In**: dashboard domain/data/providers 신설, board.dart provider 전환, 테스트 / **Out**: 서버 동기화(계정 간 공유), 위젯 순서 드래그 변경 |
+| **Input** | board.dart(TODO 영속화), token_store.dart Hive 패턴, 03-D Port/Adapter |
+| **Instructions** | 1. BoardConfig 엔티티 + Port (domain)<br>2. Hive 어댑터 (data, 장애 시 미저장 취급)<br>3. AsyncNotifierProvider — load/add/remove/apply (providers)<br>4. board.dart 를 provider 구독으로 전환, 미지 id 무시<br>5. Notifier·위젯 테스트 7건 |
+| **Output Format** | 신규 3파일 + board.dart 수정 + 테스트 + REPORT.md 기록 |
+| **Constraints** | - 신규 의존성 금지(기존 hive_flutter 재사용)<br>- sqflite는 웹 미지원이라 배제<br>- 규칙 7.3.1(공유 상태는 Riverpod)·03-D(Port/Adapter) 준수 |
+| **Duration** | 0.5일 |
+| **RULE Reference** | 03-D Port/Adapter · 07 Flutter 규칙 |
+| **Assignee** | Frontend (Platform 담당) |
+| **Reviewer** | @team-lead |
+| **Status** | Done (2026-06-12, PR 대기) |

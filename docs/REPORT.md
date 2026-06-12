@@ -53,3 +53,26 @@
 ### 전제 조건
 - frontend 레포에 `AWS_ROLE_ARN` 시크릿 필요(engagement와 동일 OIDC role).
 - 첫 `1.0.0` 태그 푸시로 ECR `synapse/frontend:1.0.0` 생성 → gitops 오버레이 핀(1.0.0) 충족.
+
+## 2026-06-12 — 대시보드 보드 위젯 구성 디바이스 영속화 (Hive)
+
+### 배경 / 이전 상태
+- 대시보드 위젯 보드는 편집(추가/제거 → '완료')이 가능했지만 구성이 `_HomeBoardSectionState`의 로컬 `setState` 리스트에만 있어 **새로고침/재방문 시 항상 디폴트로 초기화**. (`board.dart`에 `// TODO: 팀원 구현 — 보드 구성 영속화` 표시돼 있던 항목)
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `shared/features/dashboard/domain/board_config.dart` (신규) | `BoardConfig` 엔티티(위젯 id 순서 리스트, `defaults` 상수) + `BoardConfigRepositoryPort` |
+| `shared/features/dashboard/data/hive_board_config_repository.dart` (신규) | Port의 Hive 구현 — 웹(IndexedDB)/앱(파일) 동일 코드. 스토리지 장애는 미저장과 동일 취급(대시보드 표출 차단 금지) |
+| `shared/features/dashboard/providers/board_config_providers.dart` (신규) | `AsyncNotifierProvider`(manual). 시작 시 로드(없으면 defaults), add/remove 즉시 반영, `apply()`('완료')에서만 저장 |
+| `home_board_section/board.dart` (수정) | `StatefulWidget` 로컬 리스트 → `ConsumerStatefulWidget` + provider 구독. 저장된 미지(未知) 위젯 id는 조용히 무시 |
+| `test/shared/features/dashboard/board_config_test.dart` (신규) | 7건 — Notifier(디폴트 폴백·순서 복원·중복 add 무시·apply 시점 저장) + 위젯(저장 구성 렌더·미지 id 무시·편집→제거→완료 저장) |
+
+### 기술적 근거
+- **Hive 채택 (SQLite 대신)**: 요구사항이 "웹+앱 양쪽 디바이스 저장"인데 sqflite는 웹 미지원(웹은 wasm/worker 별도 셋업 필요). Hive는 순수 Dart라 양쪽 모두 추가 셋업 없이 동작하고, **이미 `token_store.dart`가 사용 중인 의존성이라 신규 의존성 0**. 데이터가 위젯 id 리스트 1개라 관계형 DB 불필요. Port 뒤에 격리했으므로 추후 SQLite 전환 시 data 계층만 교체.
+- **id 문자열 저장**: 보드 enum(`_BoardKind`)이 라이브러리 private이므로 `enum.name` 문자열로 저장 — enum 공개 전환 없이 매핑되고, 위젯 종류가 바뀌어도 미지 id를 버리는 방식으로 마이그레이션 내성 확보.
+- **저장 시점 = '완료'**: 편집 중 이탈 시 저장 안 됨(요구 UX). retry 타이머 누수 방지를 위해 테스트는 `ProviderContainer(retry: ...)` 비활성 패턴(admin 가드 테스트와 동일).
+
+### 검증
+- `flutter analyze` 0 이슈 · `flutter test` 294/294 (신규 7 포함)
+- 웹 실검증: 제거→완료→IndexedDB `synapse_dashboard` 생성 확인→**새로고침+재진입 후 구성 유지** 스크린샷 확인

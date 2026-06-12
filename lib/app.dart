@@ -8,6 +8,7 @@ import 'package:synapse_frontend/core/auth/auth_notifier.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/platform/features/auth/presentation/widgets/login_intro_overlay.dart';
 
 class SynapseApp extends ConsumerStatefulWidget {
   const SynapseApp({super.key});
@@ -50,6 +51,14 @@ class _SynapseAppState extends ConsumerState<SynapseApp> {
       // 웹에서도 마우스/트랙패드 드래그로 스크롤 가능하게 한다.
       // (칸반 모바일 가로 보드 등 드래그-스크롤 UX 확보)
       scrollBehavior: const _AppScrollBehavior(),
+      // Navigator 위에 항상 떠 있는 앱 레벨 레이어. 로그인 인트로는 여기 그려서,
+      // auth 상태 변화로 라우터(Navigator)가 재생성돼도 재생이 끊기지 않게 한다.
+      builder: (context, child) => Stack(
+        children: <Widget>[
+          if (child != null) child,
+          const LoginIntroLayer(),
+        ],
+      ),
     );
   }
 }

@@ -102,3 +102,31 @@
 ### 검증
 - analyze: 이번 변경 파일 0건 · 관련 테스트 전부 통과(선행 실패 2건은 #60·#61 유입 — dev 순정에서도 동일)
 - **브라우저 E2E (127.0.0.1:8088 ← minikube platform 8081 포워딩)**: ① 빈 폼 → 검증 차단 ② 틀린 비밀번호 → 401 → "이메일 또는 비밀번호가 올바르지 않습니다" + 인트로 중단 + 버튼 복구 ③ 올바른 자격증명(ssar 계정) → 인트로 → 대시보드, **admin 메뉴 숨김(실 ROLE_USER 토큰의 가드 동작 확인)**
+
+## 2026-06-12 — 로그인 인트로 재생 보장 (앱 레벨 레이어 + phase 게이트)
+
+### 배경 / 이전 상태
+바이패스 제거 후 실 로그인에서 인트로가 ① 아예 안 보이거나 ② 재생 중 대시보드 전환이 스크림 너머로 비쳐 보임(사용자 리포트 2건).
+
+### 원인
+- ① 인트로가 Navigator 의 Overlay(OverlayEntry)에 꽂혀 있는데, `appRouterProvider`가 auth 를 watch 해 로그인 즉시(loading) 라우터·Navigator 가 재생성되며 인트로가 통째로 파괴. 바이패스 시절(재생 후 인증)엔 안 드러나던 구조적 문제.
+- ② 인증이 재생 도중(수백 ms) 끝나 라우터가 즉시 전환 — 스크림이 86% 반투명이라 전환이 비쳐 보임.
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `auth/presentation/widgets/login_intro_overlay.dart` (신규) | 인트로 위젯 이동 + `loginIntroProvider`(LoginIntroState{token, phase}) + `LoginIntroLayer` |
+| `app.dart` | `MaterialApp.router(builder:)` 로 **Navigator 위에 항상 떠 있는 레이어** — 라우터가 몇 번 재생성돼도 인트로 생존 |
+| `app_router.dart` | redirect 게이트: `covering && authenticated` 면 로그인에 머묾(라우터 재생성이 initialLocation=대시보드에서 시작해도 강제 유지). reveal 시 전환 |
+| `login_screen.dart` | OverlayEntry 수동 관리 삭제 → provider show/hide |
+
+### 시퀀스 (바이패스 시절 UX 복원)
+팝업·재생(로그인 화면 위, 인증 완료돼도 보류) → 재생 끝(reveal) → 대시보드 전환(스크림이 덮은 채) → 축소되며 공개.
+
+### 함정 기록
+- 라우터 재생성은 **initialLocation 에서 시작**하므로 redirect 게이트는 "entry route 에 있을 때"가 아니라 "어디서 평가되든" 걸어야 함.
+- 위젯 테스트에서 축소(reverse) 애니메이션은 **첫 틱에서 시작 시각이 기록**되므로 pump 를 나눠야 완료됨.
+
+### 검증
+- 회귀 테스트: 재생 중 로그인 유지(전환 보류) → 재생 후 전환 → 축소 종료 후 숨김. 전체 296 green(선행 2건 제외)
+- 사용자 육안 확인 완료(재생 끝 → 전환)

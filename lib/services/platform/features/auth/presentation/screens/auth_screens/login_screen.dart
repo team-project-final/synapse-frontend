@@ -27,11 +27,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    // 인트로 오버레이(스크림)를 먼저 띄워 화면을 덮고, 재생과 병행해 실 로그인을
-    // 수행한다. 성공하면 라우터가 스크림 아래에서 대시보드로 전환하고, 오버레이는
-    // 루트 Overlay라 재생을 마친 뒤 그 위에서 축소되며 대시보드를 공개한다.
-    // 실패하면 build의 ref.listen이 오버레이를 즉시 걷어내고 에러를 노출한다.
-    _showSuccessTransition();
+    // 인트로(스크림)를 먼저 띄워 화면을 덮고, 재생과 병행해 실 로그인을 수행한다.
+    // 인트로는 Navigator 밖 앱 레벨 레이어(LoginIntroLayer)에 그려지므로,
+    // 로그인 성공으로 라우터가 재생성·전환돼도 재생이 끊기지 않는다.
+    // 실패하면 build의 ref.listen이 인트로를 즉시 숨기고 에러를 노출한다.
+    ref.read(loginIntroProvider.notifier).show();
     unawaited(
       ref
           .read(authNotifierProvider.notifier)
@@ -43,39 +43,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.read(authNotifierProvider.notifier).loginWithOAuth(provider);
   }
 
-  /// 인트로 오버레이를 루트 Overlay에 띄운다.
-  /// scale 0→1(팝업) → Lottie 재생 → scale 1→0(축소) → 제거.
-  /// 루트 Overlay라 인증으로 화면이 대시보드로 전환된 뒤에도 위에서 축소 연출을 잇는다.
-  OverlayEntry? _transitionEntry;
-
-  void _showSuccessTransition() {
-    final overlay = Overlay.of(context, rootOverlay: true);
-    late OverlayEntry entry;
-    entry = OverlayEntry(
-      builder: (_) => _LoginSuccessOverlay(
-        onCompleted: () {
-          entry.remove();
-          if (_transitionEntry == entry) _transitionEntry = null;
-        },
-      ),
-    );
-    _transitionEntry = entry;
-    overlay.insert(entry);
-  }
-
-  /// 로그인 실패 시 재생 중인 인트로를 즉시 중단한다.
-  void _dismissTransition() {
-    _transitionEntry?.remove();
-    _transitionEntry = null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 로그인 실패(unauthenticated 복귀) 감지 — 인트로 중단 + 버튼 복구.
+    // 로그인 실패(unauthenticated 복귀) 감지 — 인트로 숨김 + 버튼 복구.
     // 에러 메시지는 아래 errorMessage UI가 표시한다.
     ref.listen(authNotifierProvider, (previous, next) {
       if (_submitting && next.status == AuthStatus.unauthenticated) {
-        _dismissTransition();
+        ref.read(loginIntroProvider.notifier).hide();
         setState(() => _submitting = false);
       }
     });
@@ -244,96 +218,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                 ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 로그인 인트로 트랜지션 오버레이.
-/// 시퀀스: scale 0→1(팝업) → Lottie 재생 → scale 1→0(축소) → onCompleted.
-/// 로그인은 재생과 병행 — 성공 시 라우터가 스크림 아래에서 전환을 끝내 둔다.
-class _LoginSuccessOverlay extends StatefulWidget {
-  const _LoginSuccessOverlay({required this.onCompleted});
-
-  /// 축소까지 끝나 오버레이를 제거할 시점에 호출된다.
-  final VoidCallback onCompleted;
-
-  @override
-  State<_LoginSuccessOverlay> createState() => _LoginSuccessOverlayState();
-}
-
-class _LoginSuccessOverlayState extends State<_LoginSuccessOverlay>
-    with TickerProviderStateMixin {
-  // Lottie 로드 여부와 무관하게 결정적으로 진행되도록 재생 구간은 고정 시간으로 둔다.
-  // 등장(forward)은 천천히, 축소(reverse)는 빠르게 — 별도 duration.
-  static const _scaleInDuration = Duration(milliseconds: 560);
-  static const _scaleOutDuration = Duration(milliseconds: 320);
-  // 등장 시작 후 이 시점부터 Lottie 재생을 시작한다(등장과 약간 겹침).
-  static const _playStartDelay = Duration(milliseconds: 300);
-  static const _playWindow = Duration(milliseconds: 1300);
-
-  late final AnimationController _scale = AnimationController(
-    vsync: this,
-    duration: _scaleInDuration,
-    reverseDuration: _scaleOutDuration,
-  );
-  late final AnimationController _lottie = AnimationController(vsync: this);
-
-  @override
-  void initState() {
-    super.initState();
-    _run();
-  }
-
-  Future<void> _run() async {
-    unawaited(_scale.forward()); // 0 → 1 (팝업) — 완료를 기다리지 않는다
-    await Future<void>.delayed(_playStartDelay); // 등장 도중 0.3s 지점
-    if (!mounted) return;
-    // 재생 시작. 진행은 고정 _playWindow가 주도하므로 재생 완료를 기다리지 않는다.
-    if (_lottie.duration != null) {
-      unawaited(_lottie.forward(from: 0));
-    }
-    await Future<void>.delayed(_playWindow); // Lottie 재생 구간
-    if (!mounted) return;
-    await _scale.reverse(); // 1 → 0 (전환된 대시보드 위에서 축소)
-    if (!mounted) return;
-    widget.onCompleted(); // 오버레이 제거
-  }
-
-  @override
-  void dispose() {
-    _scale.dispose();
-    _lottie.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = CurvedAnimation(parent: _scale, curve: Curves.easeOutBack);
-    final fade = CurvedAnimation(parent: _scale, curve: Curves.easeOut);
-    return IgnorePointer(
-      child: FadeTransition(
-        opacity: fade,
-        child: ColoredBox(
-          color: AppColors.surface.withValues(alpha: 0.86),
-          child: Center(
-            child: ScaleTransition(
-              scale: scale,
-              child: Lottie.asset(
-                'assets/lottie/login_hero.json',
-                controller: _lottie,
-                width: 220,
-                height: 220,
-                repeat: false,
-                // 재생은 등장 완료 후 _run()에서 시작한다(여기선 duration만 준비).
-                onLoaded: (composition) => _lottie.duration = composition.duration,
-                // 테스트/에셋 미로딩 환경에서도 트리가 깨지지 않게 한다.
-                errorBuilder: (_, _, _) =>
-                    const SizedBox(width: 220, height: 220),
               ),
             ),
           ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,8 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
+import 'package:synapse_frontend/shared/features/dashboard/domain/board_config.dart';
+import 'package:synapse_frontend/shared/features/dashboard/providers/board_config_providers.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════

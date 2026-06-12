@@ -5,54 +5,58 @@ part of '../home_board_section.dart';
 /// 각 타일은 tutor 컨셉(흰 카드 · [AppColors.border] · [AppRadius.lg] · 보라
 /// 액센트)을 그대로 유지합니다. 편집 모드(편집/완료 토글)에서 각 타일에
 /// 제거(×) 핸들이 나타나며, 보드에 없는 위젯은 하단 추가 바에서 골라
-/// 추가할 수 있습니다. 추가/제거는 [_items] 리스트를 직접 변경해 동작합니다.
+/// 추가할 수 있습니다.
+///
+/// 보드 구성은 [boardConfigProvider] 가 소유합니다 — 추가/제거는 화면에 즉시
+/// 반영되고, '완료'를 누르는 시점에 디바이스(Hive)에 저장돼 재방문 시
+/// 복원됩니다. 저장값이 없으면 [BoardConfig.defaults] 로 표출합니다.
 ///
 /// 레이아웃은 [Wrap] 기반으로 타일이 자연 높이(content varies)를 가지도록 하여
 /// 고정 높이 클리핑을 피합니다. 데스크탑(≥700)은 full/half 2열, 모바일(<700)은
 /// 모든 타일이 단일 컬럼으로 리플로우됩니다.
-class HomeBoardSection extends StatefulWidget {
+class HomeBoardSection extends ConsumerStatefulWidget {
   const HomeBoardSection({super.key});
 
   @override
-  State<HomeBoardSection> createState() => _HomeBoardSectionState();
+  ConsumerState<HomeBoardSection> createState() => _HomeBoardSectionState();
 }
 
-class _HomeBoardSectionState extends State<HomeBoardSection> {
+class _HomeBoardSectionState extends ConsumerState<HomeBoardSection> {
+  // 편집 모드 토글은 이 화면 한정 임시 UI 상태라 로컬로 둔다.
   bool _editing = false;
 
-  // TODO: 팀원 구현 — 보드 구성 영속화 / 각 svc 데이터 연동
-  // 카탈로그 전체를 표시 순서대로 시드. 카탈로그가 source of truth이며
-  // 추가 바는 (카탈로그 - 현재 보드) 를 노출합니다.
-  late final List<_BoardKind> _items = <_BoardKind>[
-    _BoardKind.ask,
-    _BoardKind.todayReview,
-    _BoardKind.suggest,
-    _BoardKind.insight,
-    _BoardKind.streak,
-    _BoardKind.level,
-    _BoardKind.graph,
-    _BoardKind.recentNotes,
-    _BoardKind.ranking,
-  ];
-
-  void _toggleEdit() => setState(() => _editing = !_editing);
+  void _toggleEdit() {
+    if (_editing) {
+      // '완료' = 적용: 현재 구성을 디바이스에 저장.
+      unawaited(ref.read(boardConfigProvider.notifier).apply());
+    }
+    setState(() => _editing = !_editing);
+  }
 
   void _remove(_BoardKind kind) =>
-      setState(() => _items.removeWhere((_BoardKind k) => k == kind));
+      ref.read(boardConfigProvider.notifier).remove(kind.name);
 
-  void _add(_BoardKind kind) {
-    if (_items.contains(kind)) return;
-    setState(() => _items.add(kind));
-  }
+  void _add(_BoardKind kind) =>
+      ref.read(boardConfigProvider.notifier).add(kind.name);
 
   @override
   Widget build(BuildContext context) {
+    // 저장값 로드 전(찰나)에는 defaults 로 그려 빈 화면 깜빡임을 피한다.
+    final BoardConfig config =
+        ref.watch(boardConfigProvider).asData?.value ?? BoardConfig.defaults;
+    // 저장된 id 중 더 이상 존재하지 않는 위젯(미래 버전 잔재)은 조용히 버린다.
+    final Map<String, _BoardKind> byName = _BoardKind.values.asNameMap();
+    final List<_BoardKind> items = config.widgetIds
+        .map((String id) => byName[id])
+        .whereType<_BoardKind>()
+        .toList(growable: false);
+
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final bool isDesktop = constraints.maxWidth >= 700;
 
         // 추가 바 카탈로그: 전체 - 현재 보드에 올라간 항목.
-        final Set<_BoardKind> present = _items.toSet();
+        final Set<_BoardKind> present = items.toSet();
         final List<_BoardSpec> addable = _kCatalog
             .where((_BoardSpec spec) => !present.contains(spec.kind))
             .toList(growable: false);
@@ -71,7 +75,7 @@ class _HomeBoardSectionState extends State<HomeBoardSection> {
                   _BoardHeader(editing: _editing, onToggleEdit: _toggleEdit),
                   const SizedBox(height: AppSpacing.md),
                   _BoardWrap(
-                    items: _items,
+                    items: items,
                     isDesktop: isDesktop,
                     editing: _editing,
                     onRemove: _remove,

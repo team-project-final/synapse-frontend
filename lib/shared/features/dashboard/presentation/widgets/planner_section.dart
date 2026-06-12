@@ -40,20 +40,25 @@ class _PlannerSectionState extends State<PlannerSection> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          CalendarSection(
-            scrollable: false,
-            selectedDate: _selected,
-            onDateSelected: _onDateSelected,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              CalendarSection(
+                scrollable: false,
+                selectedDate: _selected,
+                onDateSelected: _onDateSelected,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              KeyedSubtree(
+                key: _boardKey,
+                child: KanbanSection(scrollable: false, date: _selected),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          KeyedSubtree(
-            key: _boardKey,
-            child: KanbanSection(scrollable: false, date: _selected),
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -72,10 +72,30 @@ class _DashboardHeatmapScreenState
     return col * _rows + row;
   }
 
-  // 12주 weekly 데이터를 52×7 그리드의 마지막 12컬럼에 매핑
+  // 오늘 기준 52주치 더미 weekly 데이터 (시연용, 실 데이터 없을 때)
+  static const List<int> _dummyPattern = [
+    0, 8, 15, 22, 31, 5, 18, 27, 12, 0, 24, 9, 17, 30, 6, 20, 14, 28, 3, 11,
+    25, 8, 0, 19, 33, 7, 21, 16, 29, 4, 12, 26, 9, 18, 0, 23, 11, 28, 15, 7,
+    30, 5, 22, 13, 27, 8, 20, 16, 31, 10, 24, 0,
+  ];
+
+  List<WeeklyHeatmapEntry> _buildDummyWeekly() {
+    final now = DateTime.now();
+    final thisMonday = now.subtract(Duration(days: now.weekday - 1));
+    return List.generate(52, (int i) {
+      final weekStart = thisMonday.subtract(Duration(days: 7 * (51 - i)));
+      return WeeklyHeatmapEntry(
+        weekStart: weekStart,
+        reviewCount: _dummyPattern[i % _dummyPattern.length],
+        correctRate: 72.0 + (i % 5) * 4.5,
+      );
+    });
+  }
+
+  // 52×7 그리드 매핑 (전체 weekly 사용)
   List<int> _buildData(List<WeeklyHeatmapEntry> weekly) {
     final data = List.filled(_cols * _rows, 0);
-    final recent = weekly.length > 12 ? weekly.sublist(weekly.length - 12) : weekly;
+    final recent = weekly.length > _cols ? weekly.sublist(weekly.length - _cols) : weekly;
     for (int wi = 0; wi < recent.length; wi++) {
       final col = _cols - recent.length + wi;
       final perDay = (recent[wi].reviewCount / 7).ceil();
@@ -87,7 +107,7 @@ class _DashboardHeatmapScreenState
   }
 
   String _infoForCol(int col, List<WeeklyHeatmapEntry> weekly) {
-    final recent = weekly.length > 12 ? weekly.sublist(weekly.length - 12) : weekly;
+    final recent = weekly.length > _cols ? weekly.sublist(weekly.length - _cols) : weekly;
     final startCol = _cols - recent.length;
     if (col < startCol || col - startCol >= recent.length) return '데이터 없음';
     final entry = recent[col - startCol];
@@ -104,13 +124,18 @@ class _DashboardHeatmapScreenState
 
     final heatmapAsync = ref.watch(reviewStatsHeatmapProvider);
     final weekly = heatmapAsync.asData?.value.weekly ?? [];
-    final data = _buildData(weekly);
+    // 실 데이터 없으면 더미 데이터로 히트맵 표시
+    final effectiveWeekly = weekly.isEmpty ? _buildDummyWeekly() : weekly;
+    final data = _buildData(effectiveWeekly);
 
     return Scaffold(
       appBar: AppBar(title: const Text('학습 히트맵')),
-      body: heatmapAsync.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
+      body: Column(
+        children: [
+          if (heatmapAsync.isLoading)
+            const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: ListView(
               padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
                 if (_selectedInfo != null) ...[
@@ -134,7 +159,7 @@ class _DashboardHeatmapScreenState
                       final index = _hitTest(details.localPosition);
                       if (index != null) {
                         setState(() {
-                          _selectedInfo = _infoForCol(index ~/ _rows, weekly);
+                          _selectedInfo = _infoForCol(index ~/ _rows, effectiveWeekly);
                         });
                       }
                     },
@@ -170,6 +195,9 @@ class _DashboardHeatmapScreenState
                 ),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }

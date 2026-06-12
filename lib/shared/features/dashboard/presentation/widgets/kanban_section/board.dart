@@ -13,50 +13,44 @@ class KanbanSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMobile = MediaQuery.sizeOf(context).width < 600;
+    // 전체 화면 폭이 아닌 실제 가용 폭 기준으로 판단 (사이드바 제외)
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
 
-    return ListView(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.md,
-        // 모바일에서 보드는 화면 끝까지 가로 스크롤되므로
-        // 가로 패딩을 보드가 직접 관리한다.
-        isMobile ? 0 : AppSpacing.lg,
-        AppSpacing.md,
-      ),
-      shrinkWrap: !scrollable,
-      physics: scrollable ? null : const NeverScrollableScrollPhysics(),
-      children: <Widget>[
-        // ── 헤더 ──
-        // 날짜 지정(플래너) 시 날짜 헤더, 아니면 모바일 전용 기본 헤더.
-        if (date != null) ...<Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: isMobile ? AppSpacing.lg : 0),
-            child: _DateBoardHeader(date: date!),
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.md,
           ),
-          const SizedBox(height: AppSpacing.md),
-        ] else if (isMobile) ...<Widget>[
-          const Padding(
-            padding: EdgeInsets.only(right: AppSpacing.lg),
-            child: _BoardHeader(),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
+          shrinkWrap: !scrollable,
+          physics: scrollable ? null : const NeverScrollableScrollPhysics(),
+          children: <Widget>[
+            // ── 헤더 ──
+            // 날짜 지정(플래너) 시 날짜 헤더, 아니면 모바일 전용 기본 헤더.
+            if (date != null) ...<Widget>[
+              _DateBoardHeader(date: date!),
+              const SizedBox(height: AppSpacing.md),
+            ] else if (isMobile) ...<Widget>[
+              const _BoardHeader(),
+              const SizedBox(height: AppSpacing.md),
+            ],
 
-        // ── 오늘 진행 요약 바 ──
-        Padding(
-          padding: EdgeInsets.only(right: isMobile ? AppSpacing.lg : 0),
-          child: const _ProgressLine(),
-        ),
-        const SizedBox(height: AppSpacing.md),
+            // ── 오늘 진행 요약 바 ──
+            const _ProgressLine(),
+            const SizedBox(height: AppSpacing.md),
 
-        // ── 칸반 보드 ──
-        if (isMobile)
-          const _MobileBoard(columns: _kBoardColumns)
-        else
-          const _DesktopBoard(columns: _kBoardColumns),
-        const SizedBox(height: AppSpacing.lg),
-      ],
+            // ── 칸반 보드 ──
+            if (isMobile)
+              const _MobileBoard(columns: _kBoardColumns)
+            else
+              const _DesktopBoard(columns: _kBoardColumns),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        );
+      },
     );
   }
 }
@@ -310,7 +304,7 @@ class _DesktopBoard extends StatelessWidget {
   }
 }
 
-// ── 모바일 보드: 가로 스크롤 ──────────────────────────────────────────────────
+// ── 모바일 보드: 세로 스택 ──────────────────────────────────────────────────
 
 class _MobileBoard extends StatelessWidget {
   const _MobileBoard({required this.columns});
@@ -319,24 +313,13 @@ class _MobileBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double colWidth = MediaQuery.sizeOf(context).width * 0.84;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.only(left: AppSpacing.lg),
-      physics: const ClampingScrollPhysics(),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          for (int i = 0; i < columns.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(width: AppSpacing.sm + AppSpacing.xs),
-            SizedBox(
-              width: colWidth,
-              child: _BoardColumn(column: columns[i]),
-            ),
-            if (i == columns.length - 1) const SizedBox(width: AppSpacing.lg),
-          ],
+    return Column(
+      children: <Widget>[
+        for (int i = 0; i < columns.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: AppSpacing.md),
+          _BoardColumn(column: columns[i]),
         ],
-      ),
+      ],
     );
   }
 }

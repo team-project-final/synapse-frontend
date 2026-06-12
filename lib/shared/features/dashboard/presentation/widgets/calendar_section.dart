@@ -108,7 +108,7 @@ class _WeekStripState extends State<_WeekStrip> {
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.sm,
-          vertical: AppSpacing.md,
+          vertical: AppSpacing.lg,
         ),
         child: Column(
           children: [
@@ -175,7 +175,7 @@ class _WeekStripState extends State<_WeekStrip> {
       onTap: widget.onDateSelected == null ? null : () => widget.onDateSelected!(date),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
           border: isToday && !selected ? Border.all(color: AppColors.primary) : null,
@@ -199,17 +199,23 @@ class _WeekStripState extends State<_WeekStrip> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            // 복습 부하 막대
-            Container(
-              width: 14,
-              height: 8 + 22 * load,
-              decoration: BoxDecoration(
-                color: selected
-                    ? AppColors.primaryFg
-                    : Color.lerp(AppColors.surface2, AppColors.primary, load)!,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(4),
-                  bottom: Radius.circular(2),
+            // 고정 높이 영역 안에서 막대가 하단 기준으로 자람
+            SizedBox(
+              height: 44,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  width: 14,
+                  height: 12 + 32 * load,
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.primaryFg
+                        : Color.lerp(AppColors.surface2, AppColors.primary, load)!,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                      bottom: Radius.circular(2),
+                    ),
+                  ),
                 ),
               ),
             ),

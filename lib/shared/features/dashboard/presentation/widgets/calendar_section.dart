@@ -167,6 +167,8 @@ class _WeekStripState extends State<_WeekStrip> {
     final bool selected = widget.selectedDate != null && _isSameDay(date, widget.selectedDate!);
     final bool isToday = _isSameDay(date, today);
     final int due = _dummyDue(date);
+    // due 최대 20 기준으로 막대 높이 0~1 정규화
+    final double load = (due / 20.0).clamp(0.0, 1.0);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -188,7 +190,7 @@ class _WeekStripState extends State<_WeekStrip> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               '${date.day}',
               style: textTheme.titleSmall?.copyWith(
@@ -196,26 +198,21 @@ class _WeekStripState extends State<_WeekStrip> {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            if (due > 0) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.primaryFg.withValues(alpha: 0.25)
-                      : AppColors.primary.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Text(
-                  '$due',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: selected ? AppColors.primaryFg : AppColors.primary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 9,
-                  ),
+            const SizedBox(height: AppSpacing.sm),
+            // 복습 부하 막대
+            Container(
+              width: 14,
+              height: 8 + 22 * load,
+              decoration: BoxDecoration(
+                color: selected
+                    ? AppColors.primaryFg
+                    : Color.lerp(AppColors.surface2, AppColors.primary, load)!,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                  bottom: Radius.circular(2),
                 ),
               ),
-            ],
+            ),
           ],
         ),
       ),

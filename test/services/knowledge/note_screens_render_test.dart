@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/presentation/screens/note_screens.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/providers/notes_providers.dart';
 
 // AI Tutor 컨셉 reskin 후 노트 화면들이 데스크탑/모바일에서 RenderFlex 등
 // 레이아웃 예외 없이 렌더링되는지 검증한다. analyze로는 못 잡는 런타임
@@ -47,12 +49,42 @@ void main() {
     });
   }
 
-  // v1 ③: 노트 상세 본문에 인라인 위키링크 + "백링크 4" 인용 스니펫.
-  testWidgets('NoteDetail 인라인 위키링크 + 백링크 4', (tester) async {
-    await pump(tester, const NoteDetailScreen(noteId: '1'), mobile);
-    expect(find.text('[[드롭아웃]]'), findsOneWidget);
-    expect(find.text('백링크 4'), findsOneWidget);
-    expect(find.text('"…해결: ML 정규화 기법, 교차검증."'), findsOneWidget);
+  // 1단계(API 연동): 상세 화면이 noteDetailProvider 데이터로 제목/태그를
+  // 렌더하는지 검증한다. (본문은 contentMd 마크다운, 위키링크는 5단계로 분리)
+  testWidgets('NoteDetail 상세 데이터 렌더 (API 연동)', (tester) async {
+    final Note note = Note(
+      id: '1',
+      title: '정규화 기법 (Regularization)',
+      contentMd: '# 정규화\n\nL1/L2 정규화는 과적합을 방지한다.',
+      contentPlain: 'L1/L2 정규화는 과적합을 방지한다.',
+      tags: const <String>['머신러닝', '딥러닝'],
+      status: 'active',
+      createdAt: DateTime(2026, 6, 1),
+      updatedAt: DateTime(2026, 6, 1),
+    );
+
+    await tester.binding.setSurfaceSize(mobile);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteDetailProvider('1').overrideWith((Ref ref) => note),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const MediaQuery(
+            data: MediaQueryData(size: mobile),
+            child: Scaffold(body: NoteDetailScreen(noteId: '1')),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('정규화 기법 (Regularization)'), findsOneWidget);
+    expect(find.text('#머신러닝'), findsOneWidget);
   });
 
   // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이

@@ -4,6 +4,44 @@
 
 ---
 
+## 2026-06-12 — Knowledge 노트 목록·상세 API 연동 (1단계)
+
+### 배경 / 이전 상태
+- `notes` feature 화면(목록·상세·에디터·버전·태그)은 존재하나 `data/domain/providers` 가 비어 있고 `_mock.dart` 의 가짜 노트로만 동작 (`// TODO: 팀원 구현` 마커).
+- `search` feature 는 이미 Clean Architecture + Port/Adapter 로 완성되어 있어 이를 참고 패턴으로 사용.
+
+### 변경 사항 (1단계: 목록 + 상세, 읽기 경로)
+| 파일 | 내용 |
+|------|------|
+| `notes/domain/entities/note.dart` (신규) | Note 엔티티 (백엔드 NoteResponse 대응) |
+| `notes/domain/repositories/knowledge_notes_repository.dart` (신규) | Port 인터페이스 (getNotes/getNote) |
+| `notes/domain/usecases/get_notes_usecase.dart`, `get_note_usecase.dart` (신규) | UseCase |
+| `notes/data/models/note_model.dart` (신규) | NoteResponse JSON → Entity 변환 |
+| `notes/data/datasources/knowledge_notes_remote_datasource.dart` (신규) | Dio 호출. 목록은 `ApiResponse.data.content`(Spring Page) 언랩 |
+| `notes/data/repositories/knowledge_notes_repository_impl.dart` (신규) | Repository 구현 |
+| `notes/providers/notes_providers.dart` (신규) | `notesListProvider`, `noteDetailProvider`(family) + ds/repo/usecase provider |
+| `note_screens.dart` | `_mock.dart` part 제거, Note/providers import 추가 |
+| `note_list_screen.dart` | `_mockNotes` → `notesListProvider` 연결. `_NoteCard`가 Note 사용(스니펫←contentPlain, 시간←updatedAt). 로딩/빈목록/에러+재시도 처리 |
+| `note_detail_screen.dart` | 하드코딩 제목·태그·본문 → `noteDetailProvider(noteId)` 연결. 본문은 `contentMd` 마크다운 렌더. 로딩/에러 처리. (인라인 위키링크 `_WikiBody`/`_Span` 제거 → 5단계로 분리) |
+| `note_screens/_mock.dart` (삭제) | 목 데이터 제거 |
+| `test/.../note_screens_render_test.dart` | 옛 목 동작(인라인 위키링크 `[[…]]`, "백링크 4") 검증 테스트를 provider override 기반 실데이터 렌더 검증으로 교체 |
+
+### 연동 API
+- `GET /api/v1/notes` (목록), `GET /api/v1/notes/{id}` (상세)
+
+### 설계 원칙 준수
+- Screen → Repository(Port) 경유, Dio 직접 호출 없음 / DTO(NoteModel) → Entity(Note) 변환 후 전달 / Provider 안 비즈니스 로직 없음(UseCase)
+
+### 범위 밖 (다음 단계)
+- 에디터 생성/수정(2단계), 백링크/아웃링크(3단계), 버전 이력(4단계), 태그 관리·목록 필터/정렬·위키링크 탭(5단계) — 해당 영역은 기존 목 + `// TODO` 유지.
+
+### 검증
+- `flutter analyze` (notes feature + 테스트) 경고 0개.
+- 위젯 테스트 `note_screens_render_test.dart` 12/12 통과 (목록·상세 로딩/에러 상태 포함).
+- **라이브 데이터 확인은 미실시** — knowledge-svc + 인증이 떠 있어야 가능. 현재는 정적 검증(analyze·widget test)까지.
+
+---
+
 ## 2026-06-11 — dev 배포 인프라를 main 정본에 정합 (재발산 방지)
 
 ### 배경

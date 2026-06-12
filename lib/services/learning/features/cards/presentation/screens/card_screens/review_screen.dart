@@ -98,7 +98,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
           ),
         ),
 
-        // Card area
+        // Card area + rating buttons
         Expanded(
           child: Center(
             child: SingleChildScrollView(
@@ -132,72 +132,57 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: AppSpacing.xl),
+                    // Difficulty buttons (SM-2 rating)
+                    Row(
+                      children: [
+                        _RateButton(
+                          label: '다시',
+                          sub: '<1분',
+                          color: AppColors.error,
+                          onTap: state.isSubmitting
+                              ? null
+                              : () => ref
+                                  .read(reviewNotifierProvider.notifier)
+                                  .submitRating(1),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _RateButton(
+                          label: '어려움',
+                          sub: '4일',
+                          color: AppColors.warning,
+                          onTap: state.isSubmitting
+                              ? null
+                              : () => ref
+                                  .read(reviewNotifierProvider.notifier)
+                                  .submitRating(2),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _RateButton(
+                          label: '보통',
+                          sub: '9일',
+                          color: AppColors.success,
+                          onTap: state.isSubmitting
+                              ? null
+                              : () => ref
+                                  .read(reviewNotifierProvider.notifier)
+                                  .submitRating(3),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        _RateButton(
+                          label: '쉬움',
+                          sub: '21일',
+                          color: AppColors.accent,
+                          onTap: state.isSubmitting
+                              ? null
+                              : () => ref
+                                  .read(reviewNotifierProvider.notifier)
+                                  .submitRating(4),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ),
-
-        // Difficulty buttons (SM-2 rating)
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: _cardMaxWidth + AppSpacing.lg * 2,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg,
-                0,
-                AppSpacing.lg,
-                AppSpacing.lg,
-              ),
-              child: Row(
-                children: [
-                  _RateButton(
-                    label: '다시',
-                    sub: '<1분',
-                    color: AppColors.error,
-                    onTap: state.isSubmitting
-                        ? null
-                        : () => ref
-                            .read(reviewNotifierProvider.notifier)
-                            .submitRating(1),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  _RateButton(
-                    label: '어려움',
-                    sub: '4일',
-                    color: AppColors.warning,
-                    onTap: state.isSubmitting
-                        ? null
-                        : () => ref
-                            .read(reviewNotifierProvider.notifier)
-                            .submitRating(2),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  _RateButton(
-                    label: '보통',
-                    sub: '9일',
-                    color: AppColors.success,
-                    onTap: state.isSubmitting
-                        ? null
-                        : () => ref
-                            .read(reviewNotifierProvider.notifier)
-                            .submitRating(3),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  _RateButton(
-                    label: '쉬움',
-                    sub: '21일',
-                    color: AppColors.accent,
-                    onTap: state.isSubmitting
-                        ? null
-                        : () => ref
-                            .read(reviewNotifierProvider.notifier)
-                            .submitRating(4),
-                  ),
-                ],
               ),
             ),
           ),

@@ -1,10 +1,13 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
-import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
+import 'package:synapse_frontend/services/engagement/features/community/data/community_api.dart';
+import 'package:synapse_frontend/services/engagement/features/community/providers/community_providers.dart';
+import 'package:synapse_frontend/services/engagement/features/gamification/providers/gamification_providers.dart';
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';

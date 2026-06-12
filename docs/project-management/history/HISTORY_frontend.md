@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-12 | Knowledge 노트 목록·상세 API 연동(1단계): notes data/domain/providers 신설(Clean Arch), `_mock` 제거 → `notesListProvider`/`noteDetailProvider` 연결, 상세 본문 contentMd 마크다운 렌더. analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 로그인 인트로 재생 보장 — 앱 레벨 레이어(라우터 재생성에도 생존) + phase 게이트(재생 완료 후 전환). 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 개발용 로그인 바이패스 제거(팀 요청) — 실 인증 활성화, 실패 시 인트로 중단 처리, 테스트 4건 재작성. BREAKING: 로컬 개발 시 platform-svc+계정 필요. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 보드 로드 전 디폴트 구성 깜빡임 제거(로딩 인디케이터 대기) + 대시보드 위젯테스트 fake override 규약 추가. 상세 [REPORT.md](../../REPORT.md) |

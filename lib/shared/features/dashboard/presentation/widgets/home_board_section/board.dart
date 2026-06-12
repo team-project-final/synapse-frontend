@@ -14,33 +14,27 @@ part of '../home_board_section.dart';
 /// 레이아웃은 [Wrap] 기반으로 타일이 자연 높이(content varies)를 가지도록 하여
 /// 고정 높이 클리핑을 피합니다. 데스크탑(≥700)은 full/half 2열, 모바일(<700)은
 /// 모든 타일이 단일 컬럼으로 리플로우됩니다.
-class HomeBoardSection extends ConsumerStatefulWidget {
+class HomeBoardSection extends ConsumerWidget {
   const HomeBoardSection({super.key});
 
-  @override
-  ConsumerState<HomeBoardSection> createState() => _HomeBoardSectionState();
-}
-
-class _HomeBoardSectionState extends ConsumerState<HomeBoardSection> {
-  // 편집 모드 토글은 이 화면 한정 임시 UI 상태라 로컬로 둔다.
-  bool _editing = false;
-
-  void _toggleEdit() {
-    if (_editing) {
+  void _toggleEdit(WidgetRef ref, bool editing) {
+    if (editing) {
       // '완료' = 적용: 현재 구성을 디바이스에 저장.
       unawaited(ref.read(boardConfigProvider.notifier).apply());
     }
-    setState(() => _editing = !_editing);
+    ref.read(boardEditingProvider.notifier).toggle();
   }
 
-  void _remove(_BoardKind kind) =>
+  void _remove(WidgetRef ref, _BoardKind kind) =>
       ref.read(boardConfigProvider.notifier).remove(kind.name);
 
-  void _add(_BoardKind kind) =>
+  void _add(WidgetRef ref, _BoardKind kind) =>
       ref.read(boardConfigProvider.notifier).add(kind.name);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 편집 모드 토글 — 규칙 7.3.1에 따라 setState 대신 provider 로 둔다.
+    final bool editing = ref.watch(boardEditingProvider);
     final AsyncValue<BoardConfig> configAsync = ref.watch(boardConfigProvider);
     // 로드 완료 전에는 보드를 그리지 않는다 — 디폴트 구성이 먼저 보였다가
     // 저장 구성으로 점프하는 깜빡임 방지. 위젯들이 실데이터를 갖게 되면
@@ -79,17 +73,23 @@ class _HomeBoardSectionState extends ConsumerState<HomeBoardSection> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  _BoardHeader(editing: _editing, onToggleEdit: _toggleEdit),
+                  _BoardHeader(
+                    editing: editing,
+                    onToggleEdit: () => _toggleEdit(ref, editing),
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   _BoardWrap(
                     items: items,
                     isDesktop: isDesktop,
-                    editing: _editing,
-                    onRemove: _remove,
+                    editing: editing,
+                    onRemove: (_BoardKind kind) => _remove(ref, kind),
                   ),
-                  if (_editing) ...<Widget>[
+                  if (editing) ...<Widget>[
                     const SizedBox(height: AppSpacing.md),
-                    _AddWidgetBar(items: addable, onAdd: _add),
+                    _AddWidgetBar(
+                      items: addable,
+                      onAdd: (_BoardKind kind) => _add(ref, kind),
+                    ),
                   ],
                 ],
               ),

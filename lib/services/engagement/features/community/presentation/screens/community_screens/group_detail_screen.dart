@@ -1,7 +1,5 @@
 part of '../community_screens.dart';
 
-// ── Group Detail (tab: members / shared content) ──
-
 class CommunityGroupDetailScreen extends ConsumerWidget {
   const CommunityGroupDetailScreen({required this.groupId, super.key});
 
@@ -9,294 +7,218 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final groupAsync = ref.watch(communityGroupProvider(groupId));
+
+    return groupAsync.when(
+      data: (group) => DefaultTabController(
+        length: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _GroupDetailHeader(group: group),
+            const TabBar(
+              tabs: [
+                Tab(text: '멤버'),
+                Tab(text: '공유 콘텐츠'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _MembersTab(groupId: groupId),
+                  const _GroupSharedContentTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => _ErrorState(
+        message: '그룹 정보를 불러오지 못했습니다',
+        onRetry: () => ref.invalidate(communityGroupProvider(groupId)),
+      ),
+    );
+  }
+}
+
+class _GroupDetailHeader extends ConsumerStatefulWidget {
+  const _GroupDetailHeader({required this.group});
+
+  final CommunityGroup group;
+
+  @override
+  ConsumerState<_GroupDetailHeader> createState() => _GroupDetailHeaderState();
+}
+
+class _GroupDetailHeaderState extends ConsumerState<_GroupDetailHeader> {
+  bool _joining = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final group = widget.group;
     final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
 
-    // TODO: 팀원 구현 — engagement-svc 그룹 상세 API 연동
-    final mockMembers = [
-      {'name': '김시냅스', 'role': '소유자'},
-      {'name': '이러닝', 'role': '멤버'},
-      {'name': '박지식', 'role': '멤버'},
-      {'name': '최코딩', 'role': '멤버'},
-    ];
-
-    final mockActivities = [
-      {'icon': Icons.person_add, 'text': '이러닝 님이 그룹에 참여했습니다', 'time': '2시간 전'},
-      {
-        'icon': Icons.style_outlined,
-        'text': '김시냅스 님이 새 덱을 공유했습니다',
-        'time': '3시간 전',
-      },
-      {
-        'icon': Icons.chat_outlined,
-        'text': '박지식 님이 댓글을 남겼습니다',
-        'time': '5시간 전',
-      },
-      {
-        'icon': Icons.edit_outlined,
-        'text': '최코딩 님이 노트를 수정했습니다',
-        'time': '1일 전',
-      },
-      {
-        'icon': Icons.star_outlined,
-        'text': '이러닝 님이 덱에 별점을 남겼습니다',
-        'time': '2일 전',
-      },
-    ];
-
-    // v1 ⑫ 공유 덱 / 주간 랭킹
-    const sharedDecks = [
-      (name: 'SAA 핵심 개념', sharer: '민지 공유', count: '120장'),
-      (name: 'VPC & 네트워킹', sharer: '준호 공유', count: '64장'),
-      (name: '기출 오답 모음', sharer: '서연 공유', count: '38장'),
-    ];
-    const rankings = [
-      (pos: 1, name: '민지', xp: '+980', top: true),
-      (pos: 2, name: '준호', xp: '+760', top: true),
-      (pos: 3, name: '나 (김시냅스)', xp: '+420', top: false),
-      (pos: 4, name: '서연', xp: '+310', top: false),
-    ];
-
-    return DefaultTabController(
-      length: 2,
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // gico 헤더 (v1 ⑫)
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Color.alphaBlend(
+                    AppColors.primary.withValues(alpha: 0.14),
+                    AppColors.surface,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  group.isPublic ? '🌐' : '🔒',
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Color.alphaBlend(
-                          AppColors.primary.withValues(alpha: 0.14),
-                          AppColors.surface,
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text('📜', style: TextStyle(fontSize: 24)),
+                    Text(
+                      group.name,
+                      style: textTheme.headlineSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AWS 자격증 스터디',
-                            style: textTheme.headlineSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '승인제 · 8/20명 · 가입됨',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: AppColors.stone500,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 2),
+                    Text(
+                      '${group.isPublic ? '공개' : '승인제'} · '
+                      '${group.description.isEmpty ? '설명 없음' : group.description}',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.stone500,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () {
-                        // TODO: 팀원 구현 — 초대 다이얼로그
-                      },
-                      icon: const Icon(Icons.person_add_outlined, size: 18),
-                      label: const Text('초대'),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: 팀원 구현 — 강퇴 기능
-                      },
-                      icon: const Icon(Icons.person_remove_outlined, size: 18),
-                      label: const Text('강퇴'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    TextButton.icon(
-                      onPressed: () => ReportDialog.show(
-                        context,
-                        targetTitle: 'AWS 자격증 스터디',
-                      ),
-                      icon: const Icon(Icons.flag_outlined, size: 18),
-                      label: const Text('신고'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const TabBar(
-            tabs: [
-              Tab(text: '멤버'),
-              Tab(text: '공유 콘텐츠'),
+              ),
             ],
           ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                // Members tab
-                ListView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    ...mockMembers.map(
-                      (member) => ListTile(
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: colorScheme.primaryContainer,
-                          child: Text(
-                            (member['name'] as String).substring(0, 1),
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          member['name'] as String,
-                          style: textTheme.bodyMedium,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Chip(
-                              label: Text(
-                                member['role'] as String,
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: member['role'] == '소유자'
-                                      ? AppColors.primaryAmber
-                                      : AppColors.stone500,
-                                ),
-                              ),
-                              backgroundColor: member['role'] == '소유자'
-                                  ? AppColors.primaryAmber.withValues(
-                                      alpha: 0.1,
-                                    )
-                                  : AppColors.stone100,
-                              side: BorderSide.none,
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.flag_outlined, size: 18),
-                              color: AppColors.muted,
-                              tooltip: '사용자 신고',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => ReportDialog.show(
-                                context,
-                                targetTitle: member['name'] as String,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    // 이번 주 랭킹 (v1 ⑫ .rank)
-                    const SectionLabel('이번 주 랭킹'),
-                    const SizedBox(height: AppSpacing.sm),
-                    StudyCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < rankings.length; i++)
-                            _RankRow(
-                              pos: rankings[i].pos,
-                              name: rankings[i].name,
-                              xp: rankings[i].xp,
-                              top: rankings[i].top,
-                              showDivider: i < rankings.length - 1,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    // Activity log
-                    const SectionLabel('활동 로그'),
-                    const SizedBox(height: AppSpacing.sm),
-                    ...mockActivities.map(
-                      (activity) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Row(
-                          children: [
-                            Icon(
-                              activity['icon'] as IconData,
-                              size: 18,
-                              color: AppColors.stone400,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                activity['text'] as String,
-                                style: textTheme.bodySmall,
-                              ),
-                            ),
-                            Text(
-                              activity['time'] as String,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: AppColors.stone400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              FilledButton.icon(
+                onPressed: group.joined || _joining
+                    ? null
+                    : () async {
+                        setState(() => _joining = true);
+                        try {
+                          await ref.read(communityApiProvider).joinGroup(
+                                group.id,
+                              );
+                          ref.invalidate(communityGroupsProvider);
+                          ref.invalidate(communityGroupProvider(group.id));
+                          ref.invalidate(
+                            communityGroupMembersProvider(group.id),
+                          );
+                          if (context.mounted) {
+                            AppToast.show(
+                              context,
+                              message: group.isPublic
+                                  ? '그룹에 가입했습니다'
+                                  : '그룹 가입 요청을 보냈습니다',
+                              type: ToastType.success,
+                            );
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            AppToast.show(
+                              context,
+                              message: '그룹 가입에 실패했습니다',
+                              type: ToastType.error,
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _joining = false);
+                          }
+                        }
+                      },
+                icon: const Icon(Icons.person_add_outlined, size: 18),
+                label: Text(
+                  group.joined
+                      ? '가입됨'
+                      : _joining
+                      ? '가입 중'
+                      : group.isPublic
+                      ? '가입'
+                      : '가입 요청',
                 ),
-                // Shared content tab — 공유 덱
-                ListView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    SectionLabel('공유 덱 ${sharedDecks.length}'),
-                    const SizedBox(height: AppSpacing.sm),
-                    StudyCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < sharedDecks.length; i++)
-                            _SharedDeckRow(
-                              name: sharedDecks[i].name,
-                              sharer: sharedDecks[i].sharer,
-                              count: sharedDecks[i].count,
-                              showDivider: i < sharedDecks.length - 1,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
                 ),
-                // TODO: 팀원 구현 — engagement-svc 멤버/콘텐츠 API 연동
-              ],
-            ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showInviteAndSubmit(
+                  context,
+                  ref,
+                  group: group,
+                ),
+                icon: const Icon(Icons.mail_outline, size: 18),
+                label: const Text('초대'),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showGroupEditAndSubmit(
+                  context,
+                  ref,
+                  group: group,
+                ),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('수정'),
+                style: OutlinedButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _confirmDeleteGroupAndSubmit(
+                  context,
+                  ref,
+                  group: group,
+                ),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('삭제'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: () async {
+                  await _showReportAndSubmit(
+                    context,
+                    ref,
+                    targetTitle: group.name,
+                    targetType: ReportTargetType.studyGroup,
+                    targetId: group.id,
+                  );
+                },
+                icon: const Icon(Icons.flag_outlined, size: 18),
+                label: const Text('신고'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -304,17 +226,149 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
   }
 }
 
-/// 목업 `.sharedeck` — 공유 덱 한 줄(이모지 + 이름/공유자 + 카드 수).
+class _MembersTab extends ConsumerWidget {
+  const _MembersTab({required this.groupId});
+
+  final String groupId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final membersAsync = ref.watch(communityGroupMembersProvider(groupId));
+    final leaderboardAsync = ref.watch(
+      leaderboardProvider(const LeaderboardQuery(limit: 4)),
+    );
+
+    return membersAsync.when(
+      data: (members) => ListView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: [
+          if (members.isEmpty)
+            const _EmptyGroupList(message: '아직 멤버가 없습니다')
+          else
+            ...members.map(
+              (member) => ListTile(
+                leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: colorScheme.primaryContainer,
+                  child: Text(
+                    member.userId.isEmpty ? '?' : member.userId.substring(0, 1),
+                    style: TextStyle(color: colorScheme.primary, fontSize: 14),
+                  ),
+                ),
+                title: Text(
+                  'User ${member.userId}',
+                  style: textTheme.bodyMedium,
+                ),
+                subtitle: Text(_memberStatusLabel(member.status)),
+                trailing: Chip(
+                  label: Text(
+                    _memberRoleLabel(member.role),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: member.role == 'OWNER'
+                          ? AppColors.primaryAmber
+                          : AppColors.stone500,
+                    ),
+                  ),
+                  backgroundColor: member.role == 'OWNER'
+                      ? AppColors.primaryAmber.withValues(alpha: 0.1)
+                      : AppColors.stone100,
+                  side: BorderSide.none,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.lg),
+          const SectionLabel('전체 XP 랭킹'),
+          const SizedBox(height: AppSpacing.sm),
+          leaderboardAsync.when(
+            data: (entries) => StudyCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < entries.length; i++)
+                    _RankRow(
+                      pos: entries[i].rank,
+                      name: entries[i].nickname,
+                      xp: '${entries[i].xp} XP',
+                      top: entries[i].rank <= 3,
+                      showDivider: i < entries.length - 1,
+                    ),
+                ],
+              ),
+            ),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: CircularProgressIndicator.adaptive(),
+              ),
+            ),
+            error: (_, _) => const Text('랭킹을 불러오지 못했습니다'),
+          ),
+        ],
+      ),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => _ErrorState(
+        message: '멤버 목록을 불러오지 못했습니다',
+        onRetry: () => ref.invalidate(communityGroupMembersProvider(groupId)),
+      ),
+    );
+  }
+}
+
+class _GroupSharedContentTab extends ConsumerWidget {
+  const _GroupSharedContentTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // workflow Step 5의 공유 검색 API는 groupId 필터가 없다.
+    // 그래서 이 탭은 특정 그룹 전용 콘텐츠가 아니라 커뮤니티 전체 공유 덱을 보여준다.
+    const sharedQuery = SharedContentQuery(contentType: SharedContentType.deck);
+    final sharedDecksAsync = ref.watch(sharedContentsProvider(sharedQuery));
+
+    return sharedDecksAsync.when(
+      data: (sharedDecks) => ListView(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: [
+          SectionLabel('커뮤니티 공유 덱 ${sharedDecks.length}'),
+          const SizedBox(height: AppSpacing.sm),
+          if (sharedDecks.isEmpty)
+            const _EmptyGroupList(message: '공유된 덱이 없습니다')
+          else
+            StudyCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < sharedDecks.length; i++)
+                    _SharedDeckRow(
+                      content: sharedDecks[i],
+                      showDivider: i < sharedDecks.length - 1,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => _ErrorState(
+        message: '공유 콘텐츠를 불러오지 못했습니다',
+        onRetry: () => ref.invalidate(sharedContentsProvider(sharedQuery)),
+      ),
+    );
+  }
+}
+
 class _SharedDeckRow extends StatelessWidget {
-  const _SharedDeckRow({
-    required this.name,
-    required this.sharer,
-    required this.count,
-    required this.showDivider,
-  });
-  final String name;
-  final String sharer;
-  final String count;
+  const _SharedDeckRow({required this.content, required this.showDivider});
+
+  final SharedContent content;
   final bool showDivider;
 
   @override
@@ -336,40 +390,35 @@ class _SharedDeckRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  content.title,
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
-                  sharer,
+                  'User ${content.ownerId}',
                   style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
           ),
           Text(
-            count,
+            '${content.downloadCount}회',
             style: textTheme.bodySmall?.copyWith(
-              color: AppColors.muted,
+              color: AppColors.warning,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
           OutlinedButton(
-            onPressed: () {
-              AppToast.show(
-                context,
-                message: '\'$name\' 덱을 내 라이브러리에 추가했습니다',
-                type: ToastType.success,
-              );
-              // TODO: 팀원 구현 — 공유 덱 받기(복사) API 연동
-            },
+            onPressed: () => context.go(
+              AppRoutes.communitySharedDeckDetailPath(content.shareToken),
+            ),
             style: OutlinedButton.styleFrom(
               visualDensity: VisualDensity.compact,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             ),
-            child: const Text('공유받기'),
+            child: const Text('상세'),
           ),
         ],
       ),
@@ -377,7 +426,6 @@ class _SharedDeckRow extends StatelessWidget {
   }
 }
 
-/// 목업 `.rank` — 주간 랭킹 한 줄(순위 핀 + 이름 + XP).
 class _RankRow extends StatelessWidget {
   const _RankRow({
     required this.pos,
@@ -386,6 +434,7 @@ class _RankRow extends StatelessWidget {
     required this.top,
     required this.showDivider,
   });
+
   final int pos;
   final String name;
   final String xp;
@@ -441,5 +490,201 @@ class _RankRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+String _memberRoleLabel(String role) {
+  return switch (role) {
+    'OWNER' => '소유자',
+    'ADMIN' => '관리자',
+    _ => '멤버',
+  };
+}
+
+String _memberStatusLabel(String status) {
+  return switch (status) {
+    'PENDING' => '가입 대기',
+    'REJECTED' => '거절됨',
+    _ => '활성',
+  };
+}
+
+Future<void> _showInviteAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final controller = TextEditingController();
+  final userId = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('멤버 초대'),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(
+          labelText: '사용자 ID',
+          border: OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.number,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: const Text('초대'),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  if (userId == null || userId.isEmpty) return;
+
+  try {
+    await ref.read(communityApiProvider).inviteGroupMember(
+          groupId: group.id,
+          userId: userId,
+        );
+    ref.invalidate(communityGroupMembersProvider(group.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '초대를 보냈습니다', type: ToastType.success);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '초대에 실패했습니다', type: ToastType.error);
+    }
+  }
+}
+
+Future<void> _showGroupEditAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final nameController = TextEditingController(text: group.name);
+  final descriptionController = TextEditingController(text: group.description);
+  var isPublic = group.isPublic;
+
+  final result = await showDialog<_GroupEditDraft>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('그룹 수정'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: '그룹 이름',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '설명',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('공개 그룹'),
+                value: isPublic,
+                onChanged: (value) => setDialogState(() => isPublic = value),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(context).pop(
+                _GroupEditDraft(
+                  name: name,
+                  description: descriptionController.text.trim(),
+                  isPublic: isPublic,
+                ),
+              );
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    ),
+  );
+  nameController.dispose();
+  descriptionController.dispose();
+  if (result == null) return;
+
+  try {
+    final updated = await ref.read(communityApiProvider).updateGroup(
+          groupId: group.id,
+          name: result.name,
+          description: result.description,
+          isPublic: result.isPublic,
+        );
+    ref.invalidate(communityGroupsProvider);
+    ref.invalidate(communityGroupProvider(updated.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹을 수정했습니다', type: ToastType.success);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹 수정에 실패했습니다', type: ToastType.error);
+    }
+  }
+}
+
+class _GroupEditDraft {
+  const _GroupEditDraft({
+    required this.name,
+    required this.description,
+    required this.isPublic,
+  });
+
+  final String name;
+  final String description;
+  final bool isPublic;
+}
+
+Future<void> _confirmDeleteGroupAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final ok = await ConfirmDialog.show(
+    context,
+    title: '그룹 삭제',
+    content: '"${group.name}" 그룹을 삭제하면 되돌릴 수 없습니다. 계속할까요?',
+    confirmLabel: '삭제',
+    isDestructive: true,
+  );
+  if (ok != true) return;
+
+  try {
+    await ref.read(communityApiProvider).deleteGroup(group.id);
+    ref.invalidate(communityGroupsProvider);
+    ref.invalidate(communityGroupProvider(group.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹을 삭제했습니다', type: ToastType.success);
+      context.go(AppRoutes.communityGroups);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹 삭제에 실패했습니다', type: ToastType.error);
+    }
   }
 }

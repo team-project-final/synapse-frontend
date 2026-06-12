@@ -298,7 +298,16 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: Text(
+                    sliced.isNotEmpty
+                        ? '${sliced.first.date.month}/${sliced.first.date.day} ~ 오늘  (${sliced.length}일)'
+                        : '데이터 없음',
+                    style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
 
                 // ── Retention curve (실데이터) ──
                 Text('기억 유지율', style: textTheme.titleMedium),
@@ -425,8 +434,12 @@ class _LineChartPainter extends CustomPainter {
     final dotPaint = Paint()..color = color;
 
     final path = Path();
+    final labelStep = (values.length / 7).ceil().clamp(1, values.length);
     for (int i = 0; i < values.length; i++) {
-      final x = leftPad + (chartW / (values.length - 1)) * i;
+      // values.length == 1이면 분모가 0 → 가운데 고정
+      final double x = values.length == 1
+          ? leftPad + chartW / 2
+          : leftPad + (chartW / (values.length - 1)) * i;
       final y = chartH * (1 - values[i] / maxY);
       if (i == 0) {
         path.moveTo(x, y);
@@ -435,15 +448,17 @@ class _LineChartPainter extends CustomPainter {
       }
       canvas.drawCircle(Offset(x, y), 4, dotPaint);
 
-      // X label
-      final tp = TextPainter(
-        text: TextSpan(
-          text: labels[i],
-          style: const TextStyle(fontSize: 10, color: AppColors.stone400),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(x - tp.width / 2, chartH + 6));
+      // X label — 겹침 방지: 최대 7개만 표시
+      if (i % labelStep == 0 || i == values.length - 1) {
+        final tp = TextPainter(
+          text: TextSpan(
+            text: labels[i],
+            style: const TextStyle(fontSize: 10, color: AppColors.stone400),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, Offset(x - tp.width / 2, chartH + 6));
+      }
     }
     canvas.drawPath(path, linePaint);
   }
@@ -498,6 +513,7 @@ class _BarChartPainter extends CustomPainter {
     // Bars
     final barWidth = chartW / values.length * 0.6;
     final spacing = chartW / values.length;
+    final labelStep = (values.length / 7).ceil().clamp(1, values.length);
 
     for (int i = 0; i < values.length; i++) {
       final barH = chartH * (values[i] / maxY);
@@ -512,18 +528,20 @@ class _BarChartPainter extends CustomPainter {
         barPaint,
       );
 
-      // X label
-      final tp = TextPainter(
-        text: TextSpan(
-          text: labels[i],
-          style: const TextStyle(fontSize: 10, color: AppColors.stone400),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(
-        canvas,
-        Offset(leftPad + spacing * i + (spacing - tp.width) / 2, chartH + 6),
-      );
+      // X label — 겹침 방지: 최대 7개만 표시
+      if (i % labelStep == 0 || i == values.length - 1) {
+        final tp = TextPainter(
+          text: TextSpan(
+            text: labels[i],
+            style: const TextStyle(fontSize: 10, color: AppColors.stone400),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(
+          canvas,
+          Offset(leftPad + spacing * i + (spacing - tp.width) / 2, chartH + 6),
+        );
+      }
     }
   }
 

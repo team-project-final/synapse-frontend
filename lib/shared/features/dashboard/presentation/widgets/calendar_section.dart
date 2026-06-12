@@ -84,7 +84,7 @@ class _WeekStripState extends State<_WeekStrip> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = DateTime(2026, 5, 15);
     _weekStart = now.subtract(Duration(days: now.weekday - 1));
   }
 
@@ -102,7 +102,7 @@ class _WeekStripState extends State<_WeekStrip> {
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final DateTime today = DateTime.now();
+    final DateTime today = DateTime(2026, 5, 15);
 
     return Card(
       child: Padding(
@@ -246,7 +246,7 @@ class _MonthCalendarState extends State<_MonthCalendar> {
   @override
   void initState() {
     super.initState();
-    final DateTime now = DateTime.now();
+    final DateTime now = DateTime(2026, 5, 15);
     _displayMonth = DateTime(now.year, now.month);
   }
 
@@ -259,7 +259,7 @@ class _MonthCalendarState extends State<_MonthCalendar> {
 
   // 6주 × 7일 = 42칸 동적 생성
   List<_CalCell> get _cells {
-    final DateTime today = DateTime.now();
+    final DateTime today = DateTime(2026, 5, 15);
     final DateTime start = _gridStart;
     return List.generate(42, (int i) {
       final DateTime date = start.add(Duration(days: i));

@@ -17,7 +17,7 @@ class PlannerSection extends StatefulWidget {
 }
 
 class _PlannerSectionState extends State<PlannerSection> {
-  DateTime _selected = DateTime.now();
+  DateTime _selected = DateTime(2026, 5, 15);
 
   final GlobalKey _boardKey = GlobalKey();
 

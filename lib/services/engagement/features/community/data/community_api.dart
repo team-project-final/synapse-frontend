@@ -14,6 +14,12 @@ final communityApiProvider = Provider<CommunityApi>((ref) {
   );
 });
 
+// community 화면이 공유 덱을 보여줄 때 engagement에는 공유 메타데이터만 있고,
+// 실제 카드 내용/복사 로직은 learning-svc에 있으므로 learning 전용 Dio를 따로 사용한다.
+final communityLearningDeckApiProvider = Provider<CommunityLearningDeckApi>((ref) {
+  return CommunityLearningDeckApi(ref.watch(learningDioProvider));
+});
+
 // 로컬 k8s 가이드 기준으로 일반 환경은 Gateway의 engagement 라우트를 타고,
 // platform-dev만 engagement 서비스에 직접 붙도록 API prefix를 분리한다.
 extension CommunityApiPrefix on AppEnvironment {
@@ -24,6 +30,46 @@ extension CommunityApiPrefix on AppEnvironment {
       AppEnvironment.prod => '/api/engagement/api/v1',
       AppEnvironment.platformDev => '/api/v1',
     };
+  }
+}
+
+class CommunityLearningDeckApi {
+  const CommunityLearningDeckApi(this._dio);
+
+  final Dio _dio;
+
+  Future<SharedDeckDetail> getSharedDeckDetail({
+    required String deckId,
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    // contentId(deckId)는 learning의 원본 덱을 찾는 값이고,
+    // sharedContentId/shareToken은 engagement에 등록된 공유글이 맞는지 검증하는 값이다.
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/decks/$deckId/shared-detail',
+      queryParameters: {
+        'sharedContentId': sharedContentId,
+        'shareToken': shareToken,
+      },
+    );
+    return SharedDeckDetail.fromJson(_unwrapData(response.data));
+  }
+
+  Future<SharedDeckCopyResult> copyFromShare(String deckId) async {
+    // 실제 덱/카드 복제는 learning-svc가 소유한다.
+    // engagement의 fork는 복제 이후 다운로드 수와 공유 메타데이터를 갱신하는 단계다.
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/decks/$deckId/copy-from-share',
+    );
+    return SharedDeckCopyResult.fromJson(_unwrapData(response.data));
+  }
+
+  Future<DeckShareableStatus> getShareableStatus(String deckId) async {
+    // 공유 생성 전에 learning이 덱 소유권/공유 가능 상태를 확인할 수 있도록 준비한 API다.
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/decks/$deckId/shareable',
+    );
+    return DeckShareableStatus.fromJson(_unwrapData(response.data));
   }
 }
 
@@ -220,7 +266,9 @@ class CommunityApi {
         '$_prefix/community/share',
         data: {
           'contentType': contentType.apiValue,
-          'contentId': int.tryParse(contentId) ?? contentId,
+          // contentId는 learning 덱 UUID처럼 문자열 원본 ID가 들어올 수 있다.
+          // engagement는 값을 해석하지 않고 공유 메타데이터로만 저장한다.
+          'contentId': contentId,
           'title': title,
           'description': description,
           'tags': tags,
@@ -361,7 +409,7 @@ class CommunityApi {
 
   Future<SharedContent> forkSharedContent(String token) async {
     if (await _shouldUseLocalFallbackWithoutRequest()) {
-      final content = _findLocalSharedContent(token);
+      final content = _incrementLocalSharedContentDownloadCount(token);
       if (content != null) {
         return content;
       }
@@ -373,7 +421,7 @@ class CommunityApi {
       );
       return SharedContent.fromJson(response.data ?? const <String, dynamic>{});
     } on DioException catch (error) {
-      final content = _findLocalSharedContent(token);
+      final content = _incrementLocalSharedContentDownloadCount(token);
       if (_canUseLocalFallback(error) && content != null) {
         return content;
       }
@@ -647,6 +695,20 @@ class CommunityApi {
     return null;
   }
 
+  SharedContent? _incrementLocalSharedContentDownloadCount(String token) {
+    final index = _localSharedContents.indexWhere(
+      (content) => content.shareToken == token,
+    );
+    if (index < 0) {
+      return null;
+    }
+    final updated = _localSharedContents[index].copyWith(
+      downloadCount: _localSharedContents[index].downloadCount + 1,
+    );
+    _localSharedContents[index] = updated;
+    return updated;
+  }
+
   void _deleteLocalSharedContent(String id) {
     _localSharedContents.removeWhere(
       (content) => content.id == id || content.shareToken == id,
@@ -690,6 +752,13 @@ class CommunityApi {
     _localReports[index] = updated;
     return updated;
   }
+}
+
+Map<String, dynamic> _unwrapData(Map<String, dynamic>? json) {
+  // learning 응답이 { data: {...} } 래핑이든 raw object든 같은 모델로 파싱한다.
+  final body = json ?? const <String, dynamic>{};
+  final data = body['data'];
+  return data is Map<String, dynamic> ? data : body;
 }
 
 List<CommunityGroup> _initialLocalGroups() {
@@ -1012,6 +1081,34 @@ class SharedContent {
   final String? sourceShareId;
   final DateTime? createdAt;
 
+  SharedContent copyWith({
+    String? id,
+    String? shareToken,
+    SharedContentType? contentType,
+    String? contentId,
+    String? ownerId,
+    String? title,
+    String? description,
+    List<String>? tags,
+    int? downloadCount,
+    String? sourceShareId,
+    DateTime? createdAt,
+  }) {
+    return SharedContent(
+      id: id ?? this.id,
+      shareToken: shareToken ?? this.shareToken,
+      contentType: contentType ?? this.contentType,
+      contentId: contentId ?? this.contentId,
+      ownerId: ownerId ?? this.ownerId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      tags: tags ?? this.tags,
+      downloadCount: downloadCount ?? this.downloadCount,
+      sourceShareId: sourceShareId ?? this.sourceShareId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
   // 공유 콘텐츠는 덱/노트가 같은 API를 사용하므로 contentType으로 화면 흐름을 나눈다.
   // 서버 값이 없거나 알 수 없으면 기존 노트 공유 화면으로 안전하게 떨어뜨린다.
   factory SharedContent.fromJson(Map<String, dynamic> json) {
@@ -1034,6 +1131,105 @@ class SharedContent {
           ? null
           : '${json['sourceShareId']}',
       createdAt: DateTime.tryParse('${json['createdAt'] ?? ''}'),
+    );
+  }
+}
+
+class SharedDeckDetail {
+  const SharedDeckDetail({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.color,
+    required this.cards,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final String id;
+  final String name;
+  final String description;
+  final String color;
+  final List<SharedDeckCard> cards;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  int get cardCount => cards.length;
+
+  factory SharedDeckDetail.fromJson(Map<String, dynamic> json) {
+    // learning 쪽 DTO 이름이 최종 확정되기 전까지 cards/cardPreview/items를 모두 받아
+    // 화면은 카드 배열만 있으면 먼저 동작할 수 있게 한다.
+    final rawCards = json['cards'] ?? json['cardPreview'] ?? json['items'];
+    return SharedDeckDetail(
+      id: '${json['id'] ?? json['deckId'] ?? ''}',
+      name: (json['name'] ?? json['title'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
+      color: (json['color'] ?? '').toString(),
+      cards: rawCards is List
+          ? rawCards
+              .whereType<Map<String, dynamic>>()
+              .map(SharedDeckCard.fromJson)
+              .toList(growable: false)
+          : const [],
+      createdAt: DateTime.tryParse('${json['createdAt'] ?? ''}'),
+      updatedAt: DateTime.tryParse('${json['updatedAt'] ?? ''}'),
+    );
+  }
+}
+
+class SharedDeckCard {
+  const SharedDeckCard({
+    required this.id,
+    required this.frontContent,
+    required this.backContent,
+    required this.cardType,
+  });
+
+  final String id;
+  final String frontContent;
+  final String backContent;
+  final String cardType;
+
+  factory SharedDeckCard.fromJson(Map<String, dynamic> json) {
+    // 카드 식별자와 앞/뒷면 필드는 서비스마다 이름이 달라질 수 있어 대표 후보를 순서대로 읽는다.
+    return SharedDeckCard(
+      id: '${json['id'] ?? json['cardId'] ?? ''}',
+      frontContent: (json['frontContent'] ?? json['front'] ?? '').toString(),
+      backContent: (json['backContent'] ?? json['back'] ?? '').toString(),
+      cardType: (json['cardType'] ?? json['type'] ?? '').toString(),
+    );
+  }
+}
+
+class SharedDeckCopyResult {
+  const SharedDeckCopyResult({required this.deckId});
+
+  final String deckId;
+
+  factory SharedDeckCopyResult.fromJson(Map<String, dynamic> json) {
+    // 복사 API가 새 덱 id를 어떤 필드명으로 주더라도 내 덱 목록 갱신 흐름은 유지한다.
+    return SharedDeckCopyResult(
+      deckId: '${json['id'] ?? json['deckId'] ?? json['copiedDeckId'] ?? ''}',
+    );
+  }
+}
+
+class DeckShareableStatus {
+  const DeckShareableStatus({
+    required this.shareable,
+    required this.reason,
+  });
+
+  final bool shareable;
+  final String reason;
+
+  factory DeckShareableStatus.fromJson(Map<String, dynamic> json) {
+    // boolean 필드명이 shareable/isShareable 중 어느 쪽이어도 같은 의미로 처리한다.
+    return DeckShareableStatus(
+      shareable: (json['shareable'] as bool?) ??
+          (json['isShareable'] as bool?) ??
+          false,
+      reason: (json['reason'] ?? json['message'] ?? '').toString(),
     );
   }
 }

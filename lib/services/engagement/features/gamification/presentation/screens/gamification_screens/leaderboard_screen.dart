@@ -27,6 +27,20 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    // TODO: 팀원 구현 — engagement-svc 리더보드 API 연동
+    const mockEntries = [
+      _LeaderboardEntry(rank: 1, name: '박탑원', xp: 12450, isMe: false),
+      _LeaderboardEntry(rank: 2, name: '이세컨', xp: 11200, isMe: false),
+      _LeaderboardEntry(rank: 3, name: '최써드', xp: 9870, isMe: false),
+      _LeaderboardEntry(rank: 4, name: '정포스', xp: 8540, isMe: false),
+      _LeaderboardEntry(rank: 5, name: '강피프', xp: 7320, isMe: false),
+      _LeaderboardEntry(rank: 6, name: '홍식스', xp: 6100, isMe: false),
+      _LeaderboardEntry(rank: 7, name: '김시냅스', xp: 3240, isMe: true),
+      _LeaderboardEntry(rank: 8, name: '윤에잇', xp: 2980, isMe: false),
+      _LeaderboardEntry(rank: 9, name: '임나인', xp: 2150, isMe: false),
+      _LeaderboardEntry(rank: 10, name: '서텐', xp: 1890, isMe: false),
+    ];
+
     return Column(
       children: [
         TabBar(
@@ -41,12 +55,17 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              _LeaderboardTab(period: 'all'),
-              _LeaderboardTab(period: 'group'),
-              _LeaderboardTab(period: 'weekly'),
-              _LeaderboardTab(period: 'monthly'),
-            ],
+            children: List.generate(
+              4,
+              (_) => ListView.builder(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: mockEntries.length,
+                itemBuilder: (context, i) {
+                  final entry = mockEntries[i];
+                  return _LeaderboardRow(entry: entry);
+                },
+              ),
+            ),
           ),
         ),
       ],
@@ -54,39 +73,22 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   }
 }
 
-class _LeaderboardTab extends ConsumerWidget {
-  const _LeaderboardTab({required this.period});
-
-  final String period;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entriesAsync = ref.watch(
-      leaderboardProvider(LeaderboardQuery(period: period, limit: 20)),
-    );
-
-    return entriesAsync.when(
-      data: (entries) => entries.isEmpty
-          ? const Center(child: Text('아직 리더보드 데이터가 없습니다'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: entries.length,
-              itemBuilder: (context, i) => _LeaderboardRow(entry: entries[i]),
-            ),
-      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-      error: (_, _) => _GameErrorState(
-        message: '리더보드를 불러오지 못했습니다',
-        onRetry: () => ref.invalidate(
-          leaderboardProvider(LeaderboardQuery(period: period, limit: 20)),
-        ),
-      ),
-    );
-  }
+class _LeaderboardEntry {
+  const _LeaderboardEntry({
+    required this.rank,
+    required this.name,
+    required this.xp,
+    required this.isMe,
+  });
+  final int rank;
+  final String name;
+  final int xp;
+  final bool isMe;
 }
 
 class _LeaderboardRow extends StatelessWidget {
   const _LeaderboardRow({required this.entry});
-  final LeaderboardEntry entry;
+  final _LeaderboardEntry entry;
 
   @override
   Widget build(BuildContext context) {
@@ -107,8 +109,13 @@ class _LeaderboardRow extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: null,
+        color: entry.isMe
+            ? AppColors.primary.withValues(alpha: 0.10) // highlight my row
+            : null,
         borderRadius: BorderRadius.circular(AppRadius.md),
+        border: entry.isMe
+            ? Border.all(color: AppColors.primary.withValues(alpha: 0.5))
+            : null,
       ),
       child: Row(
         children: [
@@ -121,7 +128,7 @@ class _LeaderboardRow extends StatelessWidget {
                     '${entry.rank}',
                     style: textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.muted,
+                      color: entry.isMe ? AppColors.primary : AppColors.muted,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -130,11 +137,13 @@ class _LeaderboardRow extends StatelessWidget {
           // Avatar
           CircleAvatar(
             radius: 16,
-            backgroundColor: AppColors.surface2,
+            backgroundColor: entry.isMe
+                ? AppColors.primary.withValues(alpha: 0.2)
+                : AppColors.surface2,
             child: Text(
-              entry.nickname.isEmpty ? '?' : entry.nickname.substring(0, 1),
+              entry.name.substring(0, 1),
               style: textTheme.labelSmall?.copyWith(
-                color: AppColors.muted,
+                color: entry.isMe ? AppColors.primary : AppColors.muted,
               ),
             ),
           ),
@@ -142,15 +151,18 @@ class _LeaderboardRow extends StatelessWidget {
           // Name
           Expanded(
             child: Text(
-              entry.nickname,
-              style: textTheme.bodyMedium,
+              entry.name,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: entry.isMe ? FontWeight.bold : null,
+              ),
             ),
           ),
           // XP
           Text(
             '${entry.xp} XP',
             style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.muted,
+              color: entry.isMe ? AppColors.primary : AppColors.muted,
+              fontWeight: entry.isMe ? FontWeight.bold : null,
             ),
           ),
         ],

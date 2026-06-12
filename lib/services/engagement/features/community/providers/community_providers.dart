@@ -19,6 +19,13 @@ final communityGroupMembersProvider =
   return ref.watch(communityApiProvider).getMembers(groupId);
 });
 
+final communityGroupMemberCountProvider =
+    FutureProvider.family<int, String>((ref, groupId) async {
+  final members = await ref.watch(communityGroupMembersProvider(groupId).future);
+  // GroupResponse에는 memberCount가 없으므로 멤버 목록에서 ACTIVE 상태만 세어 표시한다.
+  return members.where((member) => member.status == 'ACTIVE').length;
+});
+
 final sharedContentsProvider =
     FutureProvider.family<List<SharedContent>, SharedContentQuery>((
   ref,
@@ -33,6 +40,20 @@ final sharedContentsProvider =
 final sharedContentProvider =
     FutureProvider.family<SharedContent, String>((ref, token) {
   return ref.watch(communityApiProvider).getSharedContent(token);
+});
+
+// 공유 덱 상세는 engagement의 공유글 정보만으로는 부족하다.
+// contentId/shareToken/sharedContentId를 묶어 learning-svc에서 실제 카드 내용을 가져온다.
+final sharedDeckDetailProvider =
+    FutureProvider.family<SharedDeckDetail, SharedDeckDetailQuery>((
+  ref,
+  query,
+) {
+  return ref.watch(communityLearningDeckApiProvider).getSharedDeckDetail(
+        deckId: query.deckId,
+        sharedContentId: query.sharedContentId,
+        shareToken: query.shareToken,
+      );
 });
 
 final communityReportsProvider =
@@ -57,4 +78,29 @@ class SharedContentQuery {
 
   @override
   int get hashCode => Object.hash(query, contentType);
+}
+
+// Riverpod family 캐시는 입력 객체의 ==/hashCode를 기준으로 나뉜다.
+// 세 값을 하나로 묶어야 같은 공유 덱 상세 요청을 같은 캐시로 재사용할 수 있다.
+class SharedDeckDetailQuery {
+  const SharedDeckDetailQuery({
+    required this.deckId,
+    required this.sharedContentId,
+    required this.shareToken,
+  });
+
+  final String deckId;
+  final String sharedContentId;
+  final String shareToken;
+
+  @override
+  bool operator ==(Object other) {
+    return other is SharedDeckDetailQuery &&
+        other.deckId == deckId &&
+        other.sharedContentId == sharedContentId &&
+        other.shareToken == shareToken;
+  }
+
+  @override
+  int get hashCode => Object.hash(deckId, sharedContentId, shareToken);
 }

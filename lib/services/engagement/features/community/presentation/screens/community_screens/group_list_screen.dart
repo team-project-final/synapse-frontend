@@ -1,6 +1,6 @@
 part of '../community_screens.dart';
 
-// ── Group List (tab: my groups / explore) ──
+// ── Group List (tab: all groups / explore) ──
 
 class CommunityGroupsScreen extends ConsumerWidget {
   const CommunityGroupsScreen({super.key});
@@ -17,14 +17,14 @@ class CommunityGroupsScreen extends ConsumerWidget {
             children: [
               const TabBar(
                 tabs: [
-                  Tab(text: '내 그룹'),
+                  Tab(text: '전체'),
                   Tab(text: '탐색'),
                 ],
               ),
               Expanded(
                 child: TabBarView(
                   children: [
-                    // My groups tab
+                    // 전체 그룹 탭
                     groupsAsync.when(
                       data: (groups) {
                         final items = groups
@@ -32,7 +32,7 @@ class CommunityGroupsScreen extends ConsumerWidget {
                             .toList(growable: false);
                         return items.isEmpty
                             ? _EmptyGroupList(
-                                message: '가입한 그룹이 없습니다',
+                                message: '그룹이 없습니다',
                                 actionLabel: '그룹 만들기',
                                 onAction: () =>
                                     context.go(AppRoutes.communityGroupNew),
@@ -47,22 +47,22 @@ class CommunityGroupsScreen extends ConsumerWidget {
                         onRetry: () => ref.invalidate(communityGroupsProvider),
                       ),
                     ),
-                    // Explore tab — 공개 그룹 검색/탐색
+                    // Explore tab — API에서 받은 전체 그룹 중 공개 그룹만 클라이언트에서 분리한다.
+                    // API 실패 시 목업 그룹을 보여주지 않고 에러 상태를 보여줘 실제 데이터와 섞이지 않게 한다.
                     groupsAsync.when(
                       data: (groups) {
                         final items = groups
                             .where((group) => group.isPublic)
                             .map((group) => _groupDataFromApi(group))
                             .toList(growable: false);
-                        return _ExploreTab(
-                          groups: items.isEmpty ? _exploreGroups : items,
-                        );
+                        return _ExploreTab(groups: items);
                       },
                       loading: () => const Center(
                         child: CircularProgressIndicator.adaptive(),
                       ),
-                      error: (error, _) => const _ExploreTab(
-                        groups: _exploreGroups,
+                      error: (error, _) => _ErrorState(
+                        message: '공개 그룹을 불러오지 못했습니다',
+                        onRetry: () => ref.invalidate(communityGroupsProvider),
                       ),
                     ),
                   ],
@@ -210,6 +210,16 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
   Widget build(BuildContext context) {
     final group = widget.group;
     final textTheme = Theme.of(context).textTheme;
+    // 카드의 가입자 수는 목업 숫자가 아니라 /members 응답의 ACTIVE 인원으로 계산한다.
+    // 로딩/실패 상태도 같이 보여줘 실제 API 상태가 화면에 드러나게 한다.
+    final memberCountAsync = ref.watch(
+      communityGroupMemberCountProvider(group.id),
+    );
+    final memberText = memberCountAsync.when(
+      data: (count) => '$count명',
+      loading: () => '멤버 확인 중',
+      error: (_, _) => '멤버 확인 실패',
+    );
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm + AppSpacing.xxs),
@@ -218,7 +228,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
-            // gico — 그룹 이모지 박스 (v1 .gico)
+            // 그룹 공개 여부를 직관적으로 보이게 하는 아이콘 영역이다.
             Container(
               width: 44,
               height: 44,
@@ -245,8 +255,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${group.accessLabel} · ${group.memberCount}/${group.maxMembers}명 '
-                    '· 공유덱 ${group.sharedDeckCount}',
+                    '${group.accessLabel} · $memberText',
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.muted,
                       fontWeight: FontWeight.w600,
@@ -258,7 +267,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // 가입 상태 핀 (v1 .gjoin)
+            // 가입 요청 중에는 버튼을 잠가 중복 join 요청을 막는다.
             _JoinPin(
               joined: group.joined,
               loading: _joining,
@@ -304,7 +313,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
   }
 }
 
-/// 목업 `.gjoin` — 가입됨/가입 상태 핀.
+/// 가입됨/가입 상태 핀.
 class _JoinPin extends StatelessWidget {
   const _JoinPin({required this.joined, required this.loading, this.onTap});
   final bool joined;
@@ -403,5 +412,37 @@ class _EmptyGroupList extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Future<void> _showReportAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required String targetTitle,
+  required ReportTargetType targetType,
+  required String targetId,
+}) async {
+  final result = await ReportDialog.show(context, targetTitle: targetTitle);
+  if (result == null) return;
+
+  final reason = result['reason'] ?? '';
+  final detail = result['detail']?.trim();
+  final reasonText = detail == null || detail.isEmpty
+      ? reason
+      : '$reason - $detail';
+
+  try {
+    await ref.read(communityApiProvider).reportContent(
+          targetType: targetType,
+          targetId: targetId,
+          reason: reasonText,
+        );
+    if (context.mounted) {
+      AppToast.show(context, message: '신고가 접수되었습니다', type: ToastType.success);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '신고 접수에 실패했습니다', type: ToastType.error);
+    }
   }
 }

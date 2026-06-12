@@ -280,7 +280,7 @@ class _MembersTab extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: AppSpacing.lg),
-          const SectionLabel('이번 주 랭킹'),
+          const SectionLabel('전체 XP 랭킹'),
           const SizedBox(height: AppSpacing.sm),
           leaderboardAsync.when(
             data: (entries) => StudyCard(
@@ -294,7 +294,7 @@ class _MembersTab extends ConsumerWidget {
                     _RankRow(
                       pos: entries[i].rank,
                       name: entries[i].nickname,
-                      xp: '+${entries[i].xp}',
+                      xp: '${entries[i].xp} XP',
                       top: entries[i].rank <= 3,
                       showDivider: i < entries.length - 1,
                     ),
@@ -325,6 +325,8 @@ class _GroupSharedContentTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // workflow Step 5의 공유 검색 API는 groupId 필터가 없다.
+    // 그래서 이 탭은 특정 그룹 전용 콘텐츠가 아니라 커뮤니티 전체 공유 덱을 보여준다.
     const sharedQuery = SharedContentQuery(contentType: SharedContentType.deck);
     final sharedDecksAsync = ref.watch(sharedContentsProvider(sharedQuery));
 
@@ -332,7 +334,7 @@ class _GroupSharedContentTab extends ConsumerWidget {
       data: (sharedDecks) => ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          SectionLabel('공유 덱 ${sharedDecks.length}'),
+          SectionLabel('커뮤니티 공유 덱 ${sharedDecks.length}'),
           const SizedBox(height: AppSpacing.sm),
           if (sharedDecks.isEmpty)
             const _EmptyGroupList(message: '공유된 덱이 없습니다')
@@ -403,7 +405,7 @@ class _SharedDeckRow extends StatelessWidget {
           Text(
             '${content.downloadCount}회',
             style: textTheme.bodySmall?.copyWith(
-              color: AppColors.muted,
+              color: AppColors.warning,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -505,4 +507,184 @@ String _memberStatusLabel(String status) {
     'REJECTED' => '거절됨',
     _ => '활성',
   };
+}
+
+Future<void> _showInviteAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final controller = TextEditingController();
+  final userId = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('멤버 초대'),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(
+          labelText: '사용자 ID',
+          border: OutlineInputBorder(),
+        ),
+        keyboardType: TextInputType.number,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+          child: const Text('초대'),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  if (userId == null || userId.isEmpty) return;
+
+  try {
+    await ref.read(communityApiProvider).inviteGroupMember(
+          groupId: group.id,
+          userId: userId,
+        );
+    ref.invalidate(communityGroupMembersProvider(group.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '초대를 보냈습니다', type: ToastType.success);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '초대에 실패했습니다', type: ToastType.error);
+    }
+  }
+}
+
+Future<void> _showGroupEditAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final nameController = TextEditingController(text: group.name);
+  final descriptionController = TextEditingController(text: group.description);
+  var isPublic = group.isPublic;
+
+  final result = await showDialog<_GroupEditDraft>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('그룹 수정'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: '그룹 이름',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: '설명',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('공개 그룹'),
+                value: isPublic,
+                onChanged: (value) => setDialogState(() => isPublic = value),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(context).pop(
+                _GroupEditDraft(
+                  name: name,
+                  description: descriptionController.text.trim(),
+                  isPublic: isPublic,
+                ),
+              );
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    ),
+  );
+  nameController.dispose();
+  descriptionController.dispose();
+  if (result == null) return;
+
+  try {
+    final updated = await ref.read(communityApiProvider).updateGroup(
+          groupId: group.id,
+          name: result.name,
+          description: result.description,
+          isPublic: result.isPublic,
+        );
+    ref.invalidate(communityGroupsProvider);
+    ref.invalidate(communityGroupProvider(updated.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹을 수정했습니다', type: ToastType.success);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹 수정에 실패했습니다', type: ToastType.error);
+    }
+  }
+}
+
+class _GroupEditDraft {
+  const _GroupEditDraft({
+    required this.name,
+    required this.description,
+    required this.isPublic,
+  });
+
+  final String name;
+  final String description;
+  final bool isPublic;
+}
+
+Future<void> _confirmDeleteGroupAndSubmit(
+  BuildContext context,
+  WidgetRef ref, {
+  required CommunityGroup group,
+}) async {
+  final ok = await ConfirmDialog.show(
+    context,
+    title: '그룹 삭제',
+    content: '"${group.name}" 그룹을 삭제하면 되돌릴 수 없습니다. 계속할까요?',
+    confirmLabel: '삭제',
+    isDestructive: true,
+  );
+  if (ok != true) return;
+
+  try {
+    await ref.read(communityApiProvider).deleteGroup(group.id);
+    ref.invalidate(communityGroupsProvider);
+    ref.invalidate(communityGroupProvider(group.id));
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹을 삭제했습니다', type: ToastType.success);
+      context.go(AppRoutes.communityGroups);
+    }
+  } catch (_) {
+    if (context.mounted) {
+      AppToast.show(context, message: '그룹 삭제에 실패했습니다', type: ToastType.error);
+    }
+  }
 }

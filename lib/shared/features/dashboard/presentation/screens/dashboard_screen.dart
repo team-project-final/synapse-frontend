@@ -298,16 +298,7 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Center(
-                  child: Text(
-                    sliced.isNotEmpty
-                        ? '${sliced.first.date.month}/${sliced.first.date.day} ~ 오늘  (${sliced.length}일)'
-                        : '데이터 없음',
-                    style: textTheme.bodySmall?.copyWith(color: AppColors.stone400),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.xl),
 
                 // ── Retention curve (실데이터) ──
                 Text('기억 유지율', style: textTheme.titleMedium),

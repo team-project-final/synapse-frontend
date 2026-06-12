@@ -74,6 +74,7 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             );
       }
       ref.invalidate(cardListProvider(deckId));
+      ref.invalidate(reviewQueueCountProvider(deckId));
       if (mounted) {
         context.go(AppRoutes.deckCardsPath(deckId));
       }

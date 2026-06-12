@@ -12,7 +12,6 @@ class CardListScreen extends ConsumerStatefulWidget {
 }
 
 class _CardListScreenState extends ConsumerState<CardListScreen> {
-  String _selectedSort = '최신순';
   String _selectedType = '전체';
   final Set<String> _checkedCardIds = {};
   final _searchController = TextEditingController();
@@ -27,7 +26,6 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final sortOptions = ['최신순', '난이도순', '복습순'];
     final cardsAsync = ref.watch(cardListProvider(widget.deckId));
 
     return Stack(
@@ -97,22 +95,6 @@ class _CardListScreenState extends ConsumerState<CardListScreen> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            for (final s in sortOptions) ...[
-                              ConceptFilterPill(
-                                label: s,
-                                selected: _selectedSort == s,
-                                onTap: () => setState(() => _selectedSort = s),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
                       Wrap(
                         spacing: AppSpacing.sm,
                         children: [

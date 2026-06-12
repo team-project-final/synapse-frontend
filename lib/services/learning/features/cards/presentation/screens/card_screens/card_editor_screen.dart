@@ -22,8 +22,6 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
   String? _selectedDeckId;
   bool _isSubmitting = false;
   bool _initialized = false;
-  final Set<String> _selectedTags = {};
-
   bool get _isEditMode => widget.cardId != null;
 
   @override
@@ -76,6 +74,7 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
             );
       }
       ref.invalidate(cardListProvider(deckId));
+      ref.invalidate(reviewQueueCountProvider(deckId));
       if (mounted) {
         context.go(AppRoutes.deckCardsPath(deckId));
       }
@@ -173,51 +172,6 @@ class _CardEditorScreenState extends ConsumerState<CardEditorScreen> {
               if (v != null) _selectedDeckId = v;
             }),
           ),
-        const ConceptSectionLabel('태그'),
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final tag in ['머신러닝', '알고리즘', 'AWS', '프로그래밍'])
-              ConceptFilterPill(
-                label: tag,
-                selected: _selectedTags.contains(tag),
-                onTap: () => setState(() {
-                  if (!_selectedTags.add(tag)) _selectedTags.remove(tag);
-                }),
-              ),
-          ],
-        ),
-        const ConceptSectionLabel('이미지'),
-        Container(
-          height: 120,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.add_photo_alternate_outlined,
-                  size: 32,
-                  color: AppColors.muted,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '이미지 추가',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppColors.muted),
-                ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: AppSpacing.lg),
         FilledButton(
           onPressed: _isSubmitting ? null : () => _save(decks),

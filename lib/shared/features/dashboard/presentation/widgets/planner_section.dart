@@ -17,9 +17,7 @@ class PlannerSection extends StatefulWidget {
 }
 
 class _PlannerSectionState extends State<PlannerSection> {
-  // 기본 선택 = 오늘(디자인 mock 기준 2026-05-29).
-  // TODO: 팀원 구현 — 실제로는 DateTime.now() 기준으로 초기화한다.
-  DateTime _selected = DateTime(2026, 5, 29);
+  DateTime _selected = DateTime.now();
 
   final GlobalKey _boardKey = GlobalKey();
 
@@ -42,20 +40,25 @@ class _PlannerSectionState extends State<PlannerSection> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          CalendarSection(
-            scrollable: false,
-            selectedDate: _selected,
-            onDateSelected: _onDateSelected,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              CalendarSection(
+                scrollable: false,
+                selectedDate: _selected,
+                onDateSelected: _onDateSelected,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              KeyedSubtree(
+                key: _boardKey,
+                child: KanbanSection(scrollable: false, date: _selected),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          KeyedSubtree(
-            key: _boardKey,
-            child: KanbanSection(scrollable: false, date: _selected),
-          ),
-        ],
+        ),
       ),
     );
   }

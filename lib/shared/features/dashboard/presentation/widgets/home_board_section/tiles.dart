@@ -57,7 +57,7 @@ class _BoardTile extends StatelessWidget {
       case _BoardKind.ask:
         return _AskContent(onTap: () => _go(context, AppRoutes.qa));
       case _BoardKind.todayReview:
-        return _TodayReviewContent(onTap: () => _go(context, AppRoutes.review));
+        return _TodayReviewContent(onTap: () => _go(context, AppRoutes.decks));
       case _BoardKind.suggest:
         return _SuggestContent(onTap: () => _go(context, AppRoutes.review));
       case _BoardKind.insight:
@@ -65,7 +65,7 @@ class _BoardTile extends StatelessWidget {
           onTap: () => _go(context, AppRoutes.dashboardStats),
         );
       case _BoardKind.streak:
-        return _StreakContent(onTap: () => _go(context, AppRoutes.review));
+        return _StreakContent(onTap: () => _go(context, AppRoutes.dashboardHeatmap));
       case _BoardKind.level:
         return _LevelContent(
           onTap: () => _go(context, AppRoutes.gamificationProfile),

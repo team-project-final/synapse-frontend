@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-12 | 보드 로드 전 디폴트 구성 깜빡임 제거(로딩 인디케이터 대기) + 대시보드 위젯테스트 fake override 규약 추가. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 대시보드 보드 위젯 구성 디바이스 영속화: Hive(BoardConfig Port/Adapter + AsyncNotifier), 완료 시 저장·없으면 디폴트. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-11 | dev 배포 인프라를 main 정본에 정합(재발산 방지): Dockerfile(dart-define 동일오리진)·루트 nginx.conf로 교체, `nginx/default.conf` 삭제, deploy.yml semver 통일. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-11 | 컨테이너 이미지 파이프라인 신설 (이슈 #52): Dockerfile·nginx/default.conf·deploy.yml·.dockerignore. semver 태그 배포 모델, nginx-unprivileged 8080/healthz. 상세 [REPORT.md](../../REPORT.md) |

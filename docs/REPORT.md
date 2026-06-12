@@ -76,3 +76,9 @@
 ### 검증
 - `flutter analyze` 0 이슈 · `flutter test` 294/294 (신규 7 포함)
 - 웹 실검증: 제거→완료→IndexedDB `synapse_dashboard` 생성 확인→**새로고침+재진입 후 구성 유지** 스크린샷 확인
+
+### (보강 2026-06-12) 로드 전 디폴트 깜빡임 제거
+- 사용자 리포트: 로그인→대시보드 진입 시 디폴트 보드가 먼저 보였다가 저장 구성으로 점프. 원래 "로드 전 찰나엔 defaults"로 설계했으나 디버그 빌드에선 IndexedDB 로드가 수백 ms라 점프가 또렷 — **틀린 콘텐츠 깜빡임이 짧은 로딩보다 나쁘다**고 판단 변경.
+- `board.dart`: `isLoading` 동안 `CircularProgressIndicator` 표시 → 데이터 있으면 그 구성, 없으면 defaults. (위젯 실데이터 연동 시 이 구간이 선로딩 시간 겸용 — 사용자 의견)
+- **테스트 함정 발견/해결**: 실제 Hive 구현은 파일 IO라 위젯 테스트 fake async 에서 완료 안 됨 → 스피너 무한 애니메이션 → `pumpAndSettle` 타임아웃. **대시보드에 도달하는 위젯 테스트는 `boardConfigRepositoryProvider` 를 `FakeBoardConfigRepository`(공용 `test/shared/features/dashboard/board_config_fakes.dart`)로 override 필수.** 보드가 한 프레임 늦게 빌드되며 타일 dio 0ms 타이머가 마지막 pump 뒤에 생기므로 드레인 pump 도 필요.
+- analyze 0 · test 295 green · 브라우저 검증 완료(저장 구성 즉시 표출, 깜빡임 없음).

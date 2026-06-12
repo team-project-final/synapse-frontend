@@ -55,26 +55,53 @@ class CalendarSection extends StatelessWidget {
 bool _isSameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
+// 시연용 더미 복습 카드 수 — 날짜 기반으로 일관되게 생성
+int _dummyDue(DateTime date) {
+  if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+    return 0;
+  }
+  const List<int> pattern = [8, 0, 12, 5, 0, 18, 7, 0, 14, 3, 9, 0, 11];
+  return pattern[date.day % pattern.length];
+}
+
 // ── 주간 스트립(모바일) ───────────────────────────────────────────────────
 
-class _WeekStrip extends StatelessWidget {
+class _WeekStrip extends StatefulWidget {
   const _WeekStrip({this.selectedDate, this.onDateSelected});
 
   final DateTime? selectedDate;
   final ValueChanged<DateTime>? onDateSelected;
 
+  @override
+  State<_WeekStrip> createState() => _WeekStripState();
+}
+
+class _WeekStripState extends State<_WeekStrip> {
   static const List<String> _dowLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
-  // 이번 주 월요일
-  DateTime get _weekStart {
+  late DateTime _weekStart;
+
+  @override
+  void initState() {
+    super.initState();
     final now = DateTime.now();
-    return now.subtract(Duration(days: now.weekday - 1));
+    _weekStart = now.subtract(Duration(days: now.weekday - 1));
+  }
+
+  void _prevWeek() => setState(() => _weekStart = _weekStart.subtract(const Duration(days: 7)));
+  void _nextWeek() => setState(() => _weekStart = _weekStart.add(const Duration(days: 7)));
+
+  String get _weekLabel {
+    final end = _weekStart.add(const Duration(days: 6));
+    if (_weekStart.month == end.month) {
+      return '${_weekStart.month}월 ${_weekStart.day}일 ~ ${end.day}일';
+    }
+    return '${_weekStart.month}/${_weekStart.day} ~ ${end.month}/${end.day}';
   }
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final DateTime weekStart = _weekStart;
     final DateTime today = DateTime.now();
 
     return Card(
@@ -83,44 +110,73 @@ class _WeekStrip extends StatelessWidget {
           horizontal: AppSpacing.sm,
           vertical: AppSpacing.md,
         ),
-        child: Row(
+        child: Column(
           children: [
-            for (int i = 0; i < 7; i++)
-              Expanded(
-                child: _dayCell(
-                  textTheme,
-                  _dowLabels[i],
-                  weekStart.add(Duration(days: i)),
-                  today,
+            // 주 헤더: < 6월 9일 ~ 15일 >
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _prevWeek,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  iconSize: 20,
+                  color: AppColors.muted,
                 ),
-              ),
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  _weekLabel,
+                  style: textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _nextWeek,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  iconSize: 20,
+                  color: AppColors.muted,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // 요일 셀
+            Row(
+              children: [
+                for (int i = 0; i < 7; i++)
+                  Expanded(
+                    child: _dayCell(
+                      textTheme,
+                      _dowLabels[i],
+                      _weekStart.add(Duration(days: i)),
+                      today,
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _dayCell(
-    TextTheme textTheme,
-    String dow,
-    DateTime date,
-    DateTime today,
-  ) {
-    final bool selected =
-        selectedDate != null && _isSameDay(date, selectedDate!);
+  Widget _dayCell(TextTheme textTheme, String dow, DateTime date, DateTime today) {
+    final bool selected = widget.selectedDate != null && _isSameDay(date, widget.selectedDate!);
     final bool isToday = _isSameDay(date, today);
+    final int due = _dummyDue(date);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onDateSelected == null ? null : () => onDateSelected!(date),
+      onTap: widget.onDateSelected == null ? null : () => widget.onDateSelected!(date),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : Colors.transparent,
-          border: isToday && !selected
-              ? Border.all(color: AppColors.primary)
-              : null,
+          border: isToday && !selected ? Border.all(color: AppColors.primary) : null,
           borderRadius: BorderRadius.circular(AppRadius.sm),
         ),
         child: Column(
@@ -132,7 +188,7 @@ class _WeekStrip extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '${date.day}',
               style: textTheme.titleSmall?.copyWith(
@@ -140,6 +196,26 @@ class _WeekStrip extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
+            if (due > 0) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.primaryFg.withValues(alpha: 0.25)
+                      : AppColors.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  '$due',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: selected ? AppColors.primaryFg : AppColors.primary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 9,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -176,15 +252,6 @@ class _MonthCalendarState extends State<_MonthCalendar> {
     final DateTime first = DateTime(_displayMonth.year, _displayMonth.month, 1);
     final int offset = first.weekday % 7; // Mon=1..Sat=6, Sun=0
     return first.subtract(Duration(days: offset));
-  }
-
-  // 시연용 더미 복습 카드 수 — 날짜 기반으로 일관되게 생성
-  int _dummyDue(DateTime date) {
-    if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
-      return 0;
-    }
-    const List<int> pattern = [8, 0, 12, 5, 0, 18, 7, 0, 14, 3, 9, 0, 11];
-    return pattern[date.day % pattern.length];
   }
 
   // 6주 × 7일 = 42칸 동적 생성

@@ -443,27 +443,28 @@ class _CalDayCell extends StatelessWidget {
                   ],
                 ],
               ),
-              if (cell.due > 0) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Text(
-                    '복습 ${cell.due}',
-                    style: textTheme.labelSmall?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 9.5,
+              const Spacer(),
+              if (cell.due > 0)
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Container(
+                    width: 18,
+                    height: 4 + 16 * (cell.due / 20.0).clamp(0.0, 1.0),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.primary
+                          : Color.lerp(
+                              AppColors.surface2,
+                              AppColors.primary,
+                              (cell.due / 20.0).clamp(0.0, 1.0),
+                            )!,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(3),
+                        bottom: Radius.circular(1),
+                      ),
                     ),
                   ),
                 ),
-              ],
             ],
           ),
         ),

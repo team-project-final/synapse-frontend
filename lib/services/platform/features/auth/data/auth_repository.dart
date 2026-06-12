@@ -94,30 +94,34 @@ AuthRepositoryException _mapDioException(DioException error) {
   final data = response?.data;
   final status = response?.statusCode ?? 0;
 
-  if (data is Map<String, dynamic>) {
-    final code = data['code'];
-    final detail = data['detail'];
-    return AuthRepositoryException(
-      status: status,
-      code: code is String ? code : null,
-      detail: detail is String && detail.isNotEmpty
-          ? detail
-          : _fallbackAuthMessage(status),
-    );
-  }
+  final code = data is Map<String, dynamic> && data['code'] is String
+      ? data['code'] as String
+      : null;
+  final detail = data is Map<String, dynamic> && data['detail'] is String
+      ? data['detail'] as String
+      : null;
+
+  // PLAT-001(잘못된 요청/검증)·PLAT-999(서버 오류)의 detail은 Spring 검증 덤프 같은
+  // 내부 메시지라 사용자에게 노출하지 않고 정제된 한국어 메시지로 대체한다.
+  // 그 외 비즈니스 코드(PLAT-009-* 등)의 detail은 이미 사용자용 메시지라 보존한다.
+  final usesRawDetail = detail != null &&
+      detail.isNotEmpty &&
+      code != 'PLAT-001' &&
+      code != 'PLAT-999';
 
   return AuthRepositoryException(
     status: status,
-    detail: _fallbackAuthMessage(status),
+    code: code,
+    detail: usesRawDetail ? detail : _fallbackAuthMessage(status),
   );
 }
 
 String _fallbackAuthMessage(int status) {
   return switch (status) {
-    400 => 'Please check the request.',
-    401 => 'Email or password is incorrect.',
-    409 => 'Email is already registered.',
-    423 => 'Account is locked. Please try again later.',
-    _ => 'Authentication request failed.',
+    400 => '입력한 정보를 다시 확인해주세요.',
+    401 => '이메일 또는 비밀번호가 올바르지 않습니다.',
+    409 => '이미 가입된 이메일입니다.',
+    423 => '계정이 잠겼습니다. 잠시 후 다시 시도해주세요.',
+    _ => '인증 요청에 실패했습니다.',
   };
 }

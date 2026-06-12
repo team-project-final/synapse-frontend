@@ -1,24 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
 void main() {
-  testWidgets('login bypass does not call repository and opens dashboard', (
-    tester,
-  ) async {
-    final repository = _FakeAuthRepository()
-      ..loginError = const AuthRepositoryException(
-        status: 401,
-        code: 'PLAT-009-002',
-        detail: 'Invalid credentials',
-      );
-    final router = GoRouter(
+  GoRouter loginRouter() {
+    return GoRouter(
       initialLocation: AppRoutes.login,
       routes: [
         GoRoute(
@@ -32,45 +25,16 @@ void main() {
         ),
       ],
     );
-    addTearDown(router.dispose);
+  }
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-
-    await tester.enterText(
-      find.byType(TextFormField).at(0),
-      'user@example.com',
-    );
-    await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
-
-    expect(repository.loginCallCount, 0);
-    expect(find.text('dashboard-target'), findsOneWidget);
-  });
-
-  testWidgets('login bypasses validation and opens dashboard in early dev', (
+  // ⚠ 현재 로그인 버튼은 개발용 바이패스 적용 중(login_screen._submit).
+  // 입력 없이 버튼만 눌러도 repository 호출 없이 인증 상태로 진입한다.
+  // 실 로그인 로직 자체는 AuthNotifier.login / AuthRepository 유닛테스트에서 검증한다.
+  testWidgets('login bypass authenticates without repository call', (
     tester,
   ) async {
     final repository = _FakeAuthRepository();
-    final router = GoRouter(
-      initialLocation: AppRoutes.login,
-      routes: [
-        GoRoute(
-          path: AppRoutes.login,
-          builder: (context, state) => const LoginScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.dashboard,
-          builder: (context, state) =>
-              const Scaffold(body: Text('dashboard-target')),
-        ),
-      ],
-    );
+    final router = loginRouter();
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
@@ -80,10 +44,15 @@ void main() {
       ),
     );
 
+    // 입력 없이 버튼만 눌러도 진입(바이패스).
     await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
+    await tester.pump(); // 탭 처리 + 바이패스 상태 반영(성공 인트로 오버레이 삽입)
 
-    expect(find.text('dashboard-target'), findsOneWidget);
+    expect(repository.loginCallCount, 0);
+    expect(find.text('이메일을 입력해주세요'), findsNothing);
+
+    // 인트로 오버레이 시퀀스가 끝나 스스로 제거되도록 충분히 진행(타이머 정리).
+    await tester.pump(const Duration(seconds: 3));
   });
 
   testWidgets('signup rejects password without a digit', (tester) async {
@@ -184,10 +153,8 @@ void main() {
     expect(find.text('login-target'), findsOneWidget);
   });
 
-  testWidgets('mfa screen toggles to backup code mode and proceeds', (
-    tester,
-  ) async {
-    final router = GoRouter(
+  GoRouter mfaRouter() {
+    return GoRouter(
       initialLocation: AppRoutes.mfa,
       routes: [
         GoRoute(
@@ -201,13 +168,18 @@ void main() {
         ),
       ],
     );
+  }
+
+  testWidgets('mfa backup code verifies via API and opens dashboard', (
+    tester,
+  ) async {
+    final api = _FakeMfaApi();
+    final router = mfaRouter();
     addTearDown(router.dispose);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          authRepositoryPortProvider.overrideWithValue(_FakeAuthRepository()),
-        ],
+        overrides: [platformAuthApiProvider.overrideWithValue(api)],
         child: MaterialApp.router(routerConfig: router),
       ),
     );
@@ -216,15 +188,63 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('백업 코드 입력'), findsOneWidget);
-    final backupField = find.byKey(const Key('mfa-backup-code-field'));
-    expect(backupField, findsOneWidget);
-
-    await tester.enterText(backupField, 'AAAA-1111');
+    await tester.enterText(
+      find.byKey(const Key('mfa-backup-code-field')),
+      'AAAA-1111',
+    );
     await tester.tap(find.byKey(const Key('mfa-backup-verify-button')));
     await tester.pumpAndSettle();
 
+    expect(api.backupCodes, ['AAAA-1111']);
     expect(find.text('dashboard-target'), findsOneWidget);
   });
+
+  testWidgets('mfa wrong code shows error and stays', (tester) async {
+    final api = _FakeMfaApi();
+    final router = mfaRouter();
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [platformAuthApiProvider.overrideWithValue(api)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('mfa-backup-toggle')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('mfa-backup-code-field')),
+      'WRONG-0000',
+    );
+    await tester.tap(find.byKey(const Key('mfa-backup-verify-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('백업 코드가 올바르지 않습니다. 다시 확인해주세요.'), findsOneWidget);
+    expect(find.text('dashboard-target'), findsNothing);
+  });
+}
+
+class _FakeMfaApi extends PlatformAuthApi {
+  _FakeMfaApi() : super(Dio());
+
+  final List<String> backupCodes = [];
+
+  @override
+  Future<bool> verifyMfa(String code) async => code == '123456';
+
+  @override
+  Future<bool> verifyMfaBackupCode(String code) async {
+    if (code != 'AAAA-1111') {
+      throw const PlatformAuthApiException(
+        status: 400,
+        code: 'PLAT-003',
+        message: 'invalid',
+      );
+    }
+    backupCodes.add(code);
+    return true;
+  }
 }
 
 Widget _app({required AuthRepositoryPort repository, required Widget child}) {

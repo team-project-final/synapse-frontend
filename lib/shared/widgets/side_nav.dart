@@ -20,7 +20,7 @@ class SideNavItem {
 
 /// "AI Tutor" 컨셉 사이드바.
 ///
-/// 접기/펼치기 토글 → 네비 → 최근 활동(mock) → 프로필 풋터.
+/// 접기/펼치기 토글 → 네비 → 프로필 풋터.
 /// (브랜드 ✦ orb + Synapse는 상단 앱바로 이동) 활성 항목은 보라 12% 배경 강조.
 class SideNav extends ConsumerWidget {
   const SideNav({
@@ -76,13 +76,6 @@ class SideNav extends ConsumerWidget {
     SideNavItem(icon: Icons.settings_outlined, label: '설정', route: '/settings'),
   ];
 
-  // 최근 대화 — mock 데이터 (기능 없음, 디자인 시연용)
-  static const _recentChats = [
-    '트랜스포머 복습 카드 4장',
-    '과적합 약점 미니 퀴즈',
-    'ML 정규화 기법 요약',
-  ];
-
   bool _isActive(String itemRoute) {
     if (itemRoute == '/') return currentRoute == '/';
     return currentRoute.startsWith(itemRoute);
@@ -110,11 +103,6 @@ class SideNav extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
               children: [
                 for (final item in _topItems) _buildItem(context, item),
-                if (isExpanded) ...[
-                  const _SideSection(label: '최근 활동'),
-                  for (final chat in _recentChats)
-                    _buildRecentChat(context, chat),
-                ],
               ],
             ),
           ),
@@ -245,41 +233,6 @@ class SideNav extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentChat(BuildContext context, String title) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(AppSpacing.sm + 3),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppSpacing.sm + 3),
-        // 최근 대화는 아직 라우트가 없으므로 검색으로 보낸다(데모용).
-        onTap: () => onItemTap('/search'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              const SynapseOrb(size: 26, glyphScale: 0.46),
-              const SizedBox(width: AppSpacing.sm + 1),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.text,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildProfile(BuildContext context) {
     return InkWell(
       // 하단 프로필(이름·Lv)은 게이미피케이션 프로필(XP/배지/리더보드)로.
@@ -331,28 +284,3 @@ class SideNav extends ConsumerWidget {
   }
 }
 
-class _SideSection extends StatelessWidget {
-  const _SideSection({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.sm + 4,
-        AppSpacing.lg,
-        AppSpacing.sm,
-        AppSpacing.sm,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.muted,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.6,
-        ),
-      ),
-    );
-  }
-}

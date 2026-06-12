@@ -22,15 +22,18 @@ import 'package:synapse_frontend/shared/widgets/admin_shell.dart';
 import 'package:synapse_frontend/shared/widgets/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // 규칙 7.3.2: Provider<GoRouter>에서 auth를 watch해 라우터를 재생성한다.
+  // 깜빡임(재생성 시 initialLocation=대시보드에서 시작)은 아래 loading 가드로 막는다.
   final authState = ref.watch(authNotifierProvider);
 
   return GoRouter(
     initialLocation: AppRoutes.dashboard,
     redirect: (context, state) {
+      // mfa는 로그인 후 추가 검증 화면이라 entry route가 아니다
+      // (백엔드 /auth/mfa/*가 인증을 요구).
       const authEntryRoutes = [
         AppRoutes.login,
         AppRoutes.signup,
-        AppRoutes.mfa,
         AppRoutes.passwordReset,
         AppRoutes.authCallback,
       ];
@@ -42,14 +45,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthEntryRoute = authEntryRoutes.contains(state.matchedLocation);
       final isPublicRoute = publicRoutes.contains(state.matchedLocation);
 
+      // 인증 진행 중(loading/초기화)에는 보호 화면을 띄우지 않는다.
+      // 라우터 재생성이 대시보드(initialLocation)에서 시작해도 여기서 로그인으로
+      // 보내, 로그인 처리 중 보호 화면이 잠깐 비치는 깜빡임을 막는다.
       if (authState.status == AuthStatus.initializing ||
           authState.status == AuthStatus.loading) {
-        return null;
+        return isPublicRoute ? null : AppRoutes.login;
       }
 
       if (authState.status == AuthStatus.unauthenticated && !isPublicRoute) {
         return AppRoutes.login;
       }
+      // 인증 상태로 auth 진입 화면에 있으면 대시보드로.
+      // (성공 인트로 애니메이션은 루트 Overlay라 전환 후에도 위에서 재생·축소된다.)
       if (authState.status == AuthStatus.authenticated && isAuthEntryRoute) {
         return AppRoutes.dashboard;
       }
@@ -178,6 +186,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AiCardGenerationScreen(),
           ),
           GoRoute(
+            path: AppRoutes.reviewStart,
+            builder: (context, state) => const ReviewStartScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.review,
             builder: (context, state) => const ReviewScreen(),
           ),
@@ -267,6 +279,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: AppRoutes.communitySharedDeckDetail,
             builder: (context, state) => SharedDeckDetailScreen(
               deckId: state.pathParameters['deckId'] ?? '',
+              sharedContentId: state.uri.queryParameters['sharedContentId'],
+              shareToken: state.uri.queryParameters['shareToken'],
             ),
           ),
           GoRoute(

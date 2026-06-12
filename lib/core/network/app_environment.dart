@@ -2,7 +2,9 @@ enum AppEnvironment { dev, platformDev, staging, prod }
 
 AppEnvironment parseAppEnvironment(String value) {
   return switch (value) {
-    'platform-dev' => AppEnvironment.platformDev,
+    // 표기 실수로 dev(게이트웨이 8080)로 조용히 fallback돼 전 API가 죽는
+    // 사고를 막기 위해 camelCase 표기도 함께 허용한다.
+    'platform-dev' || 'platformDev' => AppEnvironment.platformDev,
     'prod' => AppEnvironment.prod,
     'staging' => AppEnvironment.staging,
     _ => AppEnvironment.dev,

@@ -116,18 +116,37 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   children: [
                     SizedBox(
                       height: 260,
-                      child: FlipCard(
-                        front: _FlashFace(
-                          label: frontText,
-                          hint: '👆 탭하여 정답 확인',
-                        ),
-                        back: _FlashFace(
-                          label: backText,
-                          highlighted: true,
+                      child: GestureDetector(
+                        onHorizontalDragEnd: state.isSubmitting
+                            ? null
+                            : (details) {
+                                final v = details.primaryVelocity ?? 0;
+                                if (v.abs() < 300) return;
+                                setState(() => _hintLevel = 1);
+                                ref
+                                    .read(reviewNotifierProvider.notifier)
+                                    .submitRating(v < 0 ? 1 : 3);
+                              },
+                        child: FlipCard(
+                          front: _FlashFace(
+                            label: frontText,
+                            hint: '👆 탭하여 정답 확인',
+                          ),
+                          back: _FlashFace(
+                            label: backText,
+                            highlighted: true,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '← 다시 · 보통 →',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: AppColors.muted,
+                          ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
                     for (int i = 0; i < _hintLevel; i++) ...[
                       if (i > 0) const SizedBox(height: AppSpacing.sm),
                       ConceptAiComment(text: _hints[i]),

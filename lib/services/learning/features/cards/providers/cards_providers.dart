@@ -6,6 +6,7 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/entitie
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_session.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_submit_result.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/repositories/cards_repository.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/batch_create_cards_usecase.dart';
@@ -21,6 +22,8 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/usecase
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/submit_review_usecase.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/update_card_usecase.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/usecases/update_deck_usecase.dart';
+
+typedef SharedDeckParams = ({String deckId, String sharedContentId, String shareToken});
 
 // ── DI 체인 ──
 
@@ -239,3 +242,38 @@ class ReviewNotifier extends Notifier<ReviewState> {
 
 final reviewNotifierProvider =
     NotifierProvider<ReviewNotifier, ReviewState>(ReviewNotifier.new);
+
+// ── 오늘 복습 큐 카드 수 (ReviewStartScreen에서 사용) ──
+
+final reviewQueueCountProvider = FutureProvider.family<int, String>((ref, deckId) async {
+  final queue = await ref.read(getReviewQueueUseCaseProvider).call(deckId);
+  return queue.length;
+});
+
+// ── 공유 덱 카드 미리보기 (SharedDeckDetailScreen에서 사용) ──
+
+final sharedDeckCardsProvider = FutureProvider.family<List<FlashCard>, SharedDeckParams>((ref, params) async {
+  return ref.read(_cardsRepositoryProvider).getSharedDeckCards(
+    params.deckId,
+    sharedContentId: params.sharedContentId,
+    shareToken: params.shareToken,
+  );
+});
+
+// ── 복습 통계 개요 (대시보드 타일 + DashboardStatsScreen) ──
+
+final reviewStatsOverviewProvider = FutureProvider<ReviewStats>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsOverview();
+});
+
+// ── 복습 히트맵 (DashboardHeatmapScreen) ──
+
+final reviewStatsHeatmapProvider = FutureProvider<ReviewHeatmap>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsHeatmap();
+});
+
+// ── 기억 유지율 (DashboardStatsScreen 기억 유지율 차트) ──
+
+final reviewStatsRetentionProvider = FutureProvider<ReviewRetention>((ref) async {
+  return ref.read(_cardsRepositoryProvider).getStatsRetention();
+});

@@ -3,6 +3,7 @@ import 'package:synapse_frontend/services/learning/features/cards/domain/entitie
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/flash_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_card.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_session.dart';
+import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_stats.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/review_submit_result.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/repositories/cards_repository.dart';
 
@@ -79,6 +80,50 @@ class CardsRepositoryImpl implements CardsRepository {
   @override
   Future<ReviewSession> completeReviewSession(String sessionId) async {
     final model = await _datasource.completeReviewSession(sessionId);
+    return model.toEntity();
+  }
+
+  @override
+  Future<List<FlashCard>> getSharedDeckCards(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    final detail = await _datasource.getSharedDeckDetail(
+      deckId,
+      sharedContentId: sharedContentId,
+      shareToken: shareToken,
+    );
+    return detail.cardsToEntities();
+  }
+
+  @override
+  Future<void> copyFromShare(
+    String deckId, {
+    required String sharedContentId,
+    required String shareToken,
+  }) =>
+      _datasource.copyFromShare(
+        deckId,
+        sharedContentId: sharedContentId,
+        shareToken: shareToken,
+      );
+
+  @override
+  Future<ReviewStats> getStatsOverview() async {
+    final model = await _datasource.getStatsOverview();
+    return model.toEntity();
+  }
+
+  @override
+  Future<ReviewHeatmap> getStatsHeatmap() async {
+    final model = await _datasource.getStatsHeatmap();
+    return model.toEntity();
+  }
+
+  @override
+  Future<ReviewRetention> getStatsRetention() async {
+    final model = await _datasource.getStatsRetention();
     return model.toEntity();
   }
 }

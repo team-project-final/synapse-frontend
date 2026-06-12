@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-12 | 개발용 로그인 바이패스 제거(팀 요청) — 실 인증 활성화, 실패 시 인트로 중단 처리, 테스트 4건 재작성. BREAKING: 로컬 개발 시 platform-svc+계정 필요. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 보드 로드 전 디폴트 구성 깜빡임 제거(로딩 인디케이터 대기) + 대시보드 위젯테스트 fake override 규약 추가. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | 대시보드 보드 위젯 구성 디바이스 영속화: Hive(BoardConfig Port/Adapter + AsyncNotifier), 완료 시 저장·없으면 디폴트. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-11 | dev 배포 인프라를 main 정본에 정합(재발산 방지): Dockerfile(dart-define 동일오리진)·루트 nginx.conf로 교체, `nginx/default.conf` 삭제, deploy.yml semver 통일. 상세 [REPORT.md](../../REPORT.md) |

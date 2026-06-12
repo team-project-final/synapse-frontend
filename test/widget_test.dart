@@ -35,11 +35,7 @@ void main() {
     expect(find.text('로그인'), findsWidgets);
   });
 
-  // ⚠ 로그인 버튼은 개발용 바이패스 적용 중 — 입력 없이 눌러도 대시보드로 진입한다.
-  // (성공 인트로 애니메이션 후 라우터가 대시보드로 이동.)
-  testWidgets('login bypass reaches dashboard through app router', (
-    tester,
-  ) async {
+  testWidgets('login reaches dashboard through app router', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -56,8 +52,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
     await tester.tap(find.widgetWithText(FilledButton, '로그인'));
-    await tester.pumpAndSettle();
+    // 인트로 오버레이(고정 타이머) 시퀀스가 끝나도록 충분히 진행.
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 3));
 
     // 대시보드 히어로 카피가 AI Tutor 디자인으로 변경됨.
     expect(find.text('무엇을 학습해 볼까요?'), findsOneWidget);

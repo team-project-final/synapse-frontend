@@ -25,44 +25,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _submit() {
     if (_submitting) return;
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    // 성공 인트로 오버레이를 먼저 띄우고(로그인 화면이 살아있는 동안), 재생이
-    // 끝나면 그때 인증한다 → "재생 후 전환" 순서가 보장된다. 인증되면 라우터가
-    // 대시보드로 전환하고, 오버레이는 루트 Overlay라 그 위에서 축소돼 사라진다.
-    _showSuccessTransition(onPlayed: _authenticate);
-  }
-
-  void _authenticate() {
-    // ── 개발용 로그인 바이패스 (정상 동작 확인 완료, 개발 편의로 적용) ──
-    // 입력/검증 없이 인증 상태로 진입한다.
-    // ▶ 실 로그인 복구 시: 아래 bypass 한 줄을 지우고 다음 두 줄의 주석을 해제한다.
-    //   (검증은 _submit 진입부로 옮긴다: if (!_formKey.currentState!.validate()) return;)
-    //   ref.read(authNotifierProvider.notifier)
-    //       .login(_emailController.text.trim(), _passwordController.text);
-    ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
+    // 인트로 오버레이(스크림)를 먼저 띄워 화면을 덮고, 재생과 병행해 실 로그인을
+    // 수행한다. 성공하면 라우터가 스크림 아래에서 대시보드로 전환하고, 오버레이는
+    // 루트 Overlay라 재생을 마친 뒤 그 위에서 축소되며 대시보드를 공개한다.
+    // 실패하면 build의 ref.listen이 오버레이를 즉시 걷어내고 에러를 노출한다.
+    _showSuccessTransition();
+    unawaited(
+      ref
+          .read(authNotifierProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text),
+    );
   }
 
   void _loginWithOAuth(String provider) {
     ref.read(authNotifierProvider.notifier).loginWithOAuth(provider);
   }
 
-  /// 로그인 성공 인트로 오버레이를 루트 Overlay에 띄운다.
-  /// scale 0→1(팝업) → Lottie 재생 → [onPlayed](여기서 인증) → scale 1→0(축소) → 제거.
+  /// 인트로 오버레이를 루트 Overlay에 띄운다.
+  /// scale 0→1(팝업) → Lottie 재생 → scale 1→0(축소) → 제거.
   /// 루트 Overlay라 인증으로 화면이 대시보드로 전환된 뒤에도 위에서 축소 연출을 잇는다.
-  void _showSuccessTransition({required VoidCallback onPlayed}) {
+  OverlayEntry? _transitionEntry;
+
+  void _showSuccessTransition() {
     final overlay = Overlay.of(context, rootOverlay: true);
     late OverlayEntry entry;
     entry = OverlayEntry(
       builder: (_) => _LoginSuccessOverlay(
-        onPlayed: onPlayed,
-        onCompleted: () => entry.remove(),
+        onCompleted: () {
+          entry.remove();
+          if (_transitionEntry == entry) _transitionEntry = null;
+        },
       ),
     );
+    _transitionEntry = entry;
     overlay.insert(entry);
+  }
+
+  /// 로그인 실패 시 재생 중인 인트로를 즉시 중단한다.
+  void _dismissTransition() {
+    _transitionEntry?.remove();
+    _transitionEntry = null;
   }
 
   @override
   Widget build(BuildContext context) {
+    // 로그인 실패(unauthenticated 복귀) 감지 — 인트로 중단 + 버튼 복구.
+    // 에러 메시지는 아래 errorMessage UI가 표시한다.
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (_submitting && next.status == AuthStatus.unauthenticated) {
+        _dismissTransition();
+        setState(() => _submitting = false);
+      }
+    });
     final authState = ref.watch(authNotifierProvider);
     // 버튼을 누른 뒤(_submitting)부터 인증 진행 중까지 회색(로딩) 상태를 유지한다.
     final isLoading = _submitting ||
@@ -237,16 +253,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-/// 로그인 성공 인트로 트랜지션 오버레이.
-/// 시퀀스: scale 0→1(팝업) → Lottie 재생 → onPlayed(인증→전환) → scale 1→0(축소) → onCompleted.
+/// 로그인 인트로 트랜지션 오버레이.
+/// 시퀀스: scale 0→1(팝업) → Lottie 재생 → scale 1→0(축소) → onCompleted.
+/// 로그인은 재생과 병행 — 성공 시 라우터가 스크림 아래에서 전환을 끝내 둔다.
 class _LoginSuccessOverlay extends StatefulWidget {
-  const _LoginSuccessOverlay({
-    required this.onPlayed,
-    required this.onCompleted,
-  });
-
-  /// 재생을 마쳐 화면을 전환(인증)할 시점에 호출된다.
-  final VoidCallback onPlayed;
+  const _LoginSuccessOverlay({required this.onCompleted});
 
   /// 축소까지 끝나 오버레이를 제거할 시점에 호출된다.
   final VoidCallback onCompleted;
@@ -288,7 +299,6 @@ class _LoginSuccessOverlayState extends State<_LoginSuccessOverlay>
     }
     await Future<void>.delayed(_playWindow); // Lottie 재생 구간
     if (!mounted) return;
-    widget.onPlayed(); // 인증 → 라우터가 대시보드로 전환
     await _scale.reverse(); // 1 → 0 (전환된 대시보드 위에서 축소)
     if (!mounted) return;
     widget.onCompleted(); // 오버레이 제거

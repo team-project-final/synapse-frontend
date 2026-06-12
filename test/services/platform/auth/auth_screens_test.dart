@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
@@ -27,10 +28,7 @@ void main() {
     );
   }
 
-  // ⚠ 현재 로그인 버튼은 개발용 바이패스 적용 중(login_screen._submit).
-  // 입력 없이 버튼만 눌러도 repository 호출 없이 인증 상태로 진입한다.
-  // 실 로그인 로직 자체는 AuthNotifier.login / AuthRepository 유닛테스트에서 검증한다.
-  testWidgets('login bypass authenticates without repository call', (
+  testWidgets('login rejects empty form without repository call', (
     tester,
   ) async {
     final repository = _FakeAuthRepository();
@@ -44,15 +42,73 @@ void main() {
       ),
     );
 
-    // 입력 없이 버튼만 눌러도 진입(바이패스).
+    // 입력 없이 누르면 폼 검증에서 막힌다 — repository 호출 없음.
     await tester.tap(find.byType(FilledButton));
-    await tester.pump(); // 탭 처리 + 바이패스 상태 반영(성공 인트로 오버레이 삽입)
+    await tester.pump();
 
     expect(repository.loginCallCount, 0);
-    expect(find.text('이메일을 입력해주세요'), findsNothing);
+    expect(find.text('이메일을 입력해주세요'), findsOneWidget);
+  });
+
+  testWidgets('login submits credentials to repository', (tester) async {
+    final repository = _FakeAuthRepository();
+    final router = loginRouter();
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump(); // 인트로 오버레이 삽입 + login 시작
 
     // 인트로 오버레이 시퀀스가 끝나 스스로 제거되도록 충분히 진행(타이머 정리).
     await tester.pump(const Duration(seconds: 3));
+
+    expect(repository.loginCallCount, 1);
+    // 대시보드 내비게이션은 앱 라우터(redirect) 소관 — widget_test 에서 검증.
+  });
+
+  testWidgets('login failure dismisses intro and shows error', (
+    tester,
+  ) async {
+    final repository = _FakeAuthRepository()
+      ..loginError = const AuthRepositoryException(
+        status: 401,
+        code: 'PLAT-009-002',
+        detail: '이메일 또는 비밀번호가 올바르지 않습니다.',
+      );
+    final router = loginRouter();
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'Wrong1234!');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump(); // 오버레이 삽입 + login 시작
+    await tester.pump(); // 실패 반영 → ref.listen 이 오버레이 중단 + 버튼 복구
+
+    expect(find.text('이메일 또는 비밀번호가 올바르지 않습니다.'), findsOneWidget);
+    // 실패 시 인트로가 중단돼 로그인 버튼이 다시 활성화된다.
+    final FilledButton button = tester.widget(find.byType(FilledButton));
+    expect(button.onPressed, isNotNull);
   });
 
   testWidgets('signup rejects password without a digit', (tester) async {

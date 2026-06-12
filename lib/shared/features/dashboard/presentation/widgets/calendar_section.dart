@@ -178,17 +178,28 @@ class _MonthCalendarState extends State<_MonthCalendar> {
     return first.subtract(Duration(days: offset));
   }
 
+  // 시연용 더미 복습 카드 수 — 날짜 기반으로 일관되게 생성
+  int _dummyDue(DateTime date) {
+    if (date.weekday == DateTime.saturday || date.weekday == DateTime.sunday) {
+      return 0;
+    }
+    const List<int> pattern = [8, 0, 12, 5, 0, 18, 7, 0, 14, 3, 9, 0, 11];
+    return pattern[date.day % pattern.length];
+  }
+
   // 6주 × 7일 = 42칸 동적 생성
   List<_CalCell> get _cells {
     final DateTime today = DateTime.now();
     final DateTime start = _gridStart;
     return List.generate(42, (int i) {
       final DateTime date = start.add(Duration(days: i));
+      final bool inMonth = date.month == _displayMonth.month &&
+          date.year == _displayMonth.year;
       return _CalCell(
         date.day,
-        out: date.month != _displayMonth.month ||
-            date.year != _displayMonth.year,
+        out: !inMonth,
         today: _isSameDay(date, today),
+        due: inMonth ? _dummyDue(date) : 0,
       );
     });
   }
@@ -214,22 +225,12 @@ class _MonthCalendarState extends State<_MonthCalendar> {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           children: [
-            // 월 헤더 + 이전/다음 버튼
+            // 월 헤더: < 2026년 6월 >
             Padding(
-              padding: const EdgeInsets.only(
-                bottom: AppSpacing.sm,
-                left: 2,
-                right: 2,
-              ),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '${_displayMonth.year}년 ${_displayMonth.month}월',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
                     onPressed: _prevMonth,
@@ -238,7 +239,14 @@ class _MonthCalendarState extends State<_MonthCalendar> {
                     iconSize: 20,
                     color: AppColors.muted,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(
+                    '${_displayMonth.year}년 ${_displayMonth.month}월',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     onPressed: _nextMonth,
@@ -298,10 +306,11 @@ class _MonthCalendarState extends State<_MonthCalendar> {
 // ── 캘린더 셀 데이터 ────────────────────────────────────────────────────────
 
 class _CalCell {
-  const _CalCell(this.day, {this.out = false, this.today = false});
+  const _CalCell(this.day, {this.out = false, this.today = false, this.due = 0});
   final int day;
   final bool out;
   final bool today;
+  final int due;
 }
 
 // ── 날짜 셀 위젯 ────────────────────────────────────────────────────────────
@@ -370,6 +379,27 @@ class _CalDayCell extends StatelessWidget {
                   ],
                 ],
               ),
+              if (cell.due > 0) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(
+                    '복습 ${cell.due}',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 9.5,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

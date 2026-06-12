@@ -62,15 +62,20 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    // 로그인 성공으로 라우터(Navigator)가 재생성된 뒤에도 인트로가 살아서
-    // 재생 중이어야 한다(앱 레벨 레이어). 회귀: 라우터 재생성이 Navigator
-    // Overlay 의 인트로를 파괴해 애니메이션이 보이지 않던 버그.
+    // 재생(covering) 중: 인트로가 살아 있고(앱 레벨 레이어 — 라우터 재생성에도
+    // 생존), 인증이 끝났어도 라우터 게이트가 전환을 보류해 로그인 화면에 머문다.
+    // 회귀: ① 라우터 재생성이 인트로를 파괴해 애니메이션이 안 보이던 버그
+    //       ② 재생 중 대시보드 전환이 비쳐 보이던 버그(재생 후 전환 보장)
     expect(find.byType(LoginIntroOverlay), findsOneWidget);
-    expect(find.byType(LoginScreen), findsNothing); // 이미 전환됨(스크림 아래)
+    expect(find.byType(LoginScreen), findsOneWidget); // 아직 전환 전(보류)
 
-    // 인트로 시퀀스(고정 타이머 1.6s + 축소 0.32s)가 끝나도록 충분히 진행.
-    // 축소 애니메이션은 첫 틱에서 시작 시각이 기록되므로 프레임을 나눠 pump 한다.
-    await tester.pump(const Duration(seconds: 3)); // 타이머 소진 + 축소 시작 틱
+    // 재생 종료(1.6s) 시점 — reveal 로 게이트가 풀려 대시보드로 전환된다.
+    await tester.pump(const Duration(milliseconds: 1300));
+    expect(find.byType(LoginScreen), findsNothing); // 전환 완료(스크림 아래)
+    expect(find.byType(LoginIntroOverlay), findsOneWidget); // 축소 연출 중
+
+    // 축소(0.32s)까지 종료. 축소 애니메이션은 첫 틱에서 시작 시각이 기록되므로
+    // 프레임을 나눠 pump 한다.
     await tester.pump(const Duration(milliseconds: 400)); // 축소 완료 틱
     await tester.pump(); // hide 상태 반영 프레임
     expect(find.byType(LoginIntroOverlay), findsNothing); // 재생 종료 후 숨김

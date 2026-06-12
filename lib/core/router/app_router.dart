@@ -14,6 +14,7 @@ import 'package:synapse_frontend/services/learning/features/cards/presentation/s
 import 'package:synapse_frontend/services/platform/features/admin/presentation/screens/admin_screens.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/oauth_callback_screen.dart';
+import 'package:synapse_frontend/services/platform/features/auth/presentation/widgets/login_intro_overlay.dart';
 import 'package:synapse_frontend/services/platform/features/billing/presentation/screens/billing_screens.dart';
 import 'package:synapse_frontend/services/platform/features/notifications/presentation/screens/notification_screens.dart';
 import 'package:synapse_frontend/services/platform/features/settings/presentation/screens/settings_screens.dart';
@@ -25,6 +26,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // 규칙 7.3.2: Provider<GoRouter>에서 auth를 watch해 라우터를 재생성한다.
   // 깜빡임(재생성 시 initialLocation=대시보드에서 시작)은 아래 loading 가드로 막는다.
   final authState = ref.watch(authNotifierProvider);
+  // 로그인 인트로가 화면을 덮는(covering) 동안엔 인증이 끝나도 전환을 보류한다.
+  // 재생이 끝나 revealing 으로 바뀌는 순간 라우터가 재생성되며 대시보드로
+  // 전환되고, 인트로 축소 연출이 그 위에서 화면을 공개한다.
+  final introCovering =
+      ref.watch(loginIntroProvider)?.phase == LoginIntroPhase.covering;
 
   return GoRouter(
     initialLocation: AppRoutes.dashboard,
@@ -56,8 +62,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (authState.status == AuthStatus.unauthenticated && !isPublicRoute) {
         return AppRoutes.login;
       }
+      // 인트로가 덮는(covering) 동안엔 인증이 끝나도 로그인에 머문다 —
+      // 라우터 재생성이 initialLocation(대시보드)에서 시작해도 강제로 로그인
+      // 유지해 "재생 완료 후 전환" 순서를 보장한다.
+      if (authState.status == AuthStatus.authenticated && introCovering) {
+        return state.matchedLocation == AppRoutes.login
+            ? null
+            : AppRoutes.login;
+      }
       // 인증 상태로 auth 진입 화면에 있으면 대시보드로.
-      // (성공 인트로 애니메이션은 루트 Overlay라 전환 후에도 위에서 재생·축소된다.)
       if (authState.status == AuthStatus.authenticated && isAuthEntryRoute) {
         return AppRoutes.dashboard;
       }

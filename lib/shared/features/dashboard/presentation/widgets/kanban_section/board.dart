@@ -124,10 +124,6 @@ class _DateBoardHeader extends StatelessWidget {
             ],
           ),
         ),
-        _IconCircleButton(
-          icon: Icons.add,
-          onTap: () => context.go(_kComposeRoute),
-        ),
       ],
     );
   }
@@ -395,20 +391,6 @@ class _BoardColumn extends StatelessWidget {
               ],
             ),
           ),
-          // 추가 버튼 (있을 때만)
-          if (column.addLabel != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm,
-                AppSpacing.sm,
-                AppSpacing.sm,
-                0,
-              ),
-              child: _MiniAddButton(
-                label: column.addLabel!,
-                onTap: () => context.go(column.addRoute!),
-              ),
-            ),
           const SizedBox(height: AppSpacing.md),
         ],
       ),

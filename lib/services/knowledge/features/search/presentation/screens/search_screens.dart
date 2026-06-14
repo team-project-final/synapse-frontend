@@ -11,6 +11,7 @@ import 'package:synapse_frontend/services/knowledge/features/search/domain/entit
 import 'package:synapse_frontend/services/knowledge/features/search/domain/entities/knowledge_search_mode.dart';
 import 'package:synapse_frontend/services/knowledge/features/search/domain/entities/knowledge_search_result.dart';
 import 'package:synapse_frontend/services/knowledge/features/search/providers/search_providers.dart';
+import 'package:synapse_frontend/shared/widgets/ai_thinking_loader.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
@@ -370,15 +371,29 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                       controller: _scrollController,
                       padding: const EdgeInsets.all(AppSpacing.md),
                       itemCount: messages.length,
-                      itemBuilder: (context, i) =>
-                          _ChatBubble(message: messages[i]),
+                      itemBuilder: (context, i) {
+                        // 첫 토큰 전(빈 AI 버블) 동안 챗봇 로띠 로더 표시.
+                        final isPendingAi = i == messages.length - 1 &&
+                            !messages[i].isUser &&
+                            messages[i].text.isEmpty &&
+                            qaState.isStreaming;
+                        if (isPendingAi) {
+                          return const Padding(
+                            padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: AiThinkingLoader(message: '답변 준비 중…'),
+                          );
+                        }
+                        return _ChatBubble(message: messages[i]);
+                      },
                     ),
             ),
           ),
         ),
 
-        // 스트리밍 인디케이터 (실제 상태 반영)
-        if (qaState.isStreaming)
+        // 스트리밍 인디케이터 — 답변이 흐르기 시작한 뒤에만(초기엔 로띠 로더가 대신).
+        if (qaState.isStreaming &&
+            qaState.messages.isNotEmpty &&
+            qaState.messages.last.text.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.md,

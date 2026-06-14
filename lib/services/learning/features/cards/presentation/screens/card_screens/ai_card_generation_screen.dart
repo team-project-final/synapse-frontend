@@ -174,24 +174,9 @@ class _AiCardGenerationScreenState
                               child: ConceptChatBubble(
                                   text: text, isMe: isUser),
                             ),
-                          AiLoadingMsg() => Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: Row(
-                                children: [
-                                  const SizedBox(
-                                    width: 14,
-                                    height: 14,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.primary),
-                                  ),
-                                  const SizedBox(width: AppSpacing.sm),
-                                  Text('카드 생성 중…',
-                                      style: textTheme.labelSmall
-                                          ?.copyWith(color: AppColors.muted)),
-                                ],
-                              ),
+                          AiLoadingMsg() => const Padding(
+                              padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                              child: AiThinkingLoader(message: '카드 만드는 중…'),
                             ),
                           AiErrorMsg(:final message) => Padding(
                               padding:

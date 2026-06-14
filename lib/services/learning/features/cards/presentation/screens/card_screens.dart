@@ -10,6 +10,7 @@ import 'package:synapse_frontend/services/learning/features/ai/domain/entities/g
 import 'package:synapse_frontend/services/learning/features/ai/providers/ai_providers.dart';
 import 'package:synapse_frontend/services/learning/features/cards/domain/entities/deck.dart';
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
+import 'package:synapse_frontend/shared/widgets/ai_thinking_loader.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/flip_card.dart';
 import 'package:synapse_frontend/shared/widgets/share_dialog.dart';

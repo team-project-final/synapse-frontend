@@ -144,6 +144,7 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
     }
 
     setState(() => _sharing = true);
+    final previousLevel = _currentGamificationLevel(ref);
     try {
       // workflow Step 5의 공유 등록 전에 learning이 원본 덱 공유 가능 여부를 검증한다.
       final shareable = await ref
@@ -177,6 +178,12 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
           context,
           message: '덱을 커뮤니티에 공유했습니다',
           type: ToastType.success,
+        );
+        await _refreshGamificationAfterEngagementAction(
+          context: context,
+          ref: ref,
+          previousLevel: previousLevel,
+          rewards: const ['덱 공유 보상'],
         );
       }
     } on DioException catch (error) {
@@ -421,11 +428,16 @@ class _SharedDeckCardState extends ConsumerState<_SharedDeckCard> {
                       ? null
                       : () async {
                           setState(() => _copying = true);
+                          final previousLevel = _currentGamificationLevel(ref);
                           try {
                             // learning이 실제 덱을 복사한 뒤 engagement가 공유 다운로드 수를 갱신한다.
                             await ref
                                 .read(communityLearningDeckApiProvider)
-                                .copyFromShare(deck.contentId);
+                                .copyFromShare(
+                                  deckId: deck.contentId,
+                                  sharedContentId: deck.id,
+                                  shareToken: deck.shareToken,
+                                );
                             ref.invalidate(deckListNotifierProvider);
                             await ref
                                 .read(communityApiProvider)
@@ -442,6 +454,12 @@ class _SharedDeckCardState extends ConsumerState<_SharedDeckCard> {
                                 context,
                                 message: '덱이 내 라이브러리에 복사되었습니다',
                                 type: ToastType.success,
+                              );
+                              await _refreshGamificationAfterEngagementAction(
+                                context: context,
+                                ref: ref,
+                                previousLevel: previousLevel,
+                                rewards: const ['공유 덱 복사 완료'],
                               );
                             }
                           } catch (_) {

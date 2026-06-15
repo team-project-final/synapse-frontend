@@ -94,7 +94,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
         notesAsync.when(
           data: (notes) {
             // 필터 버튼과 드롭다운은 모두 실제 메타데이터 정렬로만 연결한다.
-            // 임의 별점/카테고리 같은 목업 기준은 사용하지 않는다.
+            // 임의 별점/카테고리 같은 별도 기준을 섞지 않는다.
             final order = _selectedFilter == '전체'
                 ? _sortOrder
                 : _selectedFilter;
@@ -137,6 +137,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
     }
 
     setState(() => _sharing = true);
+    final previousLevel = _currentGamificationLevel(ref);
     try {
       // workflow Step 13의 NOTE 공유 생성은 engagement 메타데이터 등록까지 담당한다.
       // 실제 노트 본문 검증/복사는 knowledge 연동 범위라 여기서는 contentId를 그대로 저장한다.
@@ -153,6 +154,12 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
           context,
           message: '노트를 커뮤니티에 공유했습니다',
           type: ToastType.success,
+        );
+        await _refreshGamificationAfterEngagementAction(
+          context: context,
+          ref: ref,
+          previousLevel: previousLevel,
+          rewards: const ['노트 공유 보상'],
         );
       }
     } on DioException catch (error) {

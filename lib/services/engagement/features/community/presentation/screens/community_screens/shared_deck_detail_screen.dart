@@ -127,12 +127,17 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                     ? null
                     : () async {
                         setState(() => _copying = true);
+                        final previousLevel = _currentGamificationLevel(ref);
                         try {
                           if (content.contentType == SharedContentType.deck) {
                             // 1. learning-svc가 실제 덱과 카드들을 내 라이브러리로 복사한다.
                             await ref
                                 .read(communityLearningDeckApiProvider)
-                                .copyFromShare(content.contentId);
+                                .copyFromShare(
+                                  deckId: content.contentId,
+                                  sharedContentId: content.id,
+                                  shareToken: content.shareToken,
+                                );
                             ref.invalidate(deckListNotifierProvider);
                           }
                           // 2. engagement-svc는 공유 메타데이터를 fork하고 원본 다운로드 수를 증가시킨다.
@@ -154,6 +159,15 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                               context,
                               message: widget.copiedMessage,
                               type: ToastType.success,
+                            );
+                            await _refreshGamificationAfterEngagementAction(
+                              context: context,
+                              ref: ref,
+                              previousLevel: previousLevel,
+                              rewards: content.contentType ==
+                                      SharedContentType.deck
+                                  ? const ['공유 덱 복사 완료']
+                                  : const ['공유 노트 복사 완료'],
                             );
                           }
                         } catch (_) {

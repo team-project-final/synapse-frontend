@@ -6,80 +6,69 @@ part of '../gamification_screens.dart';
 class XpHistoryScreen extends ConsumerWidget {
   const XpHistoryScreen({super.key});
 
-  // TODO: 팀원 구현 — engagement-svc XP 이력 API 연동.
-  static const _sections = [
-    (
-      label: '오늘',
-      events: [
-        (icon: Icons.refresh, reason: '복습 18장 완료', time: '오전 9:12', xp: 90),
-        (
-          icon: Icons.quiz_outlined,
-          reason: '미니 퀴즈 전부 정답',
-          time: '오전 9:40',
-          xp: 30,
-        ),
-        (
-          icon: Icons.local_fire_department,
-          reason: '7일 연속 학습 보너스',
-          time: '오전 9:40',
-          xp: 50,
-        ),
-      ],
-    ),
-    (
-      label: '어제',
-      events: [
-        (
-          icon: Icons.description_outlined,
-          reason: '새 노트 작성',
-          time: '오후 8:02',
-          xp: 20,
-        ),
-        (icon: Icons.ios_share, reason: '덱 공유', time: '오후 8:15', xp: 15),
-      ],
-    ),
-    (
-      label: '이번 주',
-      events: [
-        (
-          icon: Icons.emoji_events_outlined,
-          reason: '레벨 7 달성 보너스',
-          time: '월요일',
-          xp: 100,
-        ),
-        (icon: Icons.auto_awesome, reason: 'AI 카드 생성', time: '월요일', xp: 25),
-      ],
-    ),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(xpHistoryProvider);
+    final profileAsync = ref.watch(myGamificationProvider);
+
+    return historyAsync.when(
+      data: (events) => _XpHistoryBody(
+        events: events,
+        profile: profileAsync.asData?.value,
+      ),
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => ConceptPage(
+        children: [
+          _EngagementErrorState(
+            message: 'XP 이력을 불러오지 못했습니다',
+            onRetry: () => ref.invalidate(xpHistoryProvider),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _XpHistoryBody extends StatelessWidget {
+  const _XpHistoryBody({required this.events, required this.profile});
+
+  final List<XpEvent> events;
+  final UserGamification? profile;
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final weeklyXp = events
+        .where((event) =>
+            event.createdAt != null &&
+            DateTime.now().difference(event.createdAt!).inDays < 7)
+        .fold<int>(0, (sum, event) => sum + event.xpAmount);
+    final sections = _groupXpEvents(events);
 
     return ConceptPage(
       children: [
         const ConceptViewHead(title: 'XP 이력'),
-
-        // 요약 카드
         ConceptCard(
           highlightBorder: true,
           child: Row(
             children: [
-              const SynapseOrb(size: 40, glyph: '⚡', glyphScale: 0.5),
+              const SynapseOrb(size: 40, glyph: 'XP', glyphScale: 0.42),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '이번 주 +420 XP',
+                      '이번 주 +$weeklyXp XP',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '누적 3,240 XP · Lv 7',
+                      profile == null
+                          ? '누적 XP를 불러오는 중'
+                          : '누적 ${profile!.xp} XP · Lv ${profile!.level}',
                       style: textTheme.bodySmall?.copyWith(
                         color: AppColors.muted,
                       ),
@@ -90,57 +79,117 @@ class XpHistoryScreen extends ConsumerWidget {
             ],
           ),
         ),
-
-        // 날짜별 타임라인
-        for (final section in _sections) ...[
-          ConceptSectionLabel(section.label),
-          for (final e in section.events)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
+        if (events.isEmpty)
+          const ConceptCard(child: Text('아직 XP 이력이 없습니다.'))
+        else
+          for (final section in sections.entries) ...[
+            ConceptSectionLabel(section.key),
+            for (final event in section.value)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        _eventIcon(event.eventType),
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: Icon(e.icon, size: 18, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          e.reason,
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _eventLabel(event),
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          e.time,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: AppColors.muted,
+                          Text(
+                            _formatDateTime(event.createdAt),
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.muted,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    '+${e.xp} XP',
-                    style: textTheme.labelLarge?.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w800,
+                    Text(
+                      '+${event.xpAmount} XP',
+                      style: textTheme.labelLarge?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
       ],
     );
   }
+}
+
+Map<String, List<XpEvent>> _groupXpEvents(List<XpEvent> events) {
+  final grouped = <String, List<XpEvent>>{};
+  for (final event in events) {
+    final label = _sectionLabel(event.createdAt);
+    grouped.putIfAbsent(label, () => []).add(event);
+  }
+  return grouped;
+}
+
+String _sectionLabel(DateTime? dateTime) {
+  if (dateTime == null) return '날짜 없음';
+  final now = DateTime.now();
+  final local = dateTime.toLocal();
+  final today = DateTime(now.year, now.month, now.day);
+  final eventDay = DateTime(local.year, local.month, local.day);
+  final diff = today.difference(eventDay).inDays;
+  if (diff == 0) return '오늘';
+  if (diff == 1) return '어제';
+  if (diff < 7) return '이번 주';
+  return '${local.month}/${local.day}';
+}
+
+String _formatDate(DateTime dateTime) {
+  final local = dateTime.toLocal();
+  return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+}
+
+String _formatDateTime(DateTime? dateTime) {
+  if (dateTime == null) return '날짜 없음';
+  final local = dateTime.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '${_formatDate(local)} $hour:$minute';
+}
+
+String _eventLabel(XpEvent event) {
+  final type = event.eventType.replaceAll('_', ' ');
+  return event.sourceType.isEmpty ? type : '$type · ${event.sourceType}';
+}
+
+IconData _eventIcon(String eventType) {
+  return switch (eventType.toUpperCase()) {
+    'CARD_REVIEWED' => Icons.refresh,
+    'QUIZ_COMPLETED' => Icons.quiz_outlined,
+    'NOTE_CREATED' => Icons.description_outlined,
+    'DECK_SHARED' || 'CONTENT_SHARED' => Icons.ios_share,
+    'LEVEL_UP' => Icons.emoji_events_outlined,
+    _ => Icons.add_circle_outline,
+  };
+}
+
+String _gamificationInitial(String value) {
+  return value.isEmpty ? '?' : value.substring(0, 1);
 }

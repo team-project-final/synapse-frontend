@@ -11,11 +11,12 @@ import 'package:synapse_frontend/services/engagement/features/gamification/provi
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/confirm_dialog.dart';
+import 'package:synapse_frontend/shared/widgets/level_up_celebration.dart';
 import 'package:synapse_frontend/shared/widgets/report_dialog.dart';
 import 'package:synapse_frontend/shared/widgets/study_board_kit.dart';
 import 'package:synapse_frontend/shared/widgets/toast.dart';
 
-part 'community_screens/_mock.dart';
+part 'community_screens/group_helpers.dart';
 part 'community_screens/group_list_screen.dart';
 part 'community_screens/group_detail_screen.dart';
 part 'community_screens/group_editor_screen.dart';

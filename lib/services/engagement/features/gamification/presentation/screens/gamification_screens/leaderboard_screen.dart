@@ -16,7 +16,7 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: _periodTabs.length, vsync: this);
   }
 
   @override
@@ -27,45 +27,21 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // TODO: 팀원 구현 — engagement-svc 리더보드 API 연동
-    const mockEntries = [
-      _LeaderboardEntry(rank: 1, name: '박탑원', xp: 12450, isMe: false),
-      _LeaderboardEntry(rank: 2, name: '이세컨', xp: 11200, isMe: false),
-      _LeaderboardEntry(rank: 3, name: '최써드', xp: 9870, isMe: false),
-      _LeaderboardEntry(rank: 4, name: '정포스', xp: 8540, isMe: false),
-      _LeaderboardEntry(rank: 5, name: '강피프', xp: 7320, isMe: false),
-      _LeaderboardEntry(rank: 6, name: '홍식스', xp: 6100, isMe: false),
-      _LeaderboardEntry(rank: 7, name: '김시냅스', xp: 3240, isMe: true),
-      _LeaderboardEntry(rank: 8, name: '윤에잇', xp: 2980, isMe: false),
-      _LeaderboardEntry(rank: 9, name: '임나인', xp: 2150, isMe: false),
-      _LeaderboardEntry(rank: 10, name: '서텐', xp: 1890, isMe: false),
-    ];
-
     return Column(
       children: [
         TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: '전체'),
-            Tab(text: '내 그룹'),
-            Tab(text: '주간'),
-            Tab(text: '월간'),
+          tabs: [
+            for (final tab in _periodTabs) Tab(text: tab.label),
           ],
         ),
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: List.generate(
-              4,
-              (_) => ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: mockEntries.length,
-                itemBuilder: (context, i) {
-                  final entry = mockEntries[i];
-                  return _LeaderboardRow(entry: entry);
-                },
-              ),
-            ),
+            children: [
+              for (final tab in _periodTabs)
+                _LeaderboardTab(period: tab.period),
+            ],
           ),
         ),
       ],
@@ -73,22 +49,57 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   }
 }
 
-class _LeaderboardEntry {
-  const _LeaderboardEntry({
-    required this.rank,
-    required this.name,
-    required this.xp,
-    required this.isMe,
-  });
-  final int rank;
-  final String name;
-  final int xp;
-  final bool isMe;
+const _periodTabs = [
+  (label: '전체', period: 'all'),
+  (label: '내 그룹', period: 'group'),
+  (label: '주간', period: 'weekly'),
+  (label: '월간', period: 'monthly'),
+];
+
+class _LeaderboardTab extends ConsumerWidget {
+  const _LeaderboardTab({required this.period});
+
+  final String period;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final query = LeaderboardQuery(period: period, limit: 20);
+    final entriesAsync = ref.watch(leaderboardProvider(query));
+    final currentUserId = userIdFromAccessToken(
+      ref.watch(authNotifierProvider).accessToken,
+    );
+
+    return entriesAsync.when(
+      data: (entries) {
+        if (entries.isEmpty) {
+          return const Center(child: Text('리더보드 데이터가 없습니다.'));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          itemCount: entries.length,
+          itemBuilder: (context, i) => _LeaderboardRow(
+            entry: entries[i],
+            isMe: currentUserId != null && entries[i].userId == currentUserId,
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator.adaptive()),
+      error: (_, _) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: _EngagementErrorState(
+          message: '리더보드를 불러오지 못했습니다',
+          onRetry: () => ref.invalidate(leaderboardProvider(query)),
+        ),
+      ),
+    );
+  }
 }
 
 class _LeaderboardRow extends StatelessWidget {
-  const _LeaderboardRow({required this.entry});
-  final _LeaderboardEntry entry;
+  const _LeaderboardRow({required this.entry, required this.isMe});
+
+  final LeaderboardEntry entry;
+  final bool isMe;
 
   @override
   Widget build(BuildContext context) {
@@ -97,10 +108,10 @@ class _LeaderboardRow extends StatelessWidget {
     final rankColor = entry.rank == 1
         ? AppColors.warning
         : entry.rank == 2
-        ? AppColors.muted
-        : entry.rank == 3
-        ? const Color(0xFFCD7F32) // bronze
-        : null;
+            ? AppColors.muted
+            : entry.rank == 3
+                ? AppColors.streak
+                : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -109,17 +120,14 @@ class _LeaderboardRow extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: entry.isMe
-            ? AppColors.primary.withValues(alpha: 0.10) // highlight my row
-            : null,
+        color: isMe ? AppColors.primary.withValues(alpha: 0.10) : null,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: entry.isMe
+        border: isMe
             ? Border.all(color: AppColors.primary.withValues(alpha: 0.5))
             : null,
       ),
       child: Row(
         children: [
-          // Rank
           SizedBox(
             width: 32,
             child: entry.rank <= 3
@@ -128,41 +136,38 @@ class _LeaderboardRow extends StatelessWidget {
                     '${entry.rank}',
                     style: textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: entry.isMe ? AppColors.primary : AppColors.muted,
+                      color: isMe ? AppColors.primary : AppColors.muted,
                     ),
                     textAlign: TextAlign.center,
                   ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Avatar
           CircleAvatar(
             radius: 16,
-            backgroundColor: entry.isMe
+            backgroundColor: isMe
                 ? AppColors.primary.withValues(alpha: 0.2)
                 : AppColors.surface2,
             child: Text(
-              entry.name.substring(0, 1),
+              _gamificationInitial(entry.nickname),
               style: textTheme.labelSmall?.copyWith(
-                color: entry.isMe ? AppColors.primary : AppColors.muted,
+                color: isMe ? AppColors.primary : AppColors.muted,
               ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Name
           Expanded(
             child: Text(
-              entry.name,
+              entry.nickname,
               style: textTheme.bodyMedium?.copyWith(
-                fontWeight: entry.isMe ? FontWeight.bold : null,
+                fontWeight: isMe ? FontWeight.bold : null,
               ),
             ),
           ),
-          // XP
           Text(
             '${entry.xp} XP',
             style: textTheme.bodyMedium?.copyWith(
-              color: entry.isMe ? AppColors.primary : AppColors.muted,
-              fontWeight: entry.isMe ? FontWeight.bold : null,
+              color: isMe ? AppColors.primary : AppColors.muted,
+              fontWeight: isMe ? FontWeight.bold : null,
             ),
           ),
         ],

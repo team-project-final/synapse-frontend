@@ -139,6 +139,15 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                                   shareToken: content.shareToken,
                                 );
                             ref.invalidate(deckListNotifierProvider);
+                          } else {
+                            // 1. knowledge-svc가 실제 노트를 내 라이브러리로 복사한다.
+                            await ref.read(dioProvider).post<Map<String, dynamic>>(
+                              '/api/v1/notes/${content.contentId}/copy-from-share',
+                              data: <String, dynamic>{
+                                'sharedContentId': content.id,
+                                'shareToken': content.shareToken,
+                              },
+                            );
                           }
                           // 2. engagement-svc는 공유 메타데이터를 fork하고 원본 다운로드 수를 증가시킨다.
                           await ref

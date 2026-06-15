@@ -159,6 +159,10 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
           context: context,
           ref: ref,
           previousLevel: previousLevel,
+          eventType: GamificationEventType.contentShared,
+          sourceId: draft.noteId,
+          sourceType: 'shared_note',
+          eventId: 'share-note:${draft.noteId}',
           rewards: const ['노트 공유 보상'],
         );
       }

@@ -7,6 +7,7 @@ import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/services/engagement/features/community/data/community_api.dart';
 import 'package:synapse_frontend/services/engagement/features/community/providers/community_providers.dart';
+import 'package:synapse_frontend/services/engagement/features/gamification/data/gamification_api.dart';
 import 'package:synapse_frontend/services/engagement/features/gamification/providers/gamification_providers.dart';
 import 'package:synapse_frontend/services/learning/features/cards/providers/cards_providers.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';

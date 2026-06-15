@@ -56,8 +56,25 @@ Future<void> _refreshGamificationAfterEngagementAction({
   required BuildContext context,
   required WidgetRef ref,
   required int? previousLevel,
+  required GamificationEventType eventType,
+  required String sourceId,
+  required String sourceType,
+  required String eventId,
+  int? xpAmount,
   List<String> rewards = const [],
 }) async {
+  try {
+    await ref.read(gamificationApiProvider).addXpEvent(
+          eventType: eventType,
+          sourceId: sourceId,
+          sourceType: sourceType,
+          eventId: eventId,
+          xpAmount: xpAmount,
+        );
+  } catch (_) {
+    // XP 이벤트 전송 실패가 원래 engagement 액션 성공 UX를 막지 않게 둔다.
+  }
+
   ref.invalidate(myGamificationProvider);
   ref.invalidate(badgesProvider);
   ref.invalidate(xpHistoryProvider);

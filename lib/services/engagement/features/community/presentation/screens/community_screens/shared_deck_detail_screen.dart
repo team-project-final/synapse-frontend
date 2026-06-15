@@ -164,6 +164,14 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                               context: context,
                               ref: ref,
                               previousLevel: previousLevel,
+                              eventType: GamificationEventType.contentCopied,
+                              sourceId: content.id,
+                              sourceType:
+                                  content.contentType == SharedContentType.deck
+                                      ? 'shared_deck'
+                                      : 'shared_note',
+                              eventId:
+                                  'copy-${content.contentType.apiValue.toLowerCase()}:${content.shareToken}',
                               rewards: content.contentType ==
                                       SharedContentType.deck
                                   ? const ['공유 덱 복사 완료']

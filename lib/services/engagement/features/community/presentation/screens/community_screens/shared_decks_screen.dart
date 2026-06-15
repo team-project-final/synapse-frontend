@@ -183,6 +183,10 @@ class _SharedDecksScreenState extends ConsumerState<SharedDecksScreen> {
           context: context,
           ref: ref,
           previousLevel: previousLevel,
+          eventType: GamificationEventType.contentShared,
+          sourceId: draft.deckId,
+          sourceType: 'shared_deck',
+          eventId: 'share-deck:${draft.deckId}',
           rewards: const ['덱 공유 보상'],
         );
       }
@@ -459,6 +463,10 @@ class _SharedDeckCardState extends ConsumerState<_SharedDeckCard> {
                                 context: context,
                                 ref: ref,
                                 previousLevel: previousLevel,
+                                eventType: GamificationEventType.contentCopied,
+                                sourceId: deck.id,
+                                sourceType: 'shared_deck',
+                                eventId: 'copy-deck:${deck.shareToken}',
                                 rewards: const ['공유 덱 복사 완료'],
                               );
                             }

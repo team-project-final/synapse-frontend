@@ -48,7 +48,7 @@ class CommunityGroupsScreen extends ConsumerWidget {
                       ),
                     ),
                     // Explore tab — API에서 받은 전체 그룹 중 공개 그룹만 클라이언트에서 분리한다.
-                    // API 실패 시 목업 그룹을 보여주지 않고 에러 상태를 보여줘 실제 데이터와 섞이지 않게 한다.
+                    // API 실패 시 대체 데이터를 섞지 않고 에러 상태를 보여준다.
                     groupsAsync.when(
                       data: (groups) {
                         final items = groups
@@ -210,7 +210,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
   Widget build(BuildContext context) {
     final group = widget.group;
     final textTheme = Theme.of(context).textTheme;
-    // 카드의 가입자 수는 목업 숫자가 아니라 /members 응답의 ACTIVE 인원으로 계산한다.
+    // 카드의 가입자 수는 /members 응답의 ACTIVE 인원으로 계산한다.
     // 로딩/실패 상태도 같이 보여줘 실제 API 상태가 화면에 드러나게 한다.
     final memberCountAsync = ref.watch(
       communityGroupMemberCountProvider(group.id),

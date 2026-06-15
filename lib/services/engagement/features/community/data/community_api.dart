@@ -55,11 +55,20 @@ class CommunityLearningDeckApi {
     return SharedDeckDetail.fromJson(_unwrapData(response.data));
   }
 
-  Future<SharedDeckCopyResult> copyFromShare(String deckId) async {
+  Future<SharedDeckCopyResult> copyFromShare({
+    required String deckId,
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
     // 실제 덱/카드 복제는 learning-svc가 소유한다.
+    // sharedContentId/shareToken을 함께 보내 임의 deckId 복사를 막고 공유글 검증을 맞춘다.
     // engagement의 fork는 복제 이후 다운로드 수와 공유 메타데이터를 갱신하는 단계다.
     final response = await _dio.post<Map<String, dynamic>>(
       '/decks/$deckId/copy-from-share',
+      data: {
+        'sharedContentId': sharedContentId,
+        'shareToken': shareToken,
+      },
     );
     return SharedDeckCopyResult.fromJson(_unwrapData(response.data));
   }
@@ -511,22 +520,22 @@ class CommunityApi {
   Future<CommunityReport> moderateReport({
     required String reportId,
     required ReportStatus status,
-    String? adminNote,
+    String? actionTaken,
   }) async {
     if (await _shouldUseLocalFallbackWithoutRequest()) {
       return _moderateLocalReport(
         reportId: reportId,
         status: status,
-        adminNote: adminNote,
+        actionTaken: actionTaken,
       );
     }
 
     try {
-      final response = await _dio.patch<Map<String, dynamic>>(
-        '$_prefix/admin/reports/$reportId',
+      final response = await _dio.put<Map<String, dynamic>>(
+        '$_prefix/admin/reports/$reportId/resolve',
         data: {
           'status': status.apiValue,
-          if (adminNote != null) 'adminNote': adminNote,
+          if (actionTaken != null) 'actionTaken': actionTaken,
         },
       );
       return CommunityReport.fromJson(
@@ -537,7 +546,7 @@ class CommunityApi {
         return _moderateLocalReport(
           reportId: reportId,
           status: status,
-          adminNote: adminNote,
+          actionTaken: actionTaken,
         );
       }
       rethrow;
@@ -737,7 +746,7 @@ class CommunityApi {
   CommunityReport _moderateLocalReport({
     required String reportId,
     required ReportStatus status,
-    String? adminNote,
+    String? actionTaken,
   }) {
     final index = _localReports.indexWhere((report) => report.id == reportId);
     if (index == -1) {
@@ -746,7 +755,7 @@ class CommunityApi {
 
     final updated = _localReports[index].copyWith(
       status: status,
-      adminNote: adminNote,
+      adminNote: actionTaken,
       resolvedAt: DateTime.now(),
     );
     _localReports[index] = updated;
@@ -962,19 +971,21 @@ enum ReportTargetType {
 }
 
 enum ReportStatus {
-  pending('PENDING'),
-  approved('APPROVED'),
-  rejected('REJECTED');
+  pending('pending'),
+  resolved('resolved'),
+  dismissed('dismissed');
 
   const ReportStatus(this.apiValue);
 
   final String apiValue;
 
   static ReportStatus fromApiValue(String value) {
-    return ReportStatus.values.firstWhere(
-      (status) => status.apiValue == value,
-      orElse: () => ReportStatus.pending,
-    );
+    final normalized = value.trim().toLowerCase();
+    return switch (normalized) {
+      'resolved' || 'approved' => ReportStatus.resolved,
+      'dismissed' || 'rejected' => ReportStatus.dismissed,
+      _ => ReportStatus.pending,
+    };
   }
 }
 
@@ -1046,8 +1057,8 @@ class CommunityReport {
       ),
       targetId: '${json['targetId'] ?? ''}',
       reason: (json['reason'] as String?) ?? '',
-      status: ReportStatus.fromApiValue('${json['status'] ?? 'PENDING'}'),
-      adminNote: json['adminNote'] as String?,
+      status: ReportStatus.fromApiValue('${json['status'] ?? 'pending'}'),
+      adminNote: (json['actionTaken'] ?? json['adminNote']) as String?,
       createdAt: DateTime.tryParse('${json['createdAt'] ?? ''}'),
       resolvedAt: DateTime.tryParse('${json['resolvedAt'] ?? ''}'),
     );

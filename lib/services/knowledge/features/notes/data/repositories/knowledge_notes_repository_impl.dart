@@ -19,4 +19,34 @@ class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
     final NoteModel model = await _datasource.fetchNote(noteId);
     return model.toEntity();
   }
+
+  @override
+  Future<Note> createNote({
+    required String title,
+    required String contentMd,
+    required List<String> tags,
+  }) async {
+    final NoteModel model = await _datasource.createNote(
+      title: title,
+      contentMd: contentMd,
+      tags: tags,
+    );
+    return model.toEntity();
+  }
+
+  @override
+  Future<Note> updateNote({
+    required String noteId,
+    required String title,
+    required String contentMd,
+    required List<String> tags,
+  }) async {
+    final NoteModel model = await _datasource.updateNote(
+      id: noteId,
+      title: title,
+      contentMd: contentMd,
+      tags: tags,
+    );
+    return model.toEntity();
+  }
 }

@@ -63,12 +63,24 @@ void main() {
       updatedAt: DateTime(2026, 6, 1),
     );
 
+    final Note backlink = Note(
+      id: '9',
+      title: '과적합 노트',
+      contentMd: '과적합 설명',
+      contentPlain: '과적합은 학습 데이터에 과하게 맞춰진 상태다.',
+      tags: const <String>['머신러닝'],
+      status: 'active',
+      createdAt: DateTime(2026, 6, 1),
+      updatedAt: DateTime(2026, 6, 1),
+    );
+
     await tester.binding.setSurfaceSize(mobile);
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           noteDetailProvider('1').overrideWith((Ref ref) => note),
+          backlinksProvider('1').overrideWith((Ref ref) => <Note>[backlink]),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -85,6 +97,9 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('정규화 기법 (Regularization)'), findsOneWidget);
     expect(find.text('#머신러닝'), findsOneWidget);
+    // 백링크 연동: 라벨에 개수 + 백링크 노트 제목 렌더
+    expect(find.text('백링크 1'), findsOneWidget);
+    expect(find.text('과적합 노트'), findsOneWidget);
   });
 
   // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이

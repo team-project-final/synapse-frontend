@@ -5,6 +5,9 @@ abstract interface class KnowledgeNotesRepository {
 
   Future<Note> getNote(String noteId);
 
+  /// 이 노트를 가리키는(들어오는) 노트 목록.
+  Future<List<Note>> getBacklinks(String noteId);
+
   Future<Note> createNote({
     required String title,
     required String contentMd,

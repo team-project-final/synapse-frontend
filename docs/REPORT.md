@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-06-15 — Knowledge 노트 백링크 API 연동 (3단계)
+
+### 배경 / 이전 상태
+- 상세화면(`note_detail_screen`)의 백링크가 목 `_BacklinkItem` 2개로 하드코딩(모바일 본문 + 데스크탑 사이드패널, `// TODO 3단계`).
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `data/datasources/...remote_datasource.dart` | `fetchBacklinks(id)` → GET `/api/v1/notes/{id}/backlinks` (응답 `data`가 노트 배열) |
+| `domain/repositories/...repository.dart` / `data/.../impl.dart` | `getBacklinks(noteId)` |
+| `domain/usecases/get_backlinks_usecase.dart` (신규) | UseCase |
+| `providers/notes_providers.dart` | `getBacklinksUseCaseProvider`, `backlinksProvider`(noteId family) |
+| `presentation/.../note_detail_screen.dart` | `_NoteDetailView` → `ConsumerWidget`. 백링크 섹션(모바일+데스크탑 패널)을 `backlinksProvider` 로 연결 — 라벨 "백링크 N", 항목은 백링크 노트 제목 + contentPlain 발췌 + 탭 시 해당 노트로 이동. loading/empty/error 처리 |
+| `test/.../note_screens_render_test.dart` | 상세 테스트에 `backlinksProvider` override 추가 — "백링크 N" 라벨 + 백링크 제목 렌더 검증 |
+
+### 연동 API
+- `GET /api/v1/notes/{id}/backlinks` (이 노트를 가리키는 노트 목록)
+
+### 범위 밖 (다음 단계)
+- 아웃링크(상세에 UI 섹션 없음 — 별도 디자인 필요), 버전 이력(4), 태그 편집·필터·위키링크(5).
+
+### 검증
+- `flutter analyze` 0 경고 / 위젯 테스트 12/12 통과 (백링크 렌더 단언 포함).
+- 실제 백링크 데이터 표시 검증은 미실시 — knowledge-svc 기동 + 경로 정합([#68](https://github.com/team-project-final/synapse-frontend/issues/68)) 필요.
+
+---
+
 ## 2026-06-15 — Knowledge 노트 에디터 생성/수정 API 연동 (2단계)
 
 ### 배경 / 이전 상태

@@ -22,16 +22,17 @@ class NoteDetailScreen extends ConsumerWidget {
   }
 }
 
-class _NoteDetailView extends StatelessWidget {
+class _NoteDetailView extends ConsumerWidget {
   const _NoteDetailView({required this.noteId, required this.note});
 
   final String noteId;
   final Note note;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final AsyncValue<List<Note>> backlinks = ref.watch(backlinksProvider(noteId));
 
     final mainContent = Align(
       alignment: Alignment.topCenter,
@@ -104,19 +105,9 @@ class _NoteDetailView extends StatelessWidget {
                     ),
                   ],
                 ),
-                // 백링크 — 📄 아이콘 + 제목 + 인용 스니펫.
-                const ConceptSectionLabel('백링크'),
-                // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동 (3단계)
-                _BacklinkItem(
-                  title: '과적합',
-                  snippet: '"…해결: ML 정규화 기법, 교차검증."',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-                ),
-                _BacklinkItem(
-                  title: '드롭아웃',
-                  snippet: '"…ML 정규화 기법의 한 종류로…"',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-                ),
+                // 백링크 — knowledge-svc 백링크 API(GET /notes/{id}/backlinks) 연동
+                ConceptSectionLabel(_backlinkLabel(backlinks)),
+                ..._buildBacklinkItems(context, backlinks),
               ],
             ),
           ],
@@ -137,7 +128,7 @@ class _NoteDetailView extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(
-            '백링크',
+            _backlinkLabel(backlinks),
             style: textTheme.labelLarge?.copyWith(
               color: AppColors.muted,
               fontWeight: FontWeight.w800,
@@ -145,17 +136,8 @@ class _NoteDetailView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동 (3단계)
-          _BacklinkItem(
-            title: '드롭아웃 기법',
-            snippet: '과적합 방지를 위한 기법',
-            onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-          ),
-          _BacklinkItem(
-            title: 'Ridge vs Lasso 비교',
-            snippet: 'L2 정규화 비교 분석',
-            onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-          ),
+          // knowledge-svc 백링크 API 연동
+          ..._buildBacklinkItems(context, backlinks),
         ],
       ),
     );
@@ -166,6 +148,72 @@ class _NoteDetailView extends StatelessWidget {
         backlinkPanel,
       ],
     );
+  }
+
+  String _backlinkLabel(AsyncValue<List<Note>> backlinks) {
+    return backlinks.maybeWhen(
+      data: (List<Note> notes) => '백링크 ${notes.length}',
+      orElse: () => '백링크',
+    );
+  }
+
+  List<Widget> _buildBacklinkItems(
+    BuildContext context,
+    AsyncValue<List<Note>> backlinks,
+  ) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    return backlinks.when(
+      data: (List<Note> notes) {
+        if (notes.isEmpty) {
+          return <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              child: Text(
+                '연결된 백링크가 없어요.',
+                style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+              ),
+            ),
+          ];
+        }
+        return <Widget>[
+          for (final Note n in notes)
+            _BacklinkItem(
+              title: n.title,
+              snippet: _backlinkSnippet(n.contentPlain),
+              onTap: () => context.go(AppRoutes.noteDetailPath(n.id)),
+            ),
+        ];
+      },
+      loading: () => const <Widget>[
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Center(
+            child: SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+      ],
+      error: (Object error, StackTrace stackTrace) => <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Text(
+            '백링크를 불러오지 못했어요.',
+            style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _backlinkSnippet(String contentPlain) {
+    final String trimmed = contentPlain.trim();
+    if (trimmed.length <= 50) {
+      return trimmed;
+    }
+    return '${trimmed.substring(0, 50)}…';
   }
 }
 

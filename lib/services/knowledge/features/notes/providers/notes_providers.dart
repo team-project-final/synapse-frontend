@@ -4,8 +4,10 @@ import 'package:synapse_frontend/services/knowledge/features/notes/data/datasour
 import 'package:synapse_frontend/services/knowledge/features/notes/data/repositories/knowledge_notes_repository_impl.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/create_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/update_note_usecase.dart';
 
 final _knowledgeNotesRemoteDatasourceProvider =
     Provider<KnowledgeNotesRemoteDatasource>((Ref ref) {
@@ -25,6 +27,14 @@ final getNotesUseCaseProvider = Provider<GetNotesUseCase>((Ref ref) {
 
 final getNoteUseCaseProvider = Provider<GetNoteUseCase>((Ref ref) {
   return GetNoteUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
+final createNoteUseCaseProvider = Provider<CreateNoteUseCase>((Ref ref) {
+  return CreateNoteUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
+final updateNoteUseCaseProvider = Provider<UpdateNoteUseCase>((Ref ref) {
+  return UpdateNoteUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
 /// 노트 목록 (전체). 추후 태그 필터는 별도 family provider 로 확장.

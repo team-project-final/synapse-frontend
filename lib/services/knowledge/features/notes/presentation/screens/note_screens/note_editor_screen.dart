@@ -14,8 +14,18 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with SingleTickerProviderStateMixin {
   final _controller = TextEditingController();
+  final _titleController = TextEditingController();
   late final TabController _tabController;
   String _markdown = '';
+
+  /// 수정 시 원본 태그 보존용 (태그 편집 UI는 5단계 — 지금은 로드한 태그를 그대로 재전송).
+  List<String> _tags = const <String>[];
+
+  bool _loadingNote = false; // 수정 진입 시 기존 노트 로딩
+  bool _saving = false;
+  String? _loadError;
+
+  bool get _isNew => widget.noteId == 'new';
 
   /// `[[` 위키링크 자동완성 후보 (mock — v1 목업의 autocomplete 드롭다운).
   /// TODO: 팀원 구현 — knowledge-svc 노트 제목 검색으로 후보 동적 로드
@@ -32,6 +42,64 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _controller.addListener(() {
       setState(() => _markdown = _controller.text);
     });
+    if (!_isNew) {
+      _loadExistingNote();
+    }
+  }
+
+  /// 수정 진입 시 기존 노트(제목·본문·태그)를 불러와 입력칸을 채운다.
+  Future<void> _loadExistingNote() async {
+    setState(() => _loadingNote = true);
+    try {
+      final Note note = await ref.read(getNoteUseCaseProvider).call(widget.noteId);
+      _titleController.text = note.title;
+      _controller.text = note.contentMd;
+      setState(() {
+        _tags = note.tags;
+        _markdown = note.contentMd;
+        _loadingNote = false;
+      });
+    } catch (_) {
+      setState(() {
+        _loadError = '노트를 불러오지 못했어요';
+        _loadingNote = false;
+      });
+    }
+  }
+
+  /// 저장 — 신규는 POST, 기존은 PATCH. 성공 시 상세로 이동, 실패 시 SnackBar.
+  Future<void> _save() async {
+    final String title = _titleController.text.trim();
+    final String content = _controller.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('제목과 내용을 입력하세요')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final Note saved = _isNew
+          ? await ref.read(createNoteUseCaseProvider).call(
+              title: title, contentMd: _controller.text, tags: _tags)
+          : await ref.read(updateNoteUseCaseProvider).call(
+              noteId: widget.noteId,
+              title: title,
+              contentMd: _controller.text,
+              tags: _tags);
+
+      ref.invalidate(notesListProvider);
+      ref.invalidate(noteDetailProvider(saved.id));
+      if (!mounted) return;
+      context.go(AppRoutes.noteDetailPath(saved.id));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('저장에 실패했어요. 다시 시도해주세요.')),
+      );
+    }
   }
 
   /// 커서 앞 텍스트가 닫히지 않은 `[[…` 패턴이면 자동완성 쿼리를 돌려준다.
@@ -69,19 +137,33 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _titleController.dispose();
     _tabController.dispose();
     super.dispose();
   }
 
-  void _insertMarkdown(String syntax) {
-    final text = _controller.text;
-    final selection = _controller.selection;
-    final start = selection.start < 0 ? text.length : selection.start;
-    final end = selection.end < 0 ? text.length : selection.end;
-    final newText = text.replaceRange(start, end, syntax);
+  /// 선택한 텍스트를 prefix/suffix 로 감싼다.
+  /// - 선택이 있으면: `prefix + 선택텍스트 + suffix` (예: "안녕" → "**안녕**")
+  /// - 선택이 없으면: placeholder 를 끼워 넣고 그 placeholder 를 선택 상태로 둔다(바로 덮어쓰게).
+  void _wrapSelection(String prefix, String suffix, {String placeholder = ''}) {
+    final String text = _controller.text;
+    final TextSelection sel = _controller.selection;
+    final int start = sel.start < 0 ? text.length : sel.start;
+    final int end = sel.end < 0 ? text.length : sel.end;
+    final bool hasSelection = start != end;
+    final String inner = hasSelection ? text.substring(start, end) : placeholder;
+
+    final String newText = text.replaceRange(start, end, '$prefix$inner$suffix');
+    final int innerStart = start + prefix.length;
+    final int innerEnd = innerStart + inner.length;
+
     _controller.value = TextEditingValue(
       text: newText,
-      selection: TextSelection.collapsed(offset: start + syntax.length),
+      // 선택 없이 placeholder 를 넣었으면 그 placeholder 를 선택해 바로 교체 가능하게,
+      // 선택이 있었으면 닫는 기호 뒤로 커서를 둔다.
+      selection: (!hasSelection && placeholder.isNotEmpty)
+          ? TextSelection(baseOffset: innerStart, extentOffset: innerEnd)
+          : TextSelection.collapsed(offset: innerEnd + suffix.length),
     );
   }
 
@@ -89,6 +171,26 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+
+    // 수정 진입 시 기존 노트 로딩 / 실패 상태 처리
+    if (_loadingNote) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Text(_loadError!, style: textTheme.bodyMedium?.copyWith(color: AppColors.muted)),
+            const SizedBox(height: AppSpacing.sm),
+            OutlinedButton(
+              onPressed: () => context.go(AppRoutes.notes),
+              child: const Text('라이브러리'),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Column(
       children: [
@@ -113,56 +215,48 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                       _ToolbarButton(
                         icon: Icons.format_bold,
                         tooltip: 'Bold',
-                        onTap: () => _insertMarkdown('**텍스트**'),
+                        onTap: () => _wrapSelection('**', '**', placeholder: '텍스트'),
                       ),
                       _ToolbarButton(
                         icon: Icons.format_italic,
                         tooltip: 'Italic',
-                        onTap: () => _insertMarkdown('*텍스트*'),
+                        onTap: () => _wrapSelection('*', '*', placeholder: '텍스트'),
                       ),
                       _ToolbarButton(
                         icon: Icons.title,
                         tooltip: 'Heading 1',
-                        onTap: () => _insertMarkdown('# '),
+                        onTap: () => _wrapSelection('# ', '', placeholder: '제목'),
                       ),
                       _ToolbarButton(
                         icon: Icons.text_fields,
                         tooltip: 'Heading 2',
-                        onTap: () => _insertMarkdown('## '),
+                        onTap: () => _wrapSelection('## ', '', placeholder: '제목'),
                       ),
                       _ToolbarButton(
                         icon: Icons.link,
                         tooltip: 'Link',
-                        onTap: () => _insertMarkdown('[['),
+                        // 선택이 있으면 [[선택]] 으로 감싸고, 없으면 [[ 만 열어 자동완성을 띄운다.
+                        onTap: () {
+                          final TextSelection s = _controller.selection;
+                          if (s.isValid && s.start != s.end) {
+                            _wrapSelection('[[', ']]');
+                          } else {
+                            _wrapSelection('[[', '');
+                          }
+                        },
                       ),
                       _ToolbarButton(
                         icon: Icons.code,
                         tooltip: 'Code',
-                        onTap: () => _insertMarkdown('`코드`'),
+                        onTap: () => _wrapSelection('`', '`', placeholder: '코드'),
                       ),
                     ],
                   ),
                 ),
               ),
-              // 자동저장 인디케이터
-              const Icon(Icons.circle, size: 8, color: AppColors.success),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                '저장됨',
-                style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
-              ),
-              // TODO: 팀원 구현 — 자동저장 상태 연동
               const SizedBox(width: AppSpacing.md),
               FilledButton(
-                onPressed: () {
-                  if (widget.noteId == 'new') {
-                    // TODO: 팀원 구현 — knowledge-svc POST /notes API 호출 후 생성된 noteId 상세로 이동
-                    context.go(AppRoutes.notes);
-                  } else {
-                    // TODO: 팀원 구현 — knowledge-svc PUT /notes/:noteId API 호출
-                    context.go(AppRoutes.noteDetailPath(widget.noteId));
-                  }
-                },
+                onPressed: _saving ? null : _save,
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
@@ -171,11 +265,32 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: Text(widget.noteId == 'new' ? '등록' : '저장'),
+                child: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(_isNew ? '등록' : '저장'),
               ),
             ],
           ),
         ),
+        // 제목 입력 (백엔드 title 필수)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md, AppSpacing.sm, AppSpacing.md, 0),
+          child: TextField(
+            controller: _titleController,
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            decoration: const InputDecoration(
+              hintText: '제목을 입력하세요',
+              border: InputBorder.none,
+              isDense: true,
+            ),
+          ),
+        ),
+        const Divider(height: 1, color: AppColors.border),
         // Content
         Expanded(
           child: isMobile

@@ -89,9 +89,11 @@ void main() {
 
   // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이
   // 뜨는지 확인한다. (드롭다운 진입 분기를 실제로 타게 한다)
+  // noteId='new' 로 신규 작성 진입(기존 노트 로드 없이 즉시 에디터 렌더).
+  // 제목칸이 첫 TextField 이므로 본문칸(.last)에 입력한다.
   testWidgets('NoteEditor [[ 자동완성 드롭다운 렌더', (tester) async {
-    await pump(tester, const NoteEditorScreen(noteId: '1'), desktop);
-    await tester.enterText(find.byType(TextField).first, '핵심은 [[어텐');
+    await pump(tester, const NoteEditorScreen(noteId: 'new'), desktop);
+    await tester.enterText(find.byType(TextField).last, '핵심은 [[어텐');
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);

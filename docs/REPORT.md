@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-06-15 — Knowledge 노트 에디터 생성/수정 API 연동 (2단계)
+
+### 배경 / 이전 상태
+- 1단계로 목록·상세(읽기)를 연동했으나, 에디터(`note_editor_screen`)는 저장 버튼이 목(TODO)이었고 수정 진입 시 기존 내용을 불러오지 않았으며 **제목 입력칸 자체가 없었다**(백엔드 `title` 필수).
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `data/datasources/knowledge_notes_remote_datasource.dart` | `createNote`(POST `/api/v1/notes`), `updateNote`(PATCH `/api/v1/notes/{id}`) 추가. tenantId 는 앱 기본 테넌트 상수 사용 |
+| `domain/repositories/knowledge_notes_repository.dart` / `data/.../repository_impl.dart` | `createNote`/`updateNote` 추가 |
+| `domain/usecases/create_note_usecase.dart`, `update_note_usecase.dart` (신규) | UseCase |
+| `providers/notes_providers.dart` | `createNoteUseCaseProvider`, `updateNoteUseCaseProvider` 추가 |
+| `presentation/.../note_editor_screen.dart` | **제목 입력칸 추가**, 수정 진입 시 기존 노트 로드(로딩/실패 처리), 저장 버튼 연결(신규 POST/기존 PATCH, 저장 중 스피너, 실패 SnackBar, 성공 시 상세 이동 + 목록 캐시 무효화), 태그 보존(수정 시 기존 태그 재전송) |
+| `presentation/.../note_editor_screen.dart` (버그픽스) | 툴바 포맷 버튼이 선택 영역을 **치환**해 단어가 사라지던 버그 수정(`_insertMarkdown`→`_wrapSelection`). 이제 "안녕" 선택 후 볼드 → `**안녕**`. 선택 없으면 placeholder 삽입 후 선택 |
+| `test/.../note_screens_render_test.dart` | 에디터 자동완성 테스트를 신규(`new`) 진입 + 본문칸 입력으로 갱신(제목칸 추가·수정모드 로드 반영) |
+
+### 연동 API
+- `POST /api/v1/notes` (생성), `PATCH /api/v1/notes/{id}` (수정)
+
+### tenantId 처리
+- 백엔드 `NoteCreateRequest` 는 tenantId 필수. 프론트는 tenant 컨텍스트가 없어 앱 기본 테넌트(`0000…0001`) 사용. 수정 시 백엔드는 이 값을 무시하고 원본 tenant 유지(데이터소스 주석 명시).
+
+### 범위 밖 (다음 단계)
+- 백링크/아웃링크(3), 버전 이력(4), 태그 편집 UI·목록 필터/정렬·위키링크 자동완성 실검색·본문 위키링크 탭(5). 위키링크 자동완성은 현재 **목 후보**.
+
+### 검증
+- `flutter analyze` (notes feature) 경고 0개.
+- 위젯 테스트 `note_screens_render_test.dart` 12/12 통과.
+- 인메모리 가짜 레포로 목록·상세·생성·수정·볼드픽스 **육안 확인 완료**(확인 후 가짜 코드 제거).
+- 실제 저장(서버 반영) 검증은 미실시 — gateway/경로 정합([#68](https://github.com/team-project-final/synapse-frontend/issues/68)) + knowledge-svc 기동 필요.
+
+---
+
 ## 2026-06-12 — Knowledge 노트 목록·상세 API 연동 (1단계)
 
 ### 배경 / 이전 상태

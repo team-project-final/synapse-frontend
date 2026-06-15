@@ -60,6 +60,18 @@ class KnowledgeNotesRemoteDatasource {
     return NoteModel.fromJson(data);
   }
 
+  Future<List<NoteModel>> fetchBacklinks(String id) async {
+    final Response<Map<String, dynamic>> response =
+        await _dio.get<Map<String, dynamic>>('/api/v1/notes/$id/backlinks');
+
+    // ApiResponse{data: List<NoteResponse>} — data 가 노트 배열.
+    final List<dynamic> list =
+        (response.data?['data'] as List<dynamic>?) ?? const <dynamic>[];
+    return list
+        .map((dynamic e) => NoteModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<NoteModel> updateNote({
     required String id,
     required String title,

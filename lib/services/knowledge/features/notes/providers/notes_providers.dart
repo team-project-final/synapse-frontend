@@ -5,6 +5,7 @@ import 'package:synapse_frontend/services/knowledge/features/notes/data/reposito
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/create_note_usecase.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_backlinks_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_notes_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/update_note_usecase.dart';
@@ -37,6 +38,10 @@ final updateNoteUseCaseProvider = Provider<UpdateNoteUseCase>((Ref ref) {
   return UpdateNoteUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
+final getBacklinksUseCaseProvider = Provider<GetBacklinksUseCase>((Ref ref) {
+  return GetBacklinksUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
 /// 노트 목록 (전체). 추후 태그 필터는 별도 family provider 로 확장.
 final notesListProvider = FutureProvider.autoDispose<List<Note>>((Ref ref) {
   return ref.watch(getNotesUseCaseProvider).call();
@@ -46,4 +51,10 @@ final notesListProvider = FutureProvider.autoDispose<List<Note>>((Ref ref) {
 final noteDetailProvider =
     FutureProvider.autoDispose.family<Note, String>((Ref ref, String noteId) {
   return ref.watch(getNoteUseCaseProvider).call(noteId);
+});
+
+/// 백링크 — 이 노트를 가리키는 노트 목록 (noteId 별).
+final backlinksProvider =
+    FutureProvider.autoDispose.family<List<Note>, String>((Ref ref, String noteId) {
+  return ref.watch(getBacklinksUseCaseProvider).call(noteId);
 });

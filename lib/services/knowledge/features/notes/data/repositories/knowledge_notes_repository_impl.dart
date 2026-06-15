@@ -21,6 +21,12 @@ class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
   }
 
   @override
+  Future<List<Note>> getBacklinks(String noteId) async {
+    final List<NoteModel> models = await _datasource.fetchBacklinks(noteId);
+    return models.map((NoteModel model) => model.toEntity()).toList();
+  }
+
+  @override
   Future<Note> createNote({
     required String title,
     required String contentMd,

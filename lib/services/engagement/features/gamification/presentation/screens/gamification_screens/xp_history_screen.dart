@@ -175,7 +175,16 @@ String _formatDateTime(DateTime? dateTime) {
 }
 
 String _eventLabel(XpEvent event) {
-  final type = event.eventType.replaceAll('_', ' ');
+  final type = switch (event.eventType.toUpperCase()) {
+    'CARD_REVIEWED' => '카드 복습',
+    'QUIZ_COMPLETED' => '퀴즈 완료',
+    'NOTE_CREATED' => '노트 작성',
+    'DECK_SHARED' || 'CONTENT_SHARED' => '콘텐츠 공유',
+    'CONTENT_COPIED' => '공유 콘텐츠 복사',
+    'GROUP_JOINED' => '그룹 참여',
+    'LEVEL_UP' => '레벨 업',
+    _ => event.eventType.replaceAll('_', ' '),
+  };
   return event.sourceType.isEmpty ? type : '$type · ${event.sourceType}';
 }
 
@@ -185,6 +194,8 @@ IconData _eventIcon(String eventType) {
     'QUIZ_COMPLETED' => Icons.quiz_outlined,
     'NOTE_CREATED' => Icons.description_outlined,
     'DECK_SHARED' || 'CONTENT_SHARED' => Icons.ios_share,
+    'CONTENT_COPIED' => Icons.copy_outlined,
+    'GROUP_JOINED' => Icons.group_add_outlined,
     'LEVEL_UP' => Icons.emoji_events_outlined,
     _ => Icons.add_circle_outline,
   };

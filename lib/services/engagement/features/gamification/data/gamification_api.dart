@@ -370,7 +370,10 @@ class UserGamification {
 
 enum GamificationEventType {
   cardReviewed('CARD_REVIEWED'),
-  noteCreated('NOTE_CREATED');
+  noteCreated('NOTE_CREATED'),
+  contentShared('CONTENT_SHARED'),
+  contentCopied('CONTENT_COPIED'),
+  groupJoined('GROUP_JOINED');
 
   const GamificationEventType(this.apiValue);
 

@@ -34,6 +34,30 @@ final aiDioProvider = Provider<Dio>((ref) {
   ));
 });
 
+final knowledgeDioProvider = Provider<Dio>((ref) {
+  final environment = ref.watch(environmentProvider);
+  final baseOptions = BaseOptions(
+    baseUrl: environment.knowledgeBaseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 20),
+    extra: {'withCredentials': true},
+  );
+  final dio = Dio(baseOptions);
+  final refreshDio = Dio(BaseOptions(
+    baseUrl: environment.baseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 20),
+    extra: {'withCredentials': true},
+  ));
+  dio.interceptors.add(
+    AuthDioInterceptor(
+      tokenStore: ref.watch(tokenStoreProvider),
+      refreshDio: refreshDio,
+    ),
+  );
+  return dio;
+});
+
 final dioProvider = Provider<Dio>((ref) {
   final environment = ref.watch(environmentProvider);
   final baseOptions = BaseOptions(

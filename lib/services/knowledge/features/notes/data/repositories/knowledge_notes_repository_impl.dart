@@ -19,4 +19,45 @@ class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
     final NoteModel model = await _datasource.fetchNote(noteId);
     return model.toEntity();
   }
+
+  @override
+  Future<NoteShareableStatus> getShareableStatus(String noteId) async {
+    final model = await _datasource.fetchShareableStatus(noteId);
+    return NoteShareableStatus(
+      noteId: model.noteId,
+      shareable: model.shareable,
+      title: model.title,
+      description: model.description,
+      tags: model.tags,
+      reason: model.reason,
+    );
+  }
+
+  @override
+  Future<Note> getSharedDetail({
+    required String noteId,
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    final NoteModel model = await _datasource.fetchSharedDetail(
+      noteId: noteId,
+      sharedContentId: sharedContentId,
+      shareToken: shareToken,
+    );
+    return model.toEntity();
+  }
+
+  @override
+  Future<Note> copyFromShare({
+    required String noteId,
+    required String sharedContentId,
+    required String shareToken,
+  }) async {
+    final NoteModel model = await _datasource.copyFromShare(
+      noteId: noteId,
+      sharedContentId: sharedContentId,
+      shareToken: shareToken,
+    );
+    return model.toEntity();
+  }
 }

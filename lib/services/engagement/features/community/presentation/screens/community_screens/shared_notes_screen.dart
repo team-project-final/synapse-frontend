@@ -29,8 +29,7 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
       query: _searchController.text,
       contentType: SharedContentType.note,
     );
-    // 노트 목록도 engagement 공유 메타데이터만 사용한다.
-    // 본문 상세는 knowledge 연동 전까지 description/tags/downloadCount 중심으로 표시한다.
+    // 노트 목록은 engagement 공유 메타데이터를 사용하고, 본문/복사는 상세 화면에서 knowledge 공유 API로 처리한다.
     final notesAsync = ref.watch(sharedContentsProvider(query));
 
     return ConceptPage(
@@ -139,14 +138,30 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
     setState(() => _sharing = true);
     final previousLevel = _currentGamificationLevel(ref);
     try {
-      // workflow Step 13의 NOTE 공유 생성은 engagement 메타데이터 등록까지 담당한다.
-      // 실제 노트 본문 검증/복사는 knowledge 연동 범위라 여기서는 contentId를 그대로 저장한다.
+      final shareable = await ref
+          .read(knowledgeNotesRepositoryProvider)
+          .getShareableStatus(draft.noteId);
+      if (!shareable.shareable) {
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: shareable.reason.isEmpty
+                ? '공유할 수 없는 노트입니다'
+                : shareable.reason,
+            type: ToastType.error,
+          );
+        }
+        return;
+      }
+
       await ref.read(communityApiProvider).shareContent(
             contentType: SharedContentType.note,
             contentId: draft.noteId,
-            title: draft.title,
-            description: draft.description,
-            tags: draft.tags,
+            title: shareable.title.isEmpty ? draft.title : shareable.title,
+            description: shareable.description.isEmpty
+                ? draft.description
+                : shareable.description,
+            tags: shareable.tags.isEmpty ? draft.tags : shareable.tags,
           );
       ref.invalidate(sharedContentsProvider(query));
       if (mounted) {
@@ -159,6 +174,10 @@ class _SharedNotesScreenState extends ConsumerState<SharedNotesScreen> {
           context: context,
           ref: ref,
           previousLevel: previousLevel,
+          eventType: GamificationEventType.contentShared,
+          sourceId: draft.noteId,
+          sourceType: 'shared_note',
+          eventId: 'share-note:${draft.noteId}',
           rewards: const ['노트 공유 보상'],
         );
       }

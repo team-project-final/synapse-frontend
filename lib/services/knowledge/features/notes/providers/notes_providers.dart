@@ -9,7 +9,7 @@ import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecas
 
 final _knowledgeNotesRemoteDatasourceProvider =
     Provider<KnowledgeNotesRemoteDatasource>((Ref ref) {
-  return KnowledgeNotesRemoteDatasource(ref.watch(dioProvider));
+  return KnowledgeNotesRemoteDatasource(ref.watch(knowledgeDioProvider));
 });
 
 final _knowledgeNotesRepositoryProvider =
@@ -18,6 +18,8 @@ final _knowledgeNotesRepositoryProvider =
     ref.watch(_knowledgeNotesRemoteDatasourceProvider),
   );
 });
+
+final knowledgeNotesRepositoryProvider = _knowledgeNotesRepositoryProvider;
 
 final getNotesUseCaseProvider = Provider<GetNotesUseCase>((Ref ref) {
   return GetNotesUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
@@ -37,3 +39,46 @@ final noteDetailProvider =
     FutureProvider.autoDispose.family<Note, String>((Ref ref, String noteId) {
   return ref.watch(getNoteUseCaseProvider).call(noteId);
 });
+
+final noteShareableStatusProvider =
+    FutureProvider.autoDispose.family<NoteShareableStatus, String>((
+  Ref ref,
+  String noteId,
+) {
+  return ref.watch(_knowledgeNotesRepositoryProvider).getShareableStatus(noteId);
+});
+
+final sharedNoteDetailProvider =
+    FutureProvider.autoDispose.family<Note, SharedNoteAccessQuery>((
+  Ref ref,
+  SharedNoteAccessQuery query,
+) {
+  return ref.watch(_knowledgeNotesRepositoryProvider).getSharedDetail(
+        noteId: query.noteId,
+        sharedContentId: query.sharedContentId,
+        shareToken: query.shareToken,
+      );
+});
+
+class SharedNoteAccessQuery {
+  const SharedNoteAccessQuery({
+    required this.noteId,
+    required this.sharedContentId,
+    required this.shareToken,
+  });
+
+  final String noteId;
+  final String sharedContentId;
+  final String shareToken;
+
+  @override
+  bool operator ==(Object other) {
+    return other is SharedNoteAccessQuery &&
+        other.noteId == noteId &&
+        other.sharedContentId == sharedContentId &&
+        other.shareToken == shareToken;
+  }
+
+  @override
+  int get hashCode => Object.hash(noteId, sharedContentId, shareToken);
+}

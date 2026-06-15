@@ -275,6 +275,7 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
                   ? null
                   : () async {
                       setState(() => _joining = true);
+                      final previousLevel = _currentGamificationLevel(ref);
                       try {
                         await ref
                             .read(communityApiProvider)
@@ -289,6 +290,16 @@ class _GroupCardState extends ConsumerState<_GroupCard> {
                                 ? '그룹에 가입했습니다'
                                 : '그룹 가입 요청을 보냈습니다',
                             type: ToastType.success,
+                          );
+                          await _refreshGamificationAfterEngagementAction(
+                            context: context,
+                            ref: ref,
+                            previousLevel: previousLevel,
+                            eventType: GamificationEventType.groupJoined,
+                            sourceId: group.id,
+                            sourceType: 'study_group',
+                            eventId: 'join-group:${group.id}',
+                            rewards: const ['그룹 참여 보상'],
                           );
                         }
                       } catch (_) {

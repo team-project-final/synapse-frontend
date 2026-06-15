@@ -70,6 +70,16 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
     final deckDetailAsync = deckDetailQuery == null
         ? null
         : ref.watch(sharedDeckDetailProvider(deckDetailQuery));
+    final noteDetailQuery = content.contentType == SharedContentType.note
+        ? SharedNoteAccessQuery(
+            noteId: content.contentId,
+            sharedContentId: content.id,
+            shareToken: content.shareToken,
+          )
+        : null;
+    final noteDetailAsync = content.contentType == SharedContentType.note
+        ? ref.watch(sharedNoteDetailProvider(noteDetailQuery!))
+        : null;
 
     return ConceptPage(
       children: [
@@ -139,6 +149,15 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                                   shareToken: content.shareToken,
                                 );
                             ref.invalidate(deckListNotifierProvider);
+                          } else {
+                            await ref
+                                .read(knowledgeNotesRepositoryProvider)
+                                .copyFromShare(
+                                  noteId: content.contentId,
+                                  sharedContentId: content.id,
+                                  shareToken: content.shareToken,
+                                );
+                            ref.invalidate(notesListProvider);
                           }
                           // 2. engagement-svc는 공유 메타데이터를 fork하고 원본 다운로드 수를 증가시킨다.
                           await ref
@@ -164,6 +183,14 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
                               context: context,
                               ref: ref,
                               previousLevel: previousLevel,
+                              eventType: GamificationEventType.contentCopied,
+                              sourceId: content.id,
+                              sourceType:
+                                  content.contentType == SharedContentType.deck
+                                      ? 'shared_deck'
+                                      : 'shared_note',
+                              eventId:
+                                  'copy-${content.contentType.apiValue.toLowerCase()}:${content.shareToken}',
                               rewards: content.contentType ==
                                       SharedContentType.deck
                                   ? const ['공유 덱 복사 완료']
@@ -286,6 +313,16 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
             style: textTheme.bodyMedium?.copyWith(height: 1.6),
           ),
         ),
+        if (noteDetailAsync != null) ...[
+          const SizedBox(height: AppSpacing.lg),
+          _SharedNoteKnowledgeSection(
+            detailAsync: noteDetailAsync,
+            fallbackDescription: content.description,
+            onRetry: () => ref.invalidate(
+              sharedNoteDetailProvider(noteDetailQuery!),
+            ),
+          ),
+        ],
         if (deckDetailAsync != null) ...[
           const SizedBox(height: AppSpacing.lg),
           // learning에서 받은 실제 카드 내용을 engagement 메타데이터 아래에 붙여 보여준다.
@@ -297,6 +334,62 @@ class _SharedContentDetailState extends ConsumerState<_SharedContentDetail> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _SharedNoteKnowledgeSection extends StatelessWidget {
+  const _SharedNoteKnowledgeSection({
+    required this.detailAsync,
+    required this.fallbackDescription,
+    required this.onRetry,
+  });
+
+  final AsyncValue<Note> detailAsync;
+  final String fallbackDescription;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return detailAsync.when(
+      data: (note) {
+        final body = note.contentMd.isNotEmpty
+            ? note.contentMd
+            : note.contentPlain.isNotEmpty
+                ? note.contentPlain
+                : fallbackDescription;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('노트 본문', style: textTheme.titleMedium),
+            const Divider(height: AppSpacing.md),
+            if (note.tags.isNotEmpty) ...[
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [for (final tag in note.tags) ConceptTag('#$tag')],
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            ConceptCard(
+              child: body.isEmpty
+                  ? const Text('본문이 없습니다.')
+                  : MarkdownBody(data: body, selectable: true),
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.lg),
+          child: CircularProgressIndicator.adaptive(),
+        ),
+      ),
+      error: (_, _) => _ErrorState(
+        message: '노트 본문을 불러오지 못했습니다',
+        onRetry: onRetry,
+      ),
     );
   }
 }

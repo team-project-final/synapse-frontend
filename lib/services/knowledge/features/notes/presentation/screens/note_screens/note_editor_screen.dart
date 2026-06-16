@@ -42,6 +42,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _controller.addListener(() {
       setState(() => _markdown = _controller.text);
     });
+    // 제목 변경 시에도 미리보기가 갱신되도록.
+    _titleController.addListener(() => setState(() {}));
     if (!_isNew) {
       _loadExistingNote();
     }
@@ -167,6 +169,21 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     );
   }
 
+  /// 헤딩 등 줄 단위 마크다운 — 현재 커서가 있는 줄의 **맨 앞**에 prefix(`# `)를 넣는다.
+  /// (마크다운 헤딩은 줄 시작에 와야 렌더되므로 커서 위치가 아니라 줄 시작에 삽입)
+  void _insertLinePrefix(String prefix) {
+    final String text = _controller.text;
+    final TextSelection sel = _controller.selection;
+    final int caret = sel.isValid ? sel.baseOffset.clamp(0, text.length) : text.length;
+    final int lineStart = text.lastIndexOf('\n', caret - 1) + 1;
+
+    final String newText = text.replaceRange(lineStart, lineStart, prefix);
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: caret + prefix.length),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -225,12 +242,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                       _ToolbarButton(
                         icon: Icons.title,
                         tooltip: 'Heading 1',
-                        onTap: () => _wrapSelection('# ', '', placeholder: '제목'),
+                        onTap: () => _insertLinePrefix('# '),
                       ),
                       _ToolbarButton(
                         icon: Icons.text_fields,
                         tooltip: 'Heading 2',
-                        onTap: () => _wrapSelection('## ', '', placeholder: '제목'),
+                        onTap: () => _insertLinePrefix('## '),
                       ),
                       _ToolbarButton(
                         icon: Icons.link,
@@ -406,19 +423,41 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         Expanded(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
-            child: _markdown.isEmpty
-                ? Center(
-                    child: Text(
-                      '미리보기가 여기에 표시됩니다',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(child: MarkdownBody(data: _markdown)),
+            child: _buildPreview(textTheme),
           ),
         ),
       ],
+    );
+  }
+
+  /// 미리보기 — 제목 + 본문(마크다운). 둘 다 비면 안내 문구.
+  Widget _buildPreview(TextTheme textTheme) {
+    final String title = _titleController.text.trim();
+    if (title.isEmpty && _markdown.trim().isEmpty) {
+      return Center(
+        child: Text(
+          '미리보기가 여기에 표시됩니다',
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+        ),
+      );
+    }
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title.isNotEmpty) ...[
+            Text(
+              title,
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          MarkdownBody(data: _markdown),
+        ],
+      ),
     );
   }
 
@@ -439,18 +478,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               _buildEditorPane(textTheme, expandField: false),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                child: _markdown.isEmpty
-                    ? Center(
-                        child: Text(
-                          '미리보기가 여기에 표시됩니다',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        child: MarkdownBody(data: _markdown),
-                      ),
+                child: _buildPreview(textTheme),
               ),
             ],
           ),

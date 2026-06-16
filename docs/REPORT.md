@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-06-16 — Knowledge 노트 목록 태그 필터·정렬 (5a)
+
+### 배경 / 이전 상태
+- `note_list_screen` 의 필터칩이 하드코딩(`['전체','머신러닝',…]`), 정렬 드롭다운·노트 수("노트 24")가 로컬 상태/하드코딩이었다. `notesListProvider` 는 항상 전체를 조회.
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `domain/entities/popular_tag.dart`, `data/models/popular_tag_model.dart` (신규) | 인기 태그 `{tag,count}` |
+| `data/datasources/...remote_datasource.dart` | `fetchPopularTags` (GET `/api/v1/tags/popular`) |
+| `domain/repositories`/`data/.../impl` | `getPopularTags` |
+| `domain/usecases/get_popular_tags_usecase.dart` (신규) | UseCase |
+| `providers/notes_providers.dart` | `popularTagsProvider`, **`notesListProvider` → 태그 family**(`GET /notes?tag=`) |
+| `note_list_screen.dart` | 필터칩 = '전체' + 인기 태그(API), 선택 태그로 **서버 필터**, 노트 수 동적, 정렬(최근수정/제목순/생성일)은 **클라이언트 정렬**(목록 전체 로드 기준) |
+| `test/...` | 필터칩 + 목록 렌더 검증 테스트 추가 |
+
+### 설계 메모
+- 태그 필터는 서버(`GET /notes?tag=`), 정렬은 클라이언트(목록을 페이지네이션 없이 전부 로드하므로 안전). `notesListProvider` 를 family 로 바꿔도 기존 `ref.invalidate(notesListProvider)`(editor/version 복원)는 전체 인스턴스 무효화로 그대로 동작.
+- 백엔드 태그 API는 `autocomplete`/`popular` 만 존재 → **태그 병합/이름변경 등 태그 관리는 미지원**(5e 보류).
+
+### 검증
+- `flutter analyze` 0 경고 / 위젯 테스트 14/14 통과.
+
+---
+
 ## 2026-06-16 — Knowledge 노트 버전 이력 API 연동 (4단계)
 
 ### 배경 / 이전 상태

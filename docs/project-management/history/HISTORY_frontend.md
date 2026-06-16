@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-16 | Knowledge 노트 목록 태그 필터·정렬(5a): 인기태그 API(`/tags/popular`) 필터칩, `notesListProvider`→태그 family(`?tag=` 서버필터), 정렬 클라이언트 처리, 노트 수 동적. analyze 0·위젯테스트 14/14. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-16 | Knowledge 노트 버전 이력 API 연동(4단계): version datasource·usecase·provider 추가, 버전 화면 실연동(목록·버전 본문·복원). 목 diff 제거→버전 본문 표시. analyze 0·위젯테스트 13/13. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-16 | 노트 에디터 UX 폴리시: 미리보기에 제목 표시 + 제목 입력 실시간 갱신, 헤딩(H1/H2) 버튼을 줄 맨 앞 삽입(`_insertLinePrefix`)으로 수정. analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-15 | Knowledge 노트 백링크 API 연동(3단계): fetchBacklinks datasource·usecase·`backlinksProvider` 추가, 상세화면 백링크 섹션(모바일+데스크탑) 실데이터 연결(라벨 개수+이동+로딩/빈/에러). analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |

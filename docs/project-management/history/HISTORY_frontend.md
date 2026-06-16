@@ -207,6 +207,7 @@
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-06-16 | 노트 에디터 UX 폴리시: 미리보기에 제목 표시 + 제목 입력 실시간 갱신, 헤딩(H1/H2) 버튼을 줄 맨 앞 삽입(`_insertLinePrefix`)으로 수정. analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-15 | Knowledge 노트 백링크 API 연동(3단계): fetchBacklinks datasource·usecase·`backlinksProvider` 추가, 상세화면 백링크 섹션(모바일+데스크탑) 실데이터 연결(라벨 개수+이동+로딩/빈/에러). analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-15 | Knowledge 노트 에디터 생성/수정 API 연동(2단계): create/update datasource·usecase·provider 추가, 에디터에 제목칸+기존노트 로드+저장(POST/PATCH) 연결, 툴바 볼드 선택치환 버그픽스(`_wrapSelection`). analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-06-12 | Knowledge 노트 목록·상세 API 연동(1단계): notes data/domain/providers 신설(Clean Arch), `_mock` 제거 → `notesListProvider`/`noteDetailProvider` 연결, 상세 본문 contentMd 마크다운 렌더. analyze 0·위젯테스트 12/12. 상세 [REPORT.md](../../REPORT.md) |

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/popular_tag.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/presentation/screens/note_screens.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/providers/notes_providers.dart';
 
@@ -101,6 +102,48 @@ void main() {
     // 백링크 연동: 라벨에 개수 + 백링크 노트 제목 렌더
     expect(find.text('백링크 1'), findsOneWidget);
     expect(find.text('과적합 노트'), findsOneWidget);
+  });
+
+  // 5a(API 연동): 목록 화면이 인기태그 필터칩 + notesListProvider 데이터를 렌더.
+  testWidgets('NoteList 필터칩(인기태그) + 목록 렌더 (API 연동)', (tester) async {
+    final List<Note> notes = <Note>[
+      Note(
+        id: '1',
+        title: '정규화 기법',
+        contentMd: '# 정규화',
+        contentPlain: 'L1/L2 정규화',
+        tags: const <String>['머신러닝'],
+        status: 'active',
+        createdAt: DateTime(2026, 6, 1),
+        updatedAt: DateTime(2026, 6, 2),
+      ),
+    ];
+
+    await tester.binding.setSurfaceSize(desktop);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          popularTagsProvider.overrideWith(
+            (Ref ref) => <PopularTag>[const PopularTag(tag: '머신러닝', count: 3)],
+          ),
+          notesListProvider(null).overrideWith((Ref ref) => notes),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const MediaQuery(
+            data: MediaQueryData(size: desktop),
+            child: Scaffold(body: NoteListScreen()),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('머신러닝'), findsOneWidget); // 필터칩
+    expect(find.text('정규화 기법'), findsOneWidget); // 노트 카드
   });
 
   // 4단계(API 연동): 버전 이력 화면이 noteVersionsProvider 데이터로 버전 목록을 렌더.

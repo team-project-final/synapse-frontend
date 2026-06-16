@@ -1,8 +1,10 @@
 import 'package:synapse_frontend/services/knowledge/features/notes/data/datasources/knowledge_notes_remote_datasource.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/data/models/note_model.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/data/models/note_version_model.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/data/models/popular_tag_model.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/popular_tag.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
 
 class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
@@ -76,5 +78,11 @@ class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
   Future<Note> restoreVersion(String noteId, int versionNo) async {
     final NoteModel model = await _datasource.restoreVersion(noteId, versionNo);
     return model.toEntity();
+  }
+
+  @override
+  Future<List<PopularTag>> getPopularTags() async {
+    final List<PopularTagModel> models = await _datasource.fetchPopularTags();
+    return models.map((PopularTagModel m) => m.toEntity()).toList();
   }
 }

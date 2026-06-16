@@ -17,13 +17,23 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isWide = MediaQuery.sizeOf(context).width >= 600;
-    final filters = ['전체', '머신러닝', '딥러닝', '알고리즘', 'AWS'];
+    // '전체'면 tag=null(전체 조회), 그 외엔 해당 태그로 서버 필터(GET /notes?tag=).
+    final String? selectedTag = _selectedFilter == '전체' ? null : _selectedFilter;
+    final AsyncValue<List<Note>> notesAsync =
+        ref.watch(notesListProvider(selectedTag));
+    final List<String> filters = _filterLabels(ref.watch(popularTagsProvider));
 
     return Stack(
       children: [
         ConceptPage(
           children: [
-            const ConceptViewHead(title: '라이브러리', meta: '노트 24'),
+            ConceptViewHead(
+              title: '라이브러리',
+              meta: notesAsync.maybeWhen(
+                data: (List<Note> n) => '노트 ${n.length}',
+                orElse: () => '노트',
+              ),
+            ),
             // Search bar (탭하면 검색 화면) — 데모용
             // TODO: 팀원 구현 — knowledge-svc 검색 API 연동
             ConceptSearchBar(
@@ -31,12 +41,12 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
               onTap: () => context.go(AppRoutes.search),
             ),
             const SizedBox(height: AppSpacing.md),
-            // Filter pills
+            // Filter pills — '전체' + 인기 태그(GET /api/v1/tags/popular)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: [
-                  for (final f in filters) ...[
+                children: <Widget>[
+                  for (final String f in filters) ...[
                     ConceptFilterPill(
                       label: f,
                       selected: _selectedFilter == f,
@@ -80,16 +90,19 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
               ],
             ),
             const ConceptSectionLabel('최근 노트', topGap: AppSpacing.md),
-            // Note list — knowledge-svc 노트 목록 API(GET /api/v1/notes) 연동
-            ref.watch(notesListProvider).when(
-              data: (List<Note> notes) => notes.isEmpty
-                  ? const _NotesEmpty()
-                  : ConceptResponsiveGrid(
-                      isWide: isWide,
-                      children: <Widget>[
-                        for (final Note note in notes) _NoteCard(note: note),
-                      ],
-                    ),
+            // Note list — 서버 태그 필터 결과를 정렬 기준으로 클라이언트 정렬
+            notesAsync.when(
+              data: (List<Note> notes) {
+                final List<Note> sorted = _sortNotes(notes, _sortOrder);
+                return sorted.isEmpty
+                    ? const _NotesEmpty()
+                    : ConceptResponsiveGrid(
+                        isWide: isWide,
+                        children: <Widget>[
+                          for (final Note note in sorted) _NoteCard(note: note),
+                        ],
+                      );
+              },
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
                 child: Center(child: CircularProgressIndicator()),
@@ -112,6 +125,28 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
         ),
       ],
     );
+  }
+
+  /// 필터칩 라벨 = '전체' + 인기 태그(로드 전/실패 시 '전체'만).
+  List<String> _filterLabels(AsyncValue<List<PopularTag>> tagsAsync) {
+    final List<String> tags = tagsAsync.maybeWhen(
+      data: (List<PopularTag> t) => t.map((PopularTag e) => e.tag).toList(),
+      orElse: () => const <String>[],
+    );
+    return <String>['전체', ...tags];
+  }
+
+  /// 정렬 — 최근 수정(updatedAt desc) / 제목순(asc) / 생성일(createdAt desc).
+  List<Note> _sortNotes(List<Note> notes, String order) {
+    final List<Note> list = List<Note>.of(notes);
+    if (order == '제목순') {
+      list.sort((Note a, Note b) => a.title.compareTo(b.title));
+    } else if (order == '생성일') {
+      list.sort((Note a, Note b) => b.createdAt.compareTo(a.createdAt));
+    } else {
+      list.sort((Note a, Note b) => b.updatedAt.compareTo(a.updatedAt));
+    }
+    return list;
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/popular_tag.dart';
 
 abstract interface class KnowledgeNotesRepository {
   Future<List<Note>> getNotes({String? tag});
@@ -30,4 +31,7 @@ abstract interface class KnowledgeNotesRepository {
 
   /// 특정 버전으로 복원 → 갱신된 노트.
   Future<Note> restoreVersion(String noteId, int versionNo);
+
+  /// 인기 태그 목록 (목록 필터칩용).
+  Future<List<PopularTag>> getPopularTags();
 }

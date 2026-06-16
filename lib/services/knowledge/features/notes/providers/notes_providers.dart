@@ -4,11 +4,13 @@ import 'package:synapse_frontend/services/knowledge/features/notes/data/datasour
 import 'package:synapse_frontend/services/knowledge/features/notes/data/repositories/knowledge_notes_repository_impl.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/popular_tag.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/create_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_backlinks_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_popular_tags_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/note_version_usecases.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/update_note_usecase.dart';
 
@@ -44,6 +46,10 @@ final getBacklinksUseCaseProvider = Provider<GetBacklinksUseCase>((Ref ref) {
   return GetBacklinksUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
+final getPopularTagsUseCaseProvider = Provider<GetPopularTagsUseCase>((Ref ref) {
+  return GetPopularTagsUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
 final getNoteVersionsUseCaseProvider = Provider<GetNoteVersionsUseCase>((Ref ref) {
   return GetNoteVersionsUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
@@ -57,9 +63,15 @@ final restoreNoteVersionUseCaseProvider =
   return RestoreNoteVersionUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
-/// 노트 목록 (전체). 추후 태그 필터는 별도 family provider 로 확장.
-final notesListProvider = FutureProvider.autoDispose<List<Note>>((Ref ref) {
-  return ref.watch(getNotesUseCaseProvider).call();
+/// 노트 목록 — 태그 필터(null/빈 문자열이면 전체). 서버 `GET /notes?tag=` 연동.
+final notesListProvider =
+    FutureProvider.autoDispose.family<List<Note>, String?>((Ref ref, String? tag) {
+  return ref.watch(getNotesUseCaseProvider).call(tag: tag);
+});
+
+/// 인기 태그 — 목록 필터칩용.
+final popularTagsProvider = FutureProvider.autoDispose<List<PopularTag>>((Ref ref) {
+  return ref.watch(getPopularTagsUseCaseProvider).call();
 });
 
 /// 노트 상세 (noteId 별).

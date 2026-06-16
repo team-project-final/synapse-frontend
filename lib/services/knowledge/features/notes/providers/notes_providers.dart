@@ -10,6 +10,7 @@ import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecas
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_backlinks_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_outlinks_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_popular_tags_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/note_version_usecases.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/update_note_usecase.dart';
@@ -44,6 +45,10 @@ final updateNoteUseCaseProvider = Provider<UpdateNoteUseCase>((Ref ref) {
 
 final getBacklinksUseCaseProvider = Provider<GetBacklinksUseCase>((Ref ref) {
   return GetBacklinksUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
+final getOutlinksUseCaseProvider = Provider<GetOutlinksUseCase>((Ref ref) {
+  return GetOutlinksUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
 final getPopularTagsUseCaseProvider = Provider<GetPopularTagsUseCase>((Ref ref) {
@@ -84,6 +89,12 @@ final noteDetailProvider =
 final backlinksProvider =
     FutureProvider.autoDispose.family<List<Note>, String>((Ref ref, String noteId) {
   return ref.watch(getBacklinksUseCaseProvider).call(noteId);
+});
+
+/// 아웃링크 — 이 노트가 가리키는 노트 목록 (noteId 별).
+final outlinksProvider =
+    FutureProvider.autoDispose.family<List<Note>, String>((Ref ref, String noteId) {
+  return ref.watch(getOutlinksUseCaseProvider).call(noteId);
 });
 
 /// 노트 버전 목록 (noteId 별).

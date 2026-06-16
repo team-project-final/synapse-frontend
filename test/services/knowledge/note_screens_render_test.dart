@@ -83,6 +83,7 @@ void main() {
         overrides: [
           noteDetailProvider('1').overrideWith((Ref ref) => note),
           backlinksProvider('1').overrideWith((Ref ref) => <Note>[backlink]),
+          outlinksProvider('1').overrideWith((Ref ref) => const <Note>[]),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -102,6 +103,8 @@ void main() {
     // 백링크 연동: 라벨에 개수 + 백링크 노트 제목 렌더
     expect(find.text('백링크 1'), findsOneWidget);
     expect(find.text('과적합 노트'), findsOneWidget);
+    // 아웃링크 연동: 라벨에 개수(0) 렌더
+    expect(find.text('아웃링크 0'), findsOneWidget);
   });
 
   // 5a(API 연동): 목록 화면이 인기태그 필터칩 + notesListProvider 데이터를 렌더.

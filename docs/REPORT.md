@@ -4,6 +4,34 @@
 
 ---
 
+## 2026-06-16 — Knowledge 노트 버전 이력 API 연동 (4단계)
+
+### 배경 / 이전 상태
+- `note_versions_screen` 이 `_mockVersions` + 하드코딩 diff(`_DiffView`)로 동작. 백엔드 버전 API 미연동.
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `domain/entities/note_version.dart` (신규) | `NoteVersionSummary{versionNo,title,createdAt}`, `NoteVersionDetail{...,contentMd}` |
+| `data/models/note_version_model.dart` (신규) | fromJson + toEntity |
+| `data/datasources/...remote_datasource.dart` | `fetchVersions`, `fetchVersion`, `restoreVersion` |
+| `domain/repositories` / `data/.../impl` | `getVersions`/`getVersion`/`restoreVersion` |
+| `domain/usecases/note_version_usecases.dart` (신규) | Get/Get/Restore UseCase |
+| `providers/notes_providers.dart` | `noteVersionsProvider(noteId)`, `noteVersionDetailProvider((noteId,versionNo))` + usecase provider |
+| `note_versions_screen.dart` | 목 제거 → 버전 목록 실연동(로딩/빈/에러), 버전 선택 시 **그 버전 본문(contentMd) 마크다운 표시**, **복원** 버튼 → restore API → 노트 상세 이동 + 캐시 무효화 |
+| `test/.../note_screens_render_test.dart` | 버전 목록 렌더 검증 테스트 추가 |
+
+### 연동 API
+- `GET /api/v1/notes/{noteId}/versions`, `GET /.../versions/{versionNo}`, `POST /.../versions/{versionNo}/restore`
+
+### 범위 밖
+- 버전 간 **diff 하이라이트** — 백엔드가 diff가 아닌 버전 본문을 반환하므로 본문 표시까지(클라이언트 diff는 추후).
+
+### 검증
+- `flutter analyze` 0 경고 / 위젯 테스트 13/13 통과.
+
+---
+
 ## 2026-06-16 — 노트 에디터 UX 폴리시 (제목 미리보기 · 헤딩)
 
 ### 배경 / 이전 상태

@@ -12,39 +12,87 @@ class NoteVersionsScreen extends ConsumerStatefulWidget {
 }
 
 class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
-  String? _selectedVersion;
+  int? _selectedVersionNo;
+  bool _restoring = false;
 
-  // TODO: 팀원 구현 — knowledge-svc 버전 이력 API 연동
-  final _mockVersions = [
-    {'version': 'v3', 'date': '2026-05-20 14:32', 'desc': 'L2 정규화 설명 추가'},
-    {'version': 'v2', 'date': '2026-05-19 09:15', 'desc': '예시 코드 수정'},
-    {'version': 'v1', 'date': '2026-05-18 20:00', 'desc': '최초 작성'},
-  ];
+  /// 특정 버전으로 복원 → 노트 상세로 이동 + 관련 캐시 무효화.
+  Future<void> _restore(int versionNo) async {
+    setState(() => _restoring = true);
+    try {
+      await ref
+          .read(restoreNoteVersionUseCaseProvider)
+          .call(widget.noteId, versionNo);
+      ref.invalidate(notesListProvider);
+      ref.invalidate(noteDetailProvider(widget.noteId));
+      ref.invalidate(noteVersionsProvider(widget.noteId));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('v$versionNo 버전으로 복원했어요')),
+      );
+      context.go(AppRoutes.noteDetailPath(widget.noteId));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _restoring = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('복원에 실패했어요. 다시 시도해주세요.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final AsyncValue<List<NoteVersionSummary>> versions =
+        ref.watch(noteVersionsProvider(widget.noteId));
 
     return ConceptPage(
       children: [
         const ConceptViewHead(title: '버전 이력'),
-        Text(
-          '노트 ID: ${widget.noteId}',
-          style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ..._mockVersions.map(
-          (v) => _VersionItem(
-            version: v['version']!,
-            date: v['date']!,
-            description: v['desc']!,
-            isSelected: _selectedVersion == v['version'],
-            onTap: () => setState(() => _selectedVersion = v['version']),
+        // knowledge-svc 버전 이력 API(GET /notes/{id}/versions) 연동
+        versions.when(
+          data: (List<NoteVersionSummary> list) {
+            if (list.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                child: Center(
+                  child: Text(
+                    '저장된 버전 이력이 없어요.',
+                    style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+                  ),
+                ),
+              );
+            }
+            return Column(
+              children: <Widget>[
+                for (final NoteVersionSummary v in list)
+                  _VersionItem(
+                    versionNo: v.versionNo,
+                    date: _formatVersionDate(v.createdAt),
+                    title: v.title,
+                    isSelected: _selectedVersionNo == v.versionNo,
+                    onTap: () => setState(() => _selectedVersionNo = v.versionNo),
+                    onRestore: _restoring ? null : () => _restore(v.versionNo),
+                  ),
+              ],
+            );
+          },
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (Object error, StackTrace stackTrace) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(
+              child: Text(
+                '버전 이력을 불러오지 못했어요.',
+                style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
+              ),
+            ),
           ),
         ),
-        if (_selectedVersion != null) ...[
-          ConceptSectionLabel('변경 사항 ($_selectedVersion)'),
-          const _DiffView(),
+        if (_selectedVersionNo != null) ...[
+          ConceptSectionLabel('버전 내용 (v$_selectedVersionNo)'),
+          _VersionContent(noteId: widget.noteId, versionNo: _selectedVersionNo!),
         ],
         const SizedBox(height: AppSpacing.xl),
       ],
@@ -52,19 +100,72 @@ class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
   }
 }
 
+String _formatVersionDate(DateTime time) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${time.year}.${two(time.month)}.${two(time.day)} '
+      '${two(time.hour)}:${two(time.minute)}';
+}
+
+/// 선택한 버전의 본문(마크다운)을 보여준다.
+class _VersionContent extends ConsumerWidget {
+  const _VersionContent({required this.noteId, required this.versionNo});
+
+  final String noteId;
+  final int versionNo;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final AsyncValue<NoteVersionDetail> detail =
+        ref.watch(noteVersionDetailProvider((noteId, versionNo)));
+
+    return detail.when(
+      data: (NoteVersionDetail v) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              v.title,
+              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            MarkdownBody(data: v.contentMd),
+          ],
+        ),
+      ),
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (Object error, StackTrace stackTrace) => Text(
+        '버전 내용을 불러오지 못했어요.',
+        style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
+      ),
+    );
+  }
+}
+
 class _VersionItem extends StatelessWidget {
   const _VersionItem({
-    required this.version,
+    required this.versionNo,
     required this.date,
-    required this.description,
+    required this.title,
     this.isSelected = false,
     this.onTap,
+    this.onRestore,
   });
-  final String version;
+  final int versionNo;
   final String date;
-  final String description;
+  final String title;
   final bool isSelected;
   final VoidCallback? onTap;
+  final VoidCallback? onRestore;
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +187,7 @@ class _VersionItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.sm - 4),
               ),
               child: Text(
-                version,
+                'v$versionNo',
                 style: textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppColors.primary,
@@ -99,10 +200,12 @@ class _VersionItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    description,
+                    title,
                     style: textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
@@ -115,9 +218,7 @@ class _VersionItem extends StatelessWidget {
               ),
             ),
             OutlinedButton(
-              onPressed: () {
-                // TODO: 팀원 구현 — 버전 복원 API 연동
-              },
+              onPressed: onRestore,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md,
@@ -133,137 +234,4 @@ class _VersionItem extends StatelessWidget {
       ),
     );
   }
-}
-
-class _DiffView extends StatelessWidget {
-  const _DiffView();
-
-  static const _oldLines = [
-    _DiffLine('### L1 정규화 (Lasso)', false),
-    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
-    _DiffLine('- 특성 선택 효과가 있음', true),
-    _DiffLine('', false),
-    _DiffLine('### L2 정규화 (Ridge)', false),
-    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
-  ];
-
-  static const _newLines = [
-    _DiffLine('### L1 정규화 (Lasso)', false),
-    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
-    _DiffLine('- 일부 가중치를 0으로 만들어 희소성 유도', true),
-    _DiffLine('', false),
-    _DiffLine('### L2 정규화 (Ridge)', false),
-    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
-    _DiffLine('- 가중치를 작게 유지하되 0으로 만들지 않음', true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final monoStyle =
-        textTheme.bodySmall?.copyWith(fontFamily: 'monospace') ??
-        const TextStyle(fontFamily: 'monospace', fontSize: 12);
-
-    // 비균일 색 Border + borderRadius 조합으로 인한 렌더 이슈를 피하기 위해
-    // ClipRRect로 모서리를 클립하고 내부를 분리한다.
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Old (left)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      color: AppColors.surface2,
-                      child: Text(
-                        '이전',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    ..._oldLines.map(
-                      (line) => Container(
-                        width: double.infinity,
-                        color: line.changed ? const Color(0x20DC2626) : null,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        child: Text(
-                          line.changed ? '- ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.error : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(width: 1, color: AppColors.border),
-              // New (right)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      color: AppColors.surface2,
-                      child: Text(
-                        '현재',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    ..._newLines.map(
-                      (line) => Container(
-                        width: double.infinity,
-                        color: line.changed ? const Color(0x2016A34A) : null,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        child: Text(
-                          line.changed ? '+ ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.success : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DiffLine {
-  const _DiffLine(this.text, this.changed);
-  final String text;
-  final bool changed;
 }

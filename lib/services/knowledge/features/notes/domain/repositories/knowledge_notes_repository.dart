@@ -1,4 +1,5 @@
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
 
 abstract interface class KnowledgeNotesRepository {
   Future<List<Note>> getNotes({String? tag});
@@ -20,4 +21,13 @@ abstract interface class KnowledgeNotesRepository {
     required String contentMd,
     required List<String> tags,
   });
+
+  /// 노트 버전 목록.
+  Future<List<NoteVersionSummary>> getVersions(String noteId);
+
+  /// 특정 버전 상세(본문 포함).
+  Future<NoteVersionDetail> getVersion(String noteId, int versionNo);
+
+  /// 특정 버전으로 복원 → 갱신된 노트.
+  Future<Note> restoreVersion(String noteId, int versionNo);
 }

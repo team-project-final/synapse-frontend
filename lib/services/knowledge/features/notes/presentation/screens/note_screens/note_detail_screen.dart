@@ -33,6 +33,7 @@ class _NoteDetailView extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
     final AsyncValue<List<Note>> backlinks = ref.watch(backlinksProvider(noteId));
+    final AsyncValue<List<Note>> outlinks = ref.watch(outlinksProvider(noteId));
 
     final mainContent = Align(
       alignment: Alignment.topCenter,
@@ -105,9 +106,14 @@ class _NoteDetailView extends ConsumerWidget {
                     ),
                   ],
                 ),
-                // 백링크 — knowledge-svc 백링크 API(GET /notes/{id}/backlinks) 연동
-                ConceptSectionLabel(_backlinkLabel(backlinks)),
-                ..._buildBacklinkItems(context, backlinks),
+                // 백링크 — GET /notes/{id}/backlinks
+                ConceptSectionLabel(_linkLabel('백링크', backlinks)),
+                ..._buildLinkItems(context, backlinks,
+                    emptyText: '연결된 백링크가 없어요.', errorText: '백링크를 불러오지 못했어요.'),
+                // 아웃링크 — GET /notes/{id}/outlinks (이 노트가 가리키는 노트)
+                ConceptSectionLabel(_linkLabel('아웃링크', outlinks)),
+                ..._buildLinkItems(context, outlinks,
+                    emptyText: '연결된 아웃링크가 없어요.', errorText: '아웃링크를 불러오지 못했어요.'),
               ],
             ),
           ],
@@ -128,7 +134,7 @@ class _NoteDetailView extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
           Text(
-            _backlinkLabel(backlinks),
+            _linkLabel('백링크', backlinks),
             style: textTheme.labelLarge?.copyWith(
               color: AppColors.muted,
               fontWeight: FontWeight.w800,
@@ -137,7 +143,20 @@ class _NoteDetailView extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           // knowledge-svc 백링크 API 연동
-          ..._buildBacklinkItems(context, backlinks),
+          ..._buildLinkItems(context, backlinks,
+              emptyText: '연결된 백링크가 없어요.', errorText: '백링크를 불러오지 못했어요.'),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            _linkLabel('아웃링크', outlinks),
+            style: textTheme.labelLarge?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ..._buildLinkItems(context, outlinks,
+              emptyText: '연결된 아웃링크가 없어요.', errorText: '아웃링크를 불러오지 못했어요.'),
         ],
       ),
     );
@@ -150,26 +169,29 @@ class _NoteDetailView extends ConsumerWidget {
     );
   }
 
-  String _backlinkLabel(AsyncValue<List<Note>> backlinks) {
-    return backlinks.maybeWhen(
-      data: (List<Note> notes) => '백링크 ${notes.length}',
-      orElse: () => '백링크',
+  String _linkLabel(String prefix, AsyncValue<List<Note>> links) {
+    return links.maybeWhen(
+      data: (List<Note> notes) => '$prefix ${notes.length}',
+      orElse: () => prefix,
     );
   }
 
-  List<Widget> _buildBacklinkItems(
+  /// 백링크/아웃링크 공용 — 링크 노트 목록을 _BacklinkItem 으로 렌더한다.
+  List<Widget> _buildLinkItems(
     BuildContext context,
-    AsyncValue<List<Note>> backlinks,
-  ) {
+    AsyncValue<List<Note>> links, {
+    required String emptyText,
+    required String errorText,
+  }) {
     final TextTheme textTheme = Theme.of(context).textTheme;
-    return backlinks.when(
+    return links.when(
       data: (List<Note> notes) {
         if (notes.isEmpty) {
           return <Widget>[
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               child: Text(
-                '연결된 백링크가 없어요.',
+                emptyText,
                 style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
               ),
             ),
@@ -179,7 +201,7 @@ class _NoteDetailView extends ConsumerWidget {
           for (final Note n in notes)
             _BacklinkItem(
               title: n.title,
-              snippet: _backlinkSnippet(n.contentPlain),
+              snippet: _linkSnippet(n.contentPlain),
               onTap: () => context.go(AppRoutes.noteDetailPath(n.id)),
             ),
         ];
@@ -200,7 +222,7 @@ class _NoteDetailView extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
           child: Text(
-            '백링크를 불러오지 못했어요.',
+            errorText,
             style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
           ),
         ),
@@ -208,7 +230,7 @@ class _NoteDetailView extends ConsumerWidget {
     );
   }
 
-  static String _backlinkSnippet(String contentPlain) {
+  static String _linkSnippet(String contentPlain) {
     final String trimmed = contentPlain.trim();
     if (trimmed.length <= 50) {
       return trimmed;

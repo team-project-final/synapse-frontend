@@ -114,6 +114,17 @@ class KnowledgeNotesRemoteDatasource {
         .toList();
   }
 
+  Future<List<NoteModel>> fetchOutlinks(String id) async {
+    final Response<Map<String, dynamic>> response =
+        await _dio.get<Map<String, dynamic>>('/api/v1/notes/$id/outlinks');
+
+    final List<dynamic> list =
+        (response.data?['data'] as List<dynamic>?) ?? const <dynamic>[];
+    return list
+        .map((dynamic e) => NoteModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<NoteModel> updateNote({
     required String id,
     required String title,

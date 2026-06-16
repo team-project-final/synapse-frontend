@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-06-16 — Knowledge 노트 아웃링크 API 연동 (5b)
+
+### 배경 / 이전 상태
+- 상세화면에 백링크 섹션은 있으나(3단계) **아웃링크(이 노트가 가리키는 노트) UI가 없었다**. 백엔드 `GET /notes/{id}/outlinks` 미연동.
+
+### 변경 사항
+| 파일 | 내용 |
+|------|------|
+| `data/datasources/...remote_datasource.dart` | `fetchOutlinks` (GET `/api/v1/notes/{id}/outlinks`) |
+| `domain/repositories`/`data/.../impl` | `getOutlinks` |
+| `domain/usecases/get_outlinks_usecase.dart` (신규) | UseCase |
+| `providers/notes_providers.dart` | `outlinksProvider`(noteId) |
+| `note_detail_screen.dart` | 백링크 헬퍼를 **공용(`_linkLabel`/`_buildLinkItems`)으로 일반화**, **아웃링크 섹션 추가**(모바일 본문 + 데스크탑 패널). 라벨 개수·탭 이동·로딩/빈/에러 |
+| `test/...` | 상세 테스트에 outlinks override + '아웃링크 0' 라벨 단언 |
+
+### 연동 API
+- `GET /api/v1/notes/{id}/outlinks`
+
+### 검증
+- `flutter analyze` 0 경고 / 위젯 테스트 14/14 통과.
+
+---
+
 ## 2026-06-16 — Knowledge 노트 목록 태그 필터·정렬 (5a)
 
 ### 배경 / 이전 상태

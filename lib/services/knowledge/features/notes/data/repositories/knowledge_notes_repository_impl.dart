@@ -1,6 +1,8 @@
 import 'package:synapse_frontend/services/knowledge/features/notes/data/datasources/knowledge_notes_remote_datasource.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/data/models/note_model.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/data/models/note_version_model.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
 
 class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
@@ -53,6 +55,26 @@ class KnowledgeNotesRepositoryImpl implements KnowledgeNotesRepository {
       contentMd: contentMd,
       tags: tags,
     );
+    return model.toEntity();
+  }
+
+  @override
+  Future<List<NoteVersionSummary>> getVersions(String noteId) async {
+    final List<NoteVersionSummaryModel> models =
+        await _datasource.fetchVersions(noteId);
+    return models.map((NoteVersionSummaryModel m) => m.toEntity()).toList();
+  }
+
+  @override
+  Future<NoteVersionDetail> getVersion(String noteId, int versionNo) async {
+    final NoteVersionDetailModel model =
+        await _datasource.fetchVersion(noteId, versionNo);
+    return model.toEntity();
+  }
+
+  @override
+  Future<Note> restoreVersion(String noteId, int versionNo) async {
+    final NoteModel model = await _datasource.restoreVersion(noteId, versionNo);
     return model.toEntity();
   }
 }

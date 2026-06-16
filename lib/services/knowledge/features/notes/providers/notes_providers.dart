@@ -3,11 +3,13 @@ import 'package:synapse_frontend/core/network/dio_client.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/data/datasources/knowledge_notes_remote_datasource.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/data/repositories/knowledge_notes_repository_impl.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/repositories/knowledge_notes_repository.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/create_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_backlinks_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_note_usecase.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/get_notes_usecase.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/note_version_usecases.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/usecases/update_note_usecase.dart';
 
 final _knowledgeNotesRemoteDatasourceProvider =
@@ -42,6 +44,19 @@ final getBacklinksUseCaseProvider = Provider<GetBacklinksUseCase>((Ref ref) {
   return GetBacklinksUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
 });
 
+final getNoteVersionsUseCaseProvider = Provider<GetNoteVersionsUseCase>((Ref ref) {
+  return GetNoteVersionsUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
+final getNoteVersionUseCaseProvider = Provider<GetNoteVersionUseCase>((Ref ref) {
+  return GetNoteVersionUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
+final restoreNoteVersionUseCaseProvider =
+    Provider<RestoreNoteVersionUseCase>((Ref ref) {
+  return RestoreNoteVersionUseCase(ref.watch(_knowledgeNotesRepositoryProvider));
+});
+
 /// 노트 목록 (전체). 추후 태그 필터는 별도 family provider 로 확장.
 final notesListProvider = FutureProvider.autoDispose<List<Note>>((Ref ref) {
   return ref.watch(getNotesUseCaseProvider).call();
@@ -57,4 +72,17 @@ final noteDetailProvider =
 final backlinksProvider =
     FutureProvider.autoDispose.family<List<Note>, String>((Ref ref, String noteId) {
   return ref.watch(getBacklinksUseCaseProvider).call(noteId);
+});
+
+/// 노트 버전 목록 (noteId 별).
+final noteVersionsProvider =
+    FutureProvider.autoDispose.family<List<NoteVersionSummary>, String>(
+        (Ref ref, String noteId) {
+  return ref.watch(getNoteVersionsUseCaseProvider).call(noteId);
+});
+
+/// 특정 버전 상세 — (noteId, versionNo) 별.
+final noteVersionDetailProvider = FutureProvider.autoDispose
+    .family<NoteVersionDetail, (String, int)>((Ref ref, (String, int) key) {
+  return ref.watch(getNoteVersionUseCaseProvider).call(key.$1, key.$2);
 });

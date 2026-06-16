@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note.dart';
+import 'package:synapse_frontend/services/knowledge/features/notes/domain/entities/note_version.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/presentation/screens/note_screens.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/providers/notes_providers.dart';
 
@@ -100,6 +101,38 @@ void main() {
     // 백링크 연동: 라벨에 개수 + 백링크 노트 제목 렌더
     expect(find.text('백링크 1'), findsOneWidget);
     expect(find.text('과적합 노트'), findsOneWidget);
+  });
+
+  // 4단계(API 연동): 버전 이력 화면이 noteVersionsProvider 데이터로 버전 목록을 렌더.
+  testWidgets('NoteVersions 버전 목록 렌더 (API 연동)', (tester) async {
+    final List<NoteVersionSummary> versions = <NoteVersionSummary>[
+      NoteVersionSummary(versionNo: 2, title: 'L2 정규화 설명 추가', createdAt: DateTime(2026, 6, 1, 14, 32)),
+      NoteVersionSummary(versionNo: 1, title: '최초 작성', createdAt: DateTime(2026, 5, 30, 9, 15)),
+    ];
+
+    await tester.binding.setSurfaceSize(mobile);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noteVersionsProvider('1').overrideWith((Ref ref) => versions),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const MediaQuery(
+            data: MediaQueryData(size: mobile),
+            child: Scaffold(body: NoteVersionsScreen(noteId: '1')),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('v2'), findsOneWidget);
+    expect(find.text('L2 정규화 설명 추가'), findsOneWidget);
+    expect(find.text('복원'), findsWidgets);
   });
 
   // v1 ④ 편집 화면: `[[` 입력 시 위키링크 자동완성 드롭다운이 크래시 없이

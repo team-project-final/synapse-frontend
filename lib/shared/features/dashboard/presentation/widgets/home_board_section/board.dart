@@ -120,7 +120,7 @@ class _BoardHeader extends StatelessWidget {
                 editing ? '보드 편집' : '내 보드',
                 style: textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+                  letterSpacing: 0,
                   color: AppColors.text,
                 ),
               ),
@@ -354,7 +354,7 @@ class _AddItem extends StatelessWidget {
                     AppColors.primary.withValues(alpha: 0.16),
                     AppColors.surface,
                   ),
-                  borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 alignment: Alignment.center,
                 child: item.kind == _BoardKind.ask

@@ -14,16 +14,7 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   final _searchController = TextEditingController();
   int _selectedColorIndex = 5;
 
-  static const _presetColors = [
-    Color(0xFFDC2626), // red
-    Color(0xFFEA580C), // orange
-    Color(0xFFD97706), // amber
-    Color(0xFF16A34A), // green
-    Color(0xFF2563EB), // blue
-    Color(0xFF7C3AED), // violet
-    Color(0xFFDB2777), // pink
-    Color(0xFF78716C), // stone
-  ];
+  static const _presetColors = AppColors.tagPalette;
 
   // TODO: 팀원 구현 — knowledge-svc 태그 목록 API 연동
   final _mockTags = [

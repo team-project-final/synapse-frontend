@@ -32,26 +32,31 @@ void main() {
     expect(find.text('로그인'), findsWidgets);
   });
 
-  testWidgets('dev login bypass reaches dashboard through app router', (
+  testWidgets('API-backed login reaches dashboard through app router', (
     tester,
   ) async {
+    final repository = _FakeAuthRepository();
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           tokenStoreProvider.overrideWithValue(InMemoryTokenStore()),
-          authRepositoryPortProvider.overrideWith(
-            (ref) => ref.watch(authRepositoryProvider),
-          ),
+          authRepositoryPortProvider.overrideWithValue(repository),
         ],
         child: const SynapseApp(),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
     await tester.tap(find.widgetWithText(FilledButton, '로그인'));
     await tester.pumpAndSettle();
 
-    // 대시보드 히어로 카피가 AI Tutor 디자인으로 변경됨.
+    expect(repository.loginCallCount, 1);
     expect(find.text('무엇을 학습해 볼까요?'), findsOneWidget);
     expect(find.byType(LoginScreen), findsNothing);
   });
@@ -166,4 +171,37 @@ class _DelayedTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async {}
+}
+
+class _FakeAuthRepository implements AuthRepositoryPort {
+  int loginCallCount = 0;
+
+  @override
+  Future<AuthTokens?> restoreSession() async => null;
+
+  @override
+  Future<AuthTokens> completeOAuthLogin({required String accessToken}) async {
+    return AuthTokens(accessToken: accessToken);
+  }
+
+  @override
+  Future<AuthTokens> login({
+    required String email,
+    required String password,
+  }) async {
+    loginCallCount += 1;
+    return const AuthTokens(accessToken: 'access');
+  }
+
+  @override
+  Future<void> signup({
+    required String email,
+    required String password,
+  }) async {}
+
+  @override
+  void loginWithOAuth(String provider) {}
+
+  @override
+  Future<void> logout() async {}
 }

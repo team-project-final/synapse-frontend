@@ -99,7 +99,7 @@ class _AskContent extends StatelessWidget {
           '무엇을 학습해 볼까요?',
           style: textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
+            letterSpacing: 0,
             color: AppColors.text,
           ),
         ),
@@ -196,7 +196,7 @@ class _TodayReviewContent extends StatelessWidget {
             '$_kReviewCardCount장',
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
               color: AppColors.text,
             ),
           ),
@@ -258,7 +258,7 @@ class _SuggestContent extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               color: AppColors.primary.withValues(alpha: 0.16),
             ),
             alignment: Alignment.center,
@@ -291,7 +291,7 @@ class _SuggestContent extends StatelessWidget {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.sm - 3),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                   ),
                   child: const Text(
@@ -397,7 +397,7 @@ class _InsightStat extends StatelessWidget {
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: color,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: AppSpacing.xxs),
@@ -434,7 +434,7 @@ class _StreakContent extends StatelessWidget {
             '$_kStreakDays일',
             style: textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
+              letterSpacing: 0,
               color: AppColors.streak,
             ),
           ),
@@ -529,7 +529,7 @@ class _RecentNotesContent extends StatelessWidget {
         for (int i = 0; i < _kMockNotes.length; i++)
           InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
               decoration: BoxDecoration(
@@ -588,7 +588,7 @@ class _RankingContent extends StatelessWidget {
         for (final _RankRow row in _kRanking)
           InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.sm,
@@ -599,7 +599,7 @@ class _RankingContent extends StatelessWidget {
                 color: row.highlight
                     ? AppColors.accent.withValues(alpha: 0.10)
                     : null,
-                borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Row(
                 children: <Widget>[

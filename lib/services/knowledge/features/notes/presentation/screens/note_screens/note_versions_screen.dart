@@ -83,7 +83,7 @@ class _VersionItem extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
                 version,

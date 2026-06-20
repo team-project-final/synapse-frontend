@@ -429,10 +429,10 @@ class _WikiAutocomplete extends StatelessWidget {
               color: i == 0
                   ? AppColors.primary.withValues(alpha: 0.12)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppRadius.sm - 3),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               child: InkWell(
                 onTap: () => onSelect(filtered[i].$1),
-                borderRadius: BorderRadius.circular(AppRadius.sm - 3),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.sm + 1),
                   child: Row(

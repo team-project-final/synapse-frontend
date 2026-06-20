@@ -76,7 +76,7 @@ class GamificationProfileScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        // primary→accent 그라데이션 XP 바 (목업 xpbar)
+        // XP progress follows the Warm Amber system from DESIGN.md.
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           child: Container(
@@ -88,7 +88,7 @@ class GamificationProfileScreen extends ConsumerWidget {
               child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.primary, AppColors.accent],
+                    colors: [AppColors.primary, AppColors.primaryHover],
                   ),
                 ),
               ),

@@ -82,9 +82,9 @@ class _DashboardHeatmapScreenState
   Color _colorForCount(int count) {
     // 컨셉 보라 스케일 (적음→많음)
     if (count == 0) return AppColors.surface2;
-    if (count <= 2) return const Color(0xFFD8C6F5);
-    if (count <= 5) return const Color(0xFFB388F0);
-    if (count <= 9) return const Color(0xFF8B5CF6);
+    if (count <= 2) return AppColors.primaryLight;
+    if (count <= 5) return AppColors.primary.withValues(alpha: 0.42);
+    if (count <= 9) return AppColors.primary.withValues(alpha: 0.68);
     return AppColors.primary;
   }
 
@@ -196,9 +196,9 @@ class _HeatmapFullPainter extends CustomPainter {
   Color _colorForCount(int count) {
     // 컨셉 보라 스케일 (적음→많음)
     if (count == 0) return AppColors.surface2;
-    if (count <= 2) return const Color(0xFFD8C6F5);
-    if (count <= 5) return const Color(0xFFB388F0);
-    if (count <= 9) return const Color(0xFF8B5CF6);
+    if (count <= 2) return AppColors.primaryLight;
+    if (count <= 5) return AppColors.primary.withValues(alpha: 0.42);
+    if (count <= 9) return AppColors.primary.withValues(alpha: 0.68);
     return AppColors.primary;
   }
 

@@ -1,6 +1,6 @@
 part of '../concept.dart';
 
-/// 컨셉 표면 카드 — surface 배경 + border + 큰 radius. 탭 가능 옵션.
+/// 컨셉 표면 카드 — surface 배경 + border + panel radius. 탭 가능 옵션.
 class ConceptCard extends StatelessWidget {
   const ConceptCard({
     required this.child,
@@ -44,7 +44,7 @@ class ConceptCard extends StatelessWidget {
   }
 }
 
-/// 그라데이션(보라→핑크) suggest/AI 카드. 대시보드 `_SuggestCard` 스타일.
+/// Subtle suggest/AI card using restrained product tokens.
 class ConceptGradientCard extends StatelessWidget {
   const ConceptGradientCard({
     required this.child,

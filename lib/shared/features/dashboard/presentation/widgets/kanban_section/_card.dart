@@ -48,13 +48,13 @@ class _KanbanCardTile extends StatelessWidget {
     final TextTheme textTheme = Theme.of(context).textTheme;
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(AppRadius.sm - 2),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.sm - 2),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         onTap: () => context.go(card.route),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.sm - 2),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             border: Border.all(color: AppColors.border),
           ),
           // 컴팩트 칸반 카드 — 토큰(md/sm)으로 올리면 카드가 눈에 띄게
@@ -138,7 +138,7 @@ class _MiniAddButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(AppRadius.sm - 2),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       onTap: onTap,
       child: _DottedBorderBox(
         child: Padding(
@@ -168,7 +168,7 @@ class _DottedBorderBox extends StatelessWidget {
     return CustomPaint(
       painter: _DashedBorderPainter(
         color: AppColors.border,
-        radius: AppRadius.sm - 2,
+        radius: AppRadius.sm,
       ),
       child: SizedBox(width: double.infinity, child: child),
     );

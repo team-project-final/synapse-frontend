@@ -9,9 +9,80 @@ import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
 void main() {
-  testWidgets('login bypass does not call repository and opens dashboard', (
+  testWidgets('login calls repository and opens dashboard on success', (
     tester,
   ) async {
+    final repository = _FakeAuthRepository();
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dashboard,
+          builder: (context, state) =>
+              const Scaffold(body: Text('dashboard-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
+    await tester.enterText(find.byType(TextFormField).at(1), 'P@ssw0rd!');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(repository.loginCallCount, 1);
+    expect(find.text('dashboard-target'), findsOneWidget);
+  });
+
+  testWidgets('login validates form before calling repository', (tester) async {
+    final repository = _FakeAuthRepository();
+    final router = GoRouter(
+      initialLocation: AppRoutes.login,
+      routes: [
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) => const LoginScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dashboard,
+          builder: (context, state) =>
+              const Scaffold(body: Text('dashboard-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(repository.loginCallCount, 0);
+    expect(find.text('이메일을 입력해주세요'), findsOneWidget);
+    expect(find.text('비밀번호는 8자 이상이어야 합니다'), findsOneWidget);
+    expect(find.text('dashboard-target'), findsNothing);
+  });
+
+  testWidgets('login failure displays repository detail', (tester) async {
     final repository = _FakeAuthRepository()
       ..loginError = const AuthRepositoryException(
         status: 401,
@@ -49,41 +120,9 @@ void main() {
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
 
-    expect(repository.loginCallCount, 0);
-    expect(find.text('dashboard-target'), findsOneWidget);
-  });
-
-  testWidgets('login bypasses validation and opens dashboard in early dev', (
-    tester,
-  ) async {
-    final repository = _FakeAuthRepository();
-    final router = GoRouter(
-      initialLocation: AppRoutes.login,
-      routes: [
-        GoRoute(
-          path: AppRoutes.login,
-          builder: (context, state) => const LoginScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.dashboard,
-          builder: (context, state) =>
-              const Scaffold(body: Text('dashboard-target')),
-        ),
-      ],
-    );
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [authRepositoryPortProvider.overrideWithValue(repository)],
-        child: MaterialApp.router(routerConfig: router),
-      ),
-    );
-
-    await tester.tap(find.byType(FilledButton));
-    await tester.pumpAndSettle();
-
-    expect(find.text('dashboard-target'), findsOneWidget);
+    expect(repository.loginCallCount, 1);
+    expect(find.text('Invalid credentials'), findsOneWidget);
+    expect(find.text('dashboard-target'), findsNothing);
   });
 
   testWidgets('signup rejects password without a digit', (tester) async {

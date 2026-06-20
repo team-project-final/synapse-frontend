@@ -122,7 +122,7 @@ class _NoteCard extends StatelessWidget {
               note.title,
               style: textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.2,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: AppSpacing.xs + 2),

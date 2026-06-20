@@ -22,10 +22,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _submit() {
-    // TODO: 개발 초기 임시 처리 - 실제 인증 재활성화 시 form validate와 AuthNotifier.login 호출 복구.
-    ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
-    context.go(AppRoutes.dashboard);
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    await ref
+        .read(authNotifierProvider.notifier)
+        .login(_emailController.text.trim(), _passwordController.text);
+
+    if (!mounted) return;
+    final authState = ref.read(authNotifierProvider);
+    if (authState.status == AuthStatus.authenticated) {
+      context.go(AppRoutes.dashboard);
+    }
   }
 
   void _loginWithOAuth(String provider) {
@@ -115,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     width: double.infinity,
                     height: 48,
                     child: FilledButton(
-                      onPressed: isLoading ? null : _submit,
+                      onPressed: isLoading ? null : () => unawaited(_submit()),
                       child: isLoading
                           ? const SizedBox(
                               width: 20,

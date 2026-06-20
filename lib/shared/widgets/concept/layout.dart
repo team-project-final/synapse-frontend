@@ -76,7 +76,7 @@ class ConceptViewHead extends StatelessWidget {
               title,
               style: textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+                letterSpacing: 0,
               ),
             ),
           ),
@@ -197,10 +197,7 @@ class ConceptPage extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: ListView(
-          padding: padding,
-          children: children,
-        ),
+        child: ListView(padding: padding, children: children),
       ),
     );
   }

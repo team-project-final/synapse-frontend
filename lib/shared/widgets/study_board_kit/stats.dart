@@ -47,7 +47,7 @@ class _StatCellView extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -59,7 +59,7 @@ class _StatCellView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 21,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
+                letterSpacing: 0,
                 color: cell.accent ? AppColors.primary : AppColors.text,
               ),
             ),
@@ -82,7 +82,7 @@ class _StatCellView extends StatelessWidget {
   }
 }
 
-/// 목업 `.xpbar` — primary→accent 그라데이션 진행 바.
+/// XP progress bar using Warm Amber.
 class XpBar extends StatelessWidget {
   const XpBar({required this.progress, this.height = 9, super.key});
 
@@ -104,7 +104,7 @@ class XpBar extends StatelessWidget {
           child: Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.primary, AppColors.accent],
+                colors: [AppColors.primary, AppColors.primaryHover],
               ),
             ),
           ),
@@ -154,9 +154,9 @@ class RateButtons extends StatelessWidget {
           Expanded(
             child: Material(
               color: opts[i].color,
-              borderRadius: BorderRadius.circular(AppRadius.sm - 8),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               child: InkWell(
-                borderRadius: BorderRadius.circular(AppRadius.sm - 8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 onTap: () => onRate(i),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(

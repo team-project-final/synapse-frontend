@@ -3,10 +3,9 @@ import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
-/// "AI Tutor" 컨셉 하단 탭바.
+/// Mobile bottom navigation for the learning workspace.
 ///
-/// 4개 탭(홈·노트 | 복습·더보기)을 양옆으로 배치하고, 중앙에 떠 있는
-/// ✦ FAB(핑크→보라 orb)를 둔다. FAB은 AI 홈으로 진입한다.
+/// Four tabs sit around a central AI entry action.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     required this.currentIndex,
@@ -36,14 +35,9 @@ class AppBottomNav extends StatelessWidget {
       icon: Icons.description_outlined,
       activeIcon: Icons.description,
       label: '노트',
-      index: 1
+      index: 1,
     ),
-    (
-      icon: Icons.refresh,
-      activeIcon: Icons.refresh,
-      label: '복습',
-      index: 2
-    ),
+    (icon: Icons.refresh, activeIcon: Icons.refresh, label: '복습', index: 2),
     (icon: Icons.menu, activeIcon: Icons.menu, label: '더보기', index: 3),
   ];
 
@@ -63,8 +57,7 @@ class AppBottomNav extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                 child: Row(
                   children: [
                     Expanded(child: _tab(context, _items[0])),
@@ -77,9 +70,7 @@ class AppBottomNav extends StatelessWidget {
               ),
               Positioned(
                 top: -22,
-                child: _Fab(
-                  onTap: onFabTap ?? () => onTap(0),
-                ),
+                child: _Fab(onTap: onFabTap ?? () => onTap(0)),
               ),
             ],
           ),
@@ -107,10 +98,10 @@ class AppBottomNav extends StatelessWidget {
             Text(
               item.label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
+                color: color,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:synapse_frontend/core/theme/app_colors.dart';
 
 class CelebrationParticle extends StatefulWidget {
   const CelebrationParticle({
@@ -28,14 +29,14 @@ class _CelebrationParticleState extends State<CelebrationParticle>
   @override
   void initState() {
     super.initState();
-    final colors = widget.colors ??
+    final colors =
+        widget.colors ??
         [
-          Colors.amber,
-          Colors.orange,
-          Colors.red,
-          Colors.blue,
-          Colors.green,
-          Colors.purple,
+          AppColors.primaryAmber,
+          AppColors.primaryHover,
+          AppColors.mutedTeal,
+          AppColors.stone300,
+          AppColors.success,
         ];
     _particles = List.generate(widget.particleCount, (_) {
       return _Particle(

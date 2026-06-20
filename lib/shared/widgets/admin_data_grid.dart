@@ -50,10 +50,13 @@ class _AdminDataGridState extends State<AdminDataGrid> {
                   hintText: widget.searchHint,
                   prefixIcon: const Icon(Icons.search, size: 20),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -89,16 +92,25 @@ class _AdminDataGridState extends State<AdminDataGrid> {
         const SizedBox(height: AppSpacing.md),
         // Data table
         Expanded(
-          child: SingleChildScrollView(
-            child: SizedBox(
-              width: double.infinity,
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(AppColors.stone100),
-                columns: widget.columns,
-                rows: widget.rows,
-                showCheckboxColumn: false,
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: SingleChildScrollView(
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.all(
+                        AppColors.stone100,
+                      ),
+                      columns: widget.columns,
+                      rows: widget.rows,
+                      showCheckboxColumn: false,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
         // Pagination
@@ -106,11 +118,12 @@ class _AdminDataGridState extends State<AdminDataGrid> {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Text('1-10 / ${widget.rows.length}',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: AppColors.stone500)),
+            Text(
+              '1-10 / ${widget.rows.length}',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.stone500),
+            ),
             const SizedBox(width: AppSpacing.sm),
             const IconButton(
               icon: Icon(Icons.chevron_left, size: 20),

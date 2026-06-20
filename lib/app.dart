@@ -8,6 +8,7 @@ import 'package:synapse_frontend/core/auth/auth_notifier.dart';
 import 'package:synapse_frontend/core/auth/auth_state.dart';
 import 'package:synapse_frontend/core/router/app_router.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/shared/widgets/app_state_widgets.dart';
 
 class SynapseApp extends ConsumerStatefulWidget {
   const SynapseApp({super.key});
@@ -36,7 +37,7 @@ class _SynapseAppState extends ConsumerState<SynapseApp> {
         title: 'Synapse',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
-        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: const Scaffold(body: AppLoadingWidget(label: 'Synapse 준비 중')),
       );
     }
 

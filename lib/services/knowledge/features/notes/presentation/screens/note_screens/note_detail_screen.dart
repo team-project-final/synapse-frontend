@@ -42,7 +42,7 @@ class NoteDetailScreen extends ConsumerWidget {
                   '정규화 기법 (Regularization)',
                   style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+                    letterSpacing: 0,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -267,7 +267,7 @@ class _BacklinkItem extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: AppColors.surface2,
-                borderRadius: BorderRadius.circular(AppRadius.sm - 4),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: const Text('📄', style: TextStyle(fontSize: 16)),
             ),

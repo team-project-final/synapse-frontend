@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 
-/// "AI Tutor" 컨셉의 시그니처 오브(orb).
+/// Compact Synapse brand mark.
 ///
-/// 핑크→보라 라디얼 그라데이션 원 안에 ✦ 글리프를 그린다. 브랜드 로고,
-/// AI 튜터 아바타, FAB 등에 재사용한다. (mock 데이터만 사용 — 기능 없음)
+/// The name is kept for compatibility with older screens, but the visual is a
+/// restrained Warm Intellectual mark instead of the previous decorative orb.
 class SynapseOrb extends StatelessWidget {
   const SynapseOrb({
     this.size = 32,
@@ -28,17 +28,14 @@ class SynapseOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(-0.36, -0.44),
-          radius: 0.95,
-          colors: [AppColors.accent, AppColors.primary],
-        ),
+        color: AppColors.primaryLight,
+        border: Border.all(color: AppColors.primary, width: 1.4),
         boxShadow: shadow
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.45),
-                  blurRadius: size * 0.45,
-                  offset: Offset(0, size * 0.18),
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  blurRadius: size * 0.28,
+                  offset: Offset(0, size * 0.10),
                 ),
               ]
             : null,
@@ -48,8 +45,9 @@ class SynapseOrb extends StatelessWidget {
         glyph,
         style: TextStyle(
           fontSize: size * glyphScale,
-          color: AppColors.primaryFg,
+          color: AppColors.primary,
           height: 1,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

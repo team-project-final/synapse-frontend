@@ -25,6 +25,8 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
   int _secondsRemaining = _timerDuration;
   Timer? _timer;
   bool _isVerifying = false;
+  String? _verificationMessage;
+  String? _verificationError;
 
   @override
   void initState() {
@@ -66,20 +68,37 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
       _focusNodes[index - 1].requestFocus();
     }
     if (_code.length == _codeLength) {
-      _verifyCode();
+      unawaited(_verifyCode());
     }
   }
 
-  void _verifyCode() {
-    setState(() => _isVerifying = true);
-    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/verify (TOTP 코드 검증)
-    Future<void>.delayed(const Duration(seconds: 1)).then((_) {
-      if (!mounted) return;
-      setState(() => _isVerifying = false);
-      // 검증 성공(목업) → 인증 완료 처리 후 대시보드로 이동.
-      ref.read(authNotifierProvider.notifier).bypassLoginForDevelopment();
-      context.go(AppRoutes.dashboard);
+  Future<void> _verifyCode() async {
+    if (_isVerifying || _code.length != _codeLength) return;
+
+    setState(() {
+      _isVerifying = true;
+      _verificationMessage = null;
+      _verificationError = null;
     });
+
+    try {
+      final verified = await ref.read(platformAuthApiProvider).verifyMfa(_code);
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        if (verified) {
+          _verificationMessage = 'MFA 인증이 완료되었습니다. 다시 로그인해 주세요.';
+        } else {
+          _verificationError = 'MFA 코드가 일치하지 않습니다.';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        _verificationError = 'MFA 코드를 검증하지 못했습니다.';
+      });
+    }
   }
 
   void _resendCode() {
@@ -142,6 +161,31 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                 if (_isVerifying)
                   const CircularProgressIndicator()
                 else ...[
+                  if (_verificationMessage != null) ...[
+                    Text(
+                      _verificationMessage!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.success,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    OutlinedButton(
+                      onPressed: () => context.go(AppRoutes.login),
+                      child: const Text('로그인으로 돌아가기'),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  if (_verificationError != null) ...[
+                    Text(
+                      _verificationError!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.error,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
                   Text(
                     _secondsRemaining > 0
                         ? '남은 시간: $_secondsRemaining초'

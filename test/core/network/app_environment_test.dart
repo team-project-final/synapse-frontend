@@ -11,4 +11,14 @@ void main() {
     expect(parseAppEnvironment('dev'), AppEnvironment.dev);
     expect(AppEnvironment.dev.baseUrl, 'http://localhost:8080');
   });
+
+  test('demo is the only environment that opts into mock user identity', () {
+    expect(parseAppEnvironment('demo'), AppEnvironment.demo);
+    expect(AppEnvironment.demo.usesDemoIdentity, isTrue);
+    expect(AppEnvironment.demo.demoUserId, 'mock_user_123');
+
+    expect(AppEnvironment.dev.usesDemoIdentity, isFalse);
+    expect(AppEnvironment.staging.demoUserId, isNull);
+    expect(AppEnvironment.prod.demoUserId, isNull);
+  });
 }

@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/platform/features/notifications/data/notification_api.dart';
+import 'package:synapse_frontend/services/platform/features/notifications/providers/notification_providers.dart';
+import 'package:synapse_frontend/shared/widgets/app_state_widgets.dart';
 
 // ── NotificationCenterScreen (SCR-W-NOTI-001) ──
 
@@ -35,97 +38,17 @@ class _NotificationCenterScreenState
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-
-    // TODO: 팀원 구현 — platform-svc 알림 목록 API 연동
-    const todayNotifs = [
-      _Notification(
-        icon: Icons.emoji_events,
-        title: '레벨업! 지식 탐험가',
-        time: '1시간 전',
-        isRead: false,
-        actionLabel: null,
-        iconColor: AppColors.primary,
-      ),
-      _Notification(
-        icon: Icons.style_outlined,
-        title: 'AWS 스터디에 새 덱 공유됨',
-        time: '3시간 전',
-        isRead: true,
-        actionLabel: '덱 확인하기 →',
-        iconColor: AppColors.info,
-      ),
-      _Notification(
-        icon: Icons.notifications_outlined,
-        title: '오늘 복습할 카드 25장',
-        time: '오전 9시',
-        isRead: true,
-        actionLabel: '복습 시작 →',
-        iconColor: AppColors.success,
-      ),
-    ];
-
-    const yesterdayNotifs = [
-      _Notification(
-        icon: Icons.groups_outlined,
-        title: '머신러닝 스터디 그룹에 초대받았습니다',
-        time: '어제 오후 6시',
-        isRead: true,
-        actionLabel: null,
-        iconColor: AppColors.muted,
-      ),
-      _Notification(
-        icon: Icons.star_outlined,
-        title: '배지 획득: 7일 연속 학습',
-        time: '어제 오전 10시',
-        isRead: true,
-        actionLabel: null,
-        iconColor: AppColors.warning,
-      ),
-    ];
-
-    const thisWeekNotifs = [
-      _Notification(
-        icon: Icons.download_outlined,
-        title: '데이터 내보내기 완료',
-        time: '3일 전',
-        isRead: true,
-        actionLabel: null,
-        iconColor: AppColors.muted,
-      ),
-    ];
-
-    final content = ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      children: [
-        // Today section
-        Text(
-          '오늘',
-          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ...todayNotifs.map((n) => _NotificationItem(notif: n)),
-        const SizedBox(height: AppSpacing.md),
-        // Yesterday section
-        Text(
-          '어제',
-          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ...yesterdayNotifs.map((n) => _NotificationItem(notif: n)),
-        const SizedBox(height: AppSpacing.md),
-        // This week section
-        Text(
-          '이번 주',
-          style: textTheme.labelMedium?.copyWith(color: AppColors.muted),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ...thisWeekNotifs.map((n) => _NotificationItem(notif: n)),
-      ],
+    final notificationsValue = ref.watch(notificationCenterProvider);
+    final page = notificationsValue.when(
+      data: (data) => data,
+      loading: () => null,
+      error: (_, _) => null,
     );
+    final unreadCount = page?.unreadCount ?? 0;
+    final isCompact = MediaQuery.sizeOf(context).width < 480;
 
     return Column(
       children: [
-        // Header row
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -135,23 +58,49 @@ class _NotificationCenterScreenState
           ),
           child: Row(
             children: [
-              Text('알림 센터', style: textTheme.titleLarge),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  '알림 센터',
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: '새로고침',
+                onPressed: () =>
+                    ref.read(notificationCenterProvider.notifier).refresh(),
+              ),
               IconButton(
                 icon: const Icon(Icons.settings_outlined),
                 tooltip: '알림 설정',
                 onPressed: () => context.go(AppRoutes.notificationSettings),
               ),
-              TextButton(
-                onPressed: () {
-                  // TODO: 팀원 구현 — 모두 읽음 처리 API 연동
-                },
-                child: const Text('모두 읽음'),
-              ),
+              if (isCompact)
+                IconButton(
+                  icon: const Icon(Icons.done_all),
+                  tooltip: '모두 읽음',
+                  onPressed: unreadCount == 0
+                      ? null
+                      : () => ref
+                            .read(notificationCenterProvider.notifier)
+                            .markAllRead(),
+                )
+              else
+                TextButton.icon(
+                  onPressed: unreadCount == 0
+                      ? null
+                      : () => ref
+                            .read(notificationCenterProvider.notifier)
+                            .markAllRead(),
+                  icon: const Icon(Icons.done_all, size: 18),
+                  label: Text(
+                    '모두 읽음${unreadCount == 0 ? '' : ' ($unreadCount)'}',
+                  ),
+                ),
             ],
           ),
         ),
-        // TabBar
         TabBar(
           controller: _tabController,
           tabs: const [
@@ -161,11 +110,38 @@ class _NotificationCenterScreenState
             Tab(text: '성취'),
           ],
         ),
-        // TabBarView
         Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: List.generate(4, (_) => content),
+          child: AppAsyncValueWidget<NotificationPage>(
+            value: notificationsValue,
+            loading: const AppLoadingWidget(label: '알림을 불러오는 중입니다.'),
+            empty: const AppEmptyState(
+              icon: Icons.notifications_none_outlined,
+              title: '도착한 알림이 없습니다.',
+            ),
+            isEmpty: (data) => data.notifications.isEmpty,
+            error: (error, _) => AppErrorWidget(
+              message: '알림을 불러오지 못했습니다.',
+              onRetry: () =>
+                  ref.read(notificationCenterProvider.notifier).refresh(),
+            ),
+            data: (data) => TabBarView(
+              controller: _tabController,
+              children: [
+                _NotificationList(notifications: data.notifications),
+                _NotificationList(
+                  notifications: data.notifications,
+                  category: PlatformNotificationCategory.review,
+                ),
+                _NotificationList(
+                  notifications: data.notifications,
+                  category: PlatformNotificationCategory.community,
+                ),
+                _NotificationList(
+                  notifications: data.notifications,
+                  category: PlatformNotificationCategory.achievement,
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -173,167 +149,288 @@ class _NotificationCenterScreenState
   }
 }
 
-class _Notification {
-  const _Notification({
-    required this.icon,
-    required this.title,
-    required this.time,
-    required this.isRead,
-    required this.actionLabel,
-    required this.iconColor,
-  });
-  final IconData icon;
-  final String title;
-  final String time;
-  final bool isRead;
-  final String? actionLabel;
-  final Color iconColor;
-}
+class _NotificationList extends ConsumerWidget {
+  const _NotificationList({required this.notifications, this.category});
 
-class _NotificationItem extends StatelessWidget {
-  const _NotificationItem({required this.notif});
-  final _Notification notif;
+  final List<PlatformNotification> notifications;
+  final PlatformNotificationCategory? category;
 
   @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visible = category == null
+        ? notifications
+        : notifications
+              .where((item) => item.category == category)
+              .toList(growable: false);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: notif.isRead
+    if (visible.isEmpty) {
+      return AppEmptyState(
+        icon: Icons.notifications_none_outlined,
+        title: category == null
+            ? '도착한 알림이 없습니다.'
+            : '${category!.label} 알림이 없습니다.',
+      );
+    }
+
+    final grouped = _groupNotifications(visible);
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        for (final entry in grouped.entries) ...[
+          Text(
+            entry.key,
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: AppColors.muted),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final notification in entry.value)
+            _NotificationItem(notification: notification),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ],
+    );
+  }
+}
+
+class _NotificationItem extends ConsumerWidget {
+  const _NotificationItem({required this.notification});
+
+  final PlatformNotification notification;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final icon = _iconForCategory(notification.category);
+    final iconColor = _colorForCategory(notification.category);
+    final actionLabel = _actionLabelForCategory(notification.category);
+
+    Future<void> handleTap() async {
+      if (!notification.isRead) {
+        await ref
+            .read(notificationCenterProvider.notifier)
+            .markRead(notification.id);
+      }
+      final actionUrl = notification.actionUrl;
+      if (context.mounted && actionUrl != null && actionUrl.startsWith('/')) {
+        context.go(actionUrl);
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Material(
+        color: notification.isRead
             ? AppColors.surface
             : AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: notif.isRead
-              ? AppColors.border
-              : AppColors.primary.withValues(alpha: 0.25),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: notif.iconColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(notif.icon, size: 18, color: notif.iconColor),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(
+            color: notification.isRead
+                ? AppColors.border
+                : AppColors.primary.withValues(alpha: 0.25),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: handleTap,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    if (!notif.isRead) ...[
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                    ],
-                    Expanded(
-                      child: Text(
-                        notif.title,
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: notif.isRead ? null : FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  notif.time,
-                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
-                ),
-                if (notif.actionLabel != null) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  TextButton(
-                    onPressed: () {
-                      // TODO: 팀원 구현 — 알림 액션 처리
-                    },
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: Text(notif.actionLabel!),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
                   ),
-                ],
+                  child: Icon(icon, size: 18, color: iconColor),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          if (!notification.isRead) ...[
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                          ],
+                          Expanded(
+                            child: Text(
+                              notification.title,
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: notification.isRead
+                                    ? null
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (notification.body != null) ...[
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(
+                          notification.body!,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.text,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        _formatNotificationTime(notification.createdAt),
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.muted,
+                        ),
+                      ),
+                      if (notification.actionUrl != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        TextButton(
+                          onPressed: handleTap,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(actionLabel),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
+Map<String, List<PlatformNotification>> _groupNotifications(
+  List<PlatformNotification> notifications,
+) {
+  final grouped = <String, List<PlatformNotification>>{};
+  for (final notification in notifications) {
+    final label = _groupLabel(notification.createdAt);
+    grouped.putIfAbsent(label, () => []).add(notification);
+  }
+  return grouped;
+}
+
+String _groupLabel(DateTime? createdAt) {
+  if (createdAt == null) return '이전';
+  final now = DateTime.now();
+  final local = createdAt.toLocal();
+  final today = DateTime(now.year, now.month, now.day);
+  final itemDay = DateTime(local.year, local.month, local.day);
+  final days = today.difference(itemDay).inDays;
+  if (days == 0) return '오늘';
+  if (days == 1) return '어제';
+  if (days < 7) return '이번 주';
+  return '이전';
+}
+
+String _formatNotificationTime(DateTime? createdAt) {
+  if (createdAt == null) return '방금 전';
+  final diff = DateTime.now().difference(createdAt.toLocal());
+  if (diff.inMinutes < 1) return '방금 전';
+  if (diff.inHours < 1) return '${diff.inMinutes}분 전';
+  if (diff.inDays < 1) return '${diff.inHours}시간 전';
+  if (diff.inDays == 1) return '어제';
+  if (diff.inDays < 7) return '${diff.inDays}일 전';
+  final local = createdAt.toLocal();
+  return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')}';
+}
+
+IconData _iconForCategory(PlatformNotificationCategory category) {
+  return switch (category) {
+    PlatformNotificationCategory.review => Icons.notifications_outlined,
+    PlatformNotificationCategory.community => Icons.groups_outlined,
+    PlatformNotificationCategory.achievement => Icons.emoji_events_outlined,
+    PlatformNotificationCategory.system => Icons.info_outline,
+  };
+}
+
+Color _colorForCategory(PlatformNotificationCategory category) {
+  return switch (category) {
+    PlatformNotificationCategory.review => AppColors.success,
+    PlatformNotificationCategory.community => AppColors.info,
+    PlatformNotificationCategory.achievement => AppColors.primary,
+    PlatformNotificationCategory.system => AppColors.muted,
+  };
+}
+
+String _actionLabelForCategory(PlatformNotificationCategory category) {
+  return switch (category) {
+    PlatformNotificationCategory.review => '복습 시작',
+    PlatformNotificationCategory.community => '확인하기',
+    PlatformNotificationCategory.achievement => '성취 보기',
+    PlatformNotificationCategory.system => '자세히 보기',
+  };
+}
+
 // ── NotificationPreferenceScreen (SCR-W-NOTI-002) ──
 
-class NotificationPreferenceScreen extends ConsumerStatefulWidget {
+class NotificationPreferenceScreen extends ConsumerWidget {
   const NotificationPreferenceScreen({super.key});
 
   @override
-  ConsumerState<NotificationPreferenceScreen> createState() =>
-      _NotificationPreferenceScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferencesValue = ref.watch(notificationPreferencesProvider);
+    return AppAsyncValueWidget<NotificationPreferences>(
+      value: preferencesValue,
+      loading: const AppLoadingWidget(label: '알림 설정을 불러오는 중입니다.'),
+      error: (error, _) => AppErrorWidget(
+        message: '알림 설정을 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(notificationPreferencesProvider),
+      ),
+      data: (preferences) =>
+          _NotificationPreferenceContent(preferences: preferences),
+    );
+  }
 }
 
-class _NotificationPreferenceScreenState
-    extends ConsumerState<NotificationPreferenceScreen> {
-  // Category × channel grid state
-  // Rows: 복습 리마인더, 커뮤니티 활동, 성취/배지, 시스템 알림
-  // Columns: Push, Email, InApp
-  final List<List<bool>> _notifGrid = [
-    [true, false, true], // 복습 리마인더
-    [true, true, true], // 커뮤니티 활동
-    [true, false, true], // 성취/배지
-    [false, true, true], // 시스템 알림
-  ];
+class _NotificationPreferenceContent extends ConsumerWidget {
+  const _NotificationPreferenceContent({required this.preferences});
 
-  static const _categoryLabels = ['복습 리마인더', '커뮤니티 활동', '성취/배지', '시스템 알림'];
+  final NotificationPreferences preferences;
 
-  static const _channelLabels = ['Push', 'Email', 'InApp'];
-
-  TimeOfDay _quietStart = const TimeOfDay(hour: 22, minute: 0);
-  TimeOfDay _quietEnd = const TimeOfDay(hour: 8, minute: 0);
-
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
-  Future<void> _pickTime({required bool isStart}) async {
-    final initial = isStart ? _quietStart : _quietEnd;
+  Future<void> _pickTime(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool isStart,
+  }) async {
+    final initial = _parseTimeOfDay(
+      isStart ? preferences.quietHoursStart : preferences.quietHoursEnd,
+    );
     final picked = await showTimePicker(context: context, initialTime: initial);
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _quietStart = picked;
-        } else {
-          _quietEnd = picked;
-        }
-      });
-    }
+    if (!context.mounted || picked == null) return;
+    await ref
+        .read(notificationPreferencesProvider.notifier)
+        .setQuietHours(
+          start: isStart
+              ? _formatTimeOfDay(picked)
+              : preferences.quietHoursStart,
+          end: isStart ? preferences.quietHoursEnd : _formatTimeOfDay(picked),
+        );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
 
-    // TODO: 팀원 구현 — platform-svc 알림 설정 조회/저장 API 연동
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
@@ -341,8 +438,6 @@ class _NotificationPreferenceScreenState
         const SizedBox(height: AppSpacing.lg),
         Text('카테고리별 알림 설정', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.md),
-
-        // Category × channel grid table
         Table(
           columnWidths: const {
             0: FlexColumnWidth(2),
@@ -352,7 +447,6 @@ class _NotificationPreferenceScreenState
           },
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [
-            // Header row
             TableRow(
               decoration: BoxDecoration(
                 color: AppColors.surface2,
@@ -368,57 +462,52 @@ class _NotificationPreferenceScreenState
                     ),
                   ),
                 ),
-                ...List.generate(
-                  3,
-                  (i) => Center(
+                for (final channel in NotificationChannel.values)
+                  Center(
                     child: Padding(
                       padding: const EdgeInsets.all(AppSpacing.sm),
                       child: Text(
-                        _channelLabels[i],
+                        channel.label,
                         style: textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
-            // Data rows
-            ...List.generate(4, (row) {
-              return TableRow(
+            for (final category in PlatformNotificationCategory.values)
+              TableRow(
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
                       vertical: AppSpacing.xs,
                     ),
-                    child: Text(
-                      _categoryLabels[row],
-                      style: textTheme.bodyMedium,
-                    ),
+                    child: Text(category.label, style: textTheme.bodyMedium),
                   ),
-                  ...List.generate(
-                    3,
-                    (col) => Center(
+                  for (final channel in NotificationChannel.values)
+                    Center(
                       child: Switch(
-                        value: _notifGrid[row][col],
-                        onChanged: (v) =>
-                            setState(() => _notifGrid[row][col] = v),
+                        value: preferences
+                            .channelsFor(category)
+                            .isEnabled(channel),
+                        onChanged: (enabled) => ref
+                            .read(notificationPreferencesProvider.notifier)
+                            .updateChannel(
+                              category: category,
+                              channel: channel,
+                              enabled: enabled,
+                            ),
                       ),
                     ),
-                  ),
                 ],
-              );
-            }),
+              ),
           ],
         ),
-
         const SizedBox(height: AppSpacing.lg),
         const Divider(),
         const SizedBox(height: AppSpacing.lg),
-
-        // Quiet hours with time pickers
         Text('방해금지 시간', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         Text(
@@ -429,18 +518,20 @@ class _NotificationPreferenceScreenState
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: () => _pickTime(isStart: true),
-                child: Text('시작: ${_formatTime(_quietStart)}'),
+              child: OutlinedButton.icon(
+                onPressed: () => _pickTime(context, ref, isStart: true),
+                icon: const Icon(Icons.bedtime_outlined, size: 18),
+                label: Text('시작: ${preferences.quietHoursStart}'),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Text('~', style: textTheme.bodyMedium),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: OutlinedButton(
-                onPressed: () => _pickTime(isStart: false),
-                child: Text('종료: ${_formatTime(_quietEnd)}'),
+              child: OutlinedButton.icon(
+                onPressed: () => _pickTime(context, ref, isStart: false),
+                icon: const Icon(Icons.wb_sunny_outlined, size: 18),
+                label: Text('종료: ${preferences.quietHoursEnd}'),
               ),
             ),
           ],
@@ -448,4 +539,19 @@ class _NotificationPreferenceScreenState
       ],
     );
   }
+}
+
+TimeOfDay _parseTimeOfDay(String value) {
+  final parts = value.split(':');
+  if (parts.length != 2) return const TimeOfDay(hour: 22, minute: 0);
+  return TimeOfDay(
+    hour: int.tryParse(parts[0])?.clamp(0, 23) ?? 22,
+    minute: int.tryParse(parts[1])?.clamp(0, 59) ?? 0,
+  );
+}
+
+String _formatTimeOfDay(TimeOfDay time) {
+  final hour = time.hour.toString().padLeft(2, '0');
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }

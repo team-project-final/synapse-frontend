@@ -1,8 +1,9 @@
-enum AppEnvironment { dev, platformDev, staging, prod }
+enum AppEnvironment { dev, platformDev, demo, staging, prod }
 
 AppEnvironment parseAppEnvironment(String value) {
   return switch (value) {
     'platform-dev' => AppEnvironment.platformDev,
+    'demo' => AppEnvironment.demo,
     'prod' => AppEnvironment.prod,
     'staging' => AppEnvironment.staging,
     _ => AppEnvironment.dev,
@@ -12,7 +13,7 @@ AppEnvironment parseAppEnvironment(String value) {
 extension AppEnvironmentBaseUrl on AppEnvironment {
   String get baseUrl {
     return switch (this) {
-      AppEnvironment.dev => 'http://localhost:8080',
+      AppEnvironment.dev || AppEnvironment.demo => 'http://localhost:8080',
       AppEnvironment.platformDev => 'http://localhost:8081',
       AppEnvironment.staging => 'https://api-staging.synapse.app',
       AppEnvironment.prod => 'https://api.synapse.app',
@@ -21,11 +22,17 @@ extension AppEnvironmentBaseUrl on AppEnvironment {
 
   String get aiBaseUrl {
     return switch (this) {
-      AppEnvironment.dev || AppEnvironment.platformDev => 'http://localhost:8090',
+      AppEnvironment.dev ||
+      AppEnvironment.platformDev ||
+      AppEnvironment.demo => 'http://localhost:8090',
       AppEnvironment.staging => 'https://api-staging.synapse.app',
       AppEnvironment.prod => 'https://api.synapse.app',
     };
   }
+
+  bool get usesDemoIdentity => this == AppEnvironment.demo;
+
+  String? get demoUserId => usesDemoIdentity ? 'mock_user_123' : null;
 }
 
 /// 효과적인 API base URL을 결정한다.

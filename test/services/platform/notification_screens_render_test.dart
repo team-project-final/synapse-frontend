@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/platform/features/notifications/data/notification_api.dart';
 import 'package:synapse_frontend/services/platform/features/notifications/presentation/screens/notification_screens.dart';
 
 // 알림 센터/알림 설정 화면 reskin 후 데스크탑/모바일 렌더 검증.
@@ -11,6 +13,9 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          notificationApiProvider.overrideWithValue(_FakeNotificationApi()),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(
@@ -39,4 +44,42 @@ void main() {
       await pump(tester, entry.value, mobile);
     });
   }
+}
+
+class _FakeNotificationApi extends NotificationApi {
+  _FakeNotificationApi() : super(Dio());
+
+  @override
+  Future<NotificationPage> listNotifications({
+    int page = 0,
+    int size = 50,
+    PlatformNotificationCategory? category,
+  }) async {
+    return NotificationPage(
+      unreadCount: 1,
+      hasMore: false,
+      notifications: [
+        PlatformNotification(
+          id: 'noti-1',
+          title: '오늘 복습할 카드 25장',
+          body: '마감 전 복습을 시작하세요.',
+          category: PlatformNotificationCategory.review,
+          isRead: false,
+          createdAt: DateTime.now(),
+          actionUrl: '/review',
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<void> markRead(String id) async {}
+
+  @override
+  Future<NotificationPreferences> getPreferences() async {
+    return NotificationPreferences.defaults();
+  }
+
+  @override
+  Future<void> updatePreferences(NotificationPreferences preferences) async {}
 }

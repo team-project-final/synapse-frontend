@@ -3,6 +3,8 @@
 > **프로젝트명**: Synapse — 통합 학습-지식 그래프 SaaS  
 > **기간**: 2026-05-12 ~ 2026-06-15 (5주 + 발표일, 22 영업일 — 5/25 부처님오신날·6/3 지방선거 제외)  
 > **팀 구성**: 팀장 1명 + 팀원 6명
+> **Phase E Sync**: 중앙 기준은 [2026-06-21 통합 QA 및 문서 마감 실행 리포트](../../../documents/docs/project-management/reports/phase-e-qa-docs-closeout-2026-06-21.md)다. frontend는 dashboard 168/481 상태이므로 production API-backed route, responsive/error/design QA 증거 없이 완료 처리하지 않는다.
+> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)다. frontend dry-run은 163/475, 현재 dashboard JSON은 168/481이라 live sync 전 workflow 문서와 JSON count drift 원인 확인이 필요하다.
 
 ---
 

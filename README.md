@@ -4,9 +4,9 @@
 학습 커뮤니티, 게이미피케이션, 계정/결제를 하나로 묶은 **학습 플랫폼**입니다.
 이 저장소는 그 **Flutter 프론트엔드(웹/모바일)** 입니다.
 
-> **현재 단계: 디자인 프로토타입.** 화면·디자인·내비게이션·UX 흐름이 구현되어 있고,
-> 데이터는 mock으로 동작합니다. 실제 백엔드 API 연동은 각 feature 안의
-> `// TODO: 팀원 구현` 지점에서 담당 작업자가 채웁니다.
+> **현재 단계: API 연동 전환 진행 중.** 인증(login/signup/OAuth callback), 결제, 알림 등
+> platform 경계 일부는 Dio 기반 Repository로 백엔드 API를 호출합니다. 지식/학습/커뮤니티와
+> 일부 대시보드 화면은 아직 mock-first 구현과 `// TODO: 팀원 구현` 지점이 남아 있습니다.
 
 ---
 
@@ -25,10 +25,6 @@
 | **설정**           | 프로필·보안(MFA)·알림·데이터·테넌트 · 로그아웃                                                      |
 | **관리자(웹)**     | 대시보드·테넌트·사용자·감사 로그·시스템 설정·신고 모더레이션·콘텐츠·그룹·게이미피케이션·데이터 요청 |
 | **기타**           | 알림 센터 · 결제(요금제·사용량·내역) · 인증(로그인·회원가입·MFA·비밀번호 재설정·OAuth)              |
-
-> 로그인 화면에서 **로그인 버튼만 누르면** 앱으로 진입합니다(개발용 바이패스, 실제 인증 미연동).
-
----
 
 ## 기술 스택
 
@@ -140,12 +136,13 @@ flutter run -d chrome
 
 Dio 클라이언트가 `--dart-define=APP_ENV` 값으로 base URL을 고릅니다(기본 `dev`).
 
-| APP_ENV        | Base URL                          |
-| -------------- | --------------------------------- |
-| `dev` (기본)   | `http://localhost:8080`           |
-| `platform-dev` | `http://localhost:8081`           |
-| `staging`      | `https://api-staging.synapse.app` |
-| `prod`         | `https://api.synapse.app`         |
+| APP_ENV        | Base URL                          | 비고                                      |
+| -------------- | --------------------------------- | ----------------------------------------- |
+| `dev` (기본)   | `http://localhost:8080`           | 로컬 통합 개발                            |
+| `demo`         | `http://localhost:8080`           | learning-ai 직접 호출에만 demo user header 사용 |
+| `platform-dev` | `http://localhost:8081`           | platform-svc 단독 개발                    |
+| `staging`      | `https://api-staging.synapse.app` | 스테이징                                  |
+| `prod`         | `https://api.synapse.app`         | 운영                                      |
 
 ```bash
 flutter run -d chrome --dart-define=APP_ENV=dev
@@ -177,5 +174,7 @@ flutter build web --release
 ## 현재 상태 / 한계
 
 - 화면·내비게이션·디자인 토큰·반응형(웹/모바일)·주요 UX 흐름 구현 완료.
-- 데이터는 **mock**, 인증은 **개발용 바이패스**로 동작.
-- 실제 API/비즈니스 로직 연동은 각 feature의 `// TODO: 팀원 구현` 지점에서 담당자가 진행.
+- 인증(login/signup/OAuth callback), 결제, 알림은 Dio 기반 Repository와 토큰 저장소를 경유합니다.
+- 로그인 버튼 바이패스는 현재 라우터/인증 흐름에 남아 있지 않습니다.
+- `APP_ENV=demo`에서만 learning-ai 직접 호출용 `X-User-Id` demo header를 붙입니다.
+- 지식/학습/커뮤니티/대시보드 일부 화면은 아직 mock 데이터와 `// TODO: 팀원 구현` 지점이 남아 있어 feature 단위 API 전환이 필요합니다.

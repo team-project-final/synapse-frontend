@@ -21,10 +21,12 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     _codeLength,
     (_) => FocusNode(),
   );
+  final _backupCodeController = TextEditingController();
 
   int _secondsRemaining = _timerDuration;
   Timer? _timer;
   bool _isVerifying = false;
+  bool _useBackupCode = false;
   String? _verificationMessage;
   String? _verificationError;
 
@@ -43,6 +45,7 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     for (final f in _focusNodes) {
       f.dispose();
     }
+    _backupCodeController.dispose();
     super.dispose();
   }
 
@@ -101,9 +104,48 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
     }
   }
 
+  Future<void> _verifyBackupCode() async {
+    final backupCode = _backupCodeController.text.trim();
+    if (_isVerifying || backupCode.isEmpty) return;
+
+    setState(() {
+      _isVerifying = true;
+      _verificationMessage = null;
+      _verificationError = null;
+    });
+
+    try {
+      final verified = await ref
+          .read(platformAuthApiProvider)
+          .verifyMfaBackupCode(backupCode);
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        if (verified) {
+          _verificationMessage = '백업 코드 인증이 완료되었습니다. 다시 로그인해 주세요.';
+        } else {
+          _verificationError = '백업 코드가 일치하지 않습니다.';
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isVerifying = false;
+        _verificationError = '백업 코드를 검증하지 못했습니다.';
+      });
+    }
+  }
+
   void _resendCode() {
-    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/resend (TOTP 코드 재발송)
     _startTimer();
+  }
+
+  void _toggleBackupCodeMode() {
+    setState(() {
+      _useBackupCode = !_useBackupCode;
+      _verificationMessage = null;
+      _verificationError = null;
+    });
   }
 
   @override
@@ -126,37 +168,57 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                 Text('인증 코드 입력', style: textTheme.headlineSmall),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  '인증 앱에 표시된 6자리 코드를 입력해주세요.',
+                  _useBackupCode
+                      ? '보관 중인 백업 코드를 입력해주세요.'
+                      : '인증 앱에 표시된 6자리 코드를 입력해주세요.',
                   style: textTheme.bodyMedium?.copyWith(color: AppColors.muted),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(_codeLength, (i) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        left: i == 0 ? 0 : AppSpacing.sm,
-                      ),
-                      child: SizedBox(
-                        width: 44,
-                        child: TextField(
-                          controller: _controllers[i],
-                          focusNode: _focusNodes[i],
-                          maxLength: 1,
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          style: textTheme.headlineSmall,
-                          decoration: const InputDecoration(
-                            counterText: '',
-                            border: OutlineInputBorder(),
-                          ),
-                          onChanged: (v) => _onDigitChanged(i, v),
+                if (_useBackupCode) ...[
+                  TextField(
+                    key: const Key('mfa-backup-code-field'),
+                    controller: _backupCodeController,
+                    decoration: const InputDecoration(
+                      labelText: '백업 코드',
+                      hintText: 'ABCD-EFGH',
+                      border: OutlineInputBorder(),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  FilledButton(
+                    key: const Key('mfa-backup-verify-button'),
+                    onPressed: _isVerifying ? null : _verifyBackupCode,
+                    child: const Text('백업 코드 검증'),
+                  ),
+                ] else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_codeLength, (i) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                          left: i == 0 ? 0 : AppSpacing.sm,
                         ),
-                      ),
-                    );
-                  }),
-                ),
+                        child: SizedBox(
+                          width: 44,
+                          child: TextField(
+                            controller: _controllers[i],
+                            focusNode: _focusNodes[i],
+                            maxLength: 1,
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            style: textTheme.headlineSmall,
+                            decoration: const InputDecoration(
+                              counterText: '',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (v) => _onDigitChanged(i, v),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
                 const SizedBox(height: AppSpacing.lg),
                 if (_isVerifying)
                   const CircularProgressIndicator()
@@ -186,29 +248,29 @@ class _MfaScreenState extends ConsumerState<MfaScreen> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                   ],
-                  Text(
-                    _secondsRemaining > 0
-                        ? '남은 시간: $_secondsRemaining초'
-                        : '코드가 만료되었습니다',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: _secondsRemaining > 0
-                          ? AppColors.muted
-                          : AppColors.error,
+                  if (!_useBackupCode) ...[
+                    Text(
+                      _secondsRemaining > 0
+                          ? '남은 시간: $_secondsRemaining초'
+                          : '코드가 만료되었습니다',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: _secondsRemaining > 0
+                            ? AppColors.muted
+                            : AppColors.error,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextButton(
-                    onPressed: _secondsRemaining <= 0 ? _resendCode : null,
-                    child: const Text('코드 재발송'),
-                  ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextButton(
+                      onPressed: _secondsRemaining <= 0 ? _resendCode : null,
+                      child: const Text('코드 재발송'),
+                    ),
+                  ],
                 ],
                 const SizedBox(height: AppSpacing.sm),
                 TextButton(
-                  onPressed: () {
-                    // TODO: 팀원 구현 — platform-svc POST /auth/mfa/backup (백업 코드 검증 화면 이동)
-                  },
+                  onPressed: _isVerifying ? null : _toggleBackupCodeMode,
                   child: Text(
-                    '백업 코드 사용',
+                    _useBackupCode ? '인증 코드 사용' : '백업 코드 사용',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.primary,
                       decoration: TextDecoration.underline,

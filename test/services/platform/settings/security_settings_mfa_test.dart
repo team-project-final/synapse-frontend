@@ -61,6 +61,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('MFA 인증이 완료되었습니다.'), findsOneWidget);
+    expect(find.text('ABCD-EFGH'), findsOneWidget);
   });
 }
 
@@ -77,4 +78,9 @@ class _FakePlatformAuthApi extends PlatformAuthApi {
 
   @override
   Future<bool> verifyMfa(String code) async => code == '123456';
+
+  @override
+  Future<List<String>> generateMfaBackupCodes() async {
+    return const ['ABCD-EFGH', 'IJKL-MNOP'];
+  }
 }

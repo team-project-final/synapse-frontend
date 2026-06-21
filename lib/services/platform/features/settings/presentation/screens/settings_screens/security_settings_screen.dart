@@ -22,17 +22,7 @@ class _SecuritySettingsScreenState
   bool _mfaVerified = false;
   MfaSetupResult? _mfaSetup;
   String? _mfaError;
-
-  final List<String> _backupCodes = [
-    'A1B2-C3D4',
-    'E5F6-G7H8',
-    'I9J0-K1L2',
-    'M3N4-O5P6',
-    'Q7R8-S9T0',
-    'U1V2-W3X4',
-    'Y5Z6-A7B8',
-    'C9D0-E1F2',
-  ];
+  List<String> _backupCodes = const [];
 
   @override
   void dispose() {
@@ -50,6 +40,7 @@ class _SecuritySettingsScreenState
         _mfaSetup = null;
         _mfaError = null;
         _mfaVerified = false;
+        _backupCodes = const [];
         _mfaCodeController.clear();
       });
       return;
@@ -66,6 +57,8 @@ class _SecuritySettingsScreenState
       setState(() {
         _mfaEnabled = true;
         _mfaSetup = setup;
+        _mfaVerified = false;
+        _backupCodes = const [];
         _mfaLoading = false;
       });
     } catch (_) {
@@ -89,9 +82,13 @@ class _SecuritySettingsScreenState
 
     try {
       final verified = await ref.read(platformAuthApiProvider).verifyMfa(code);
+      final backupCodes = verified
+          ? await ref.read(platformAuthApiProvider).generateMfaBackupCodes()
+          : const <String>[];
       if (!mounted) return;
       setState(() {
         _mfaVerified = verified;
+        _backupCodes = backupCodes;
         _mfaVerifyLoading = false;
         if (!verified) {
           _mfaError = 'MFA 코드가 일치하지 않습니다.';
@@ -101,7 +98,7 @@ class _SecuritySettingsScreenState
       if (!mounted) return;
       setState(() {
         _mfaVerifyLoading = false;
-        _mfaError = 'MFA 코드를 검증하지 못했습니다.';
+        _mfaError = 'MFA 코드 검증 또는 백업 코드 발급에 실패했습니다.';
       });
     }
   }
@@ -259,32 +256,34 @@ class _SecuritySettingsScreenState
               style: textTheme.bodySmall?.copyWith(color: AppColors.success),
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
-          Text('백업 코드', style: textTheme.titleSmall),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요.',
-            style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            children: _backupCodes
-                .map(
-                  (code) => Chip(
-                    label: Text(
-                      code,
-                      style: textTheme.bodySmall?.copyWith(
-                        fontFamily: 'monospace',
+          if (_mfaVerified) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text('백업 코드', style: textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '인증기 앱을 사용할 수 없을 때 이 코드를 사용하세요. 지금 한 번만 표시됩니다.',
+              style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: _backupCodes
+                  .map(
+                    (code) => Chip(
+                      label: Text(
+                        code,
+                        style: textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
                       ),
+                      backgroundColor: AppColors.surface2,
+                      side: const BorderSide(color: AppColors.border),
                     ),
-                    backgroundColor: AppColors.surface2,
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                )
-                .toList(),
-          ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
 
         const SizedBox(height: AppSpacing.lg),

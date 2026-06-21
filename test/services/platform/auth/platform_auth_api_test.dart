@@ -113,6 +113,47 @@ void main() {
 
     expect(verified, isTrue);
   });
+
+  test('generateMfaBackupCodes maps backup code list', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/auth/mfa/backup-codes');
+        return ResponseBody.fromString(
+          jsonEncode({
+            'codes': ['ABCD-EFGH', 'IJKL-MNOP'],
+          }),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final api = PlatformAuthApi(dio);
+
+    final codes = await api.generateMfaBackupCodes();
+
+    expect(codes, ['ABCD-EFGH', 'IJKL-MNOP']);
+  });
+
+  test('verifyMfaBackupCode sends code and returns verified flag', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/auth/mfa/backup');
+        expect(options.data, {'code': 'ABCD-EFGH'});
+        return ResponseBody.fromString(
+          jsonEncode({'verified': true}),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final api = PlatformAuthApi(dio);
+
+    final verified = await api.verifyMfaBackupCode('ABCD-EFGH');
+
+    expect(verified, isTrue);
+  });
 }
 
 class _FakeAdapter implements HttpClientAdapter {

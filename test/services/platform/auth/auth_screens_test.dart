@@ -284,6 +284,32 @@ void main() {
     expect(api.confirmedPassword, 'N3wP@ssword!');
     expect(find.text('login-target'), findsOneWidget);
   });
+
+  testWidgets('mfa screen verifies backup code through platform API', (
+    tester,
+  ) async {
+    final api = _FakePlatformAuthApi();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [platformAuthApiProvider.overrideWithValue(api)],
+        child: const MaterialApp(home: MfaScreen()),
+      ),
+    );
+
+    await tester.tap(find.text('백업 코드 사용'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const Key('mfa-backup-code-field')),
+      'ABCD-EFGH',
+    );
+    await tester.tap(find.byKey(const Key('mfa-backup-verify-button')));
+    await tester.pump();
+    await tester.pump();
+
+    expect(api.verifiedBackupCode, 'ABCD-EFGH');
+    expect(find.text('백업 코드 인증이 완료되었습니다. 다시 로그인해 주세요.'), findsOneWidget);
+  });
 }
 
 Widget _app({required AuthRepositoryPort repository, required Widget child}) {
@@ -338,6 +364,7 @@ class _FakePlatformAuthApi extends PlatformAuthApi {
   String? requestedEmail;
   String? verifiedEmail;
   String? verifiedCode;
+  String? verifiedBackupCode;
   String? confirmedResetToken;
   String? confirmedPassword;
 
@@ -367,5 +394,11 @@ class _FakePlatformAuthApi extends PlatformAuthApi {
   }) async {
     confirmedResetToken = resetToken;
     confirmedPassword = newPassword;
+  }
+
+  @override
+  Future<bool> verifyMfaBackupCode(String code) async {
+    verifiedBackupCode = code;
+    return true;
   }
 }

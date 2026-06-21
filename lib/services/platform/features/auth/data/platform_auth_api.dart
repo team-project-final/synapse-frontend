@@ -101,4 +101,31 @@ class PlatformAuthApi {
 
     return verified;
   }
+
+  Future<List<String>> generateMfaBackupCodes() async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/mfa/backup-codes',
+    );
+    final codes = response.data?['codes'];
+
+    if (codes is! List || codes.any((code) => code is! String)) {
+      throw const FormatException('Invalid MFA backup codes response.');
+    }
+
+    return List.unmodifiable(codes.cast<String>());
+  }
+
+  Future<bool> verifyMfaBackupCode(String code) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/mfa/backup',
+      data: {'code': code},
+    );
+    final verified = response.data?['verified'];
+
+    if (verified is! bool) {
+      throw const FormatException('Invalid MFA backup verify response.');
+    }
+
+    return verified;
+  }
 }

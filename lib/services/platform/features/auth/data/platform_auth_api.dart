@@ -13,10 +13,65 @@ class MfaSetupResult {
   final String secret;
 }
 
+class PasswordResetVerification {
+  const PasswordResetVerification({
+    required this.resetToken,
+    required this.expiresAt,
+  });
+
+  final String resetToken;
+  final DateTime expiresAt;
+}
+
 class PlatformAuthApi {
   const PlatformAuthApi(this._dio);
 
   final Dio _dio;
+
+  Future<bool> requestPasswordReset(String email) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/password-reset/request',
+      data: {'email': email},
+    );
+    final accepted = response.data?['accepted'];
+
+    if (accepted is! bool) {
+      throw const FormatException('Invalid password reset request response.');
+    }
+
+    return accepted;
+  }
+
+  Future<PasswordResetVerification> verifyPasswordReset({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/auth/password-reset/verify',
+      data: {'email': email, 'code': code},
+    );
+    final resetToken = response.data?['resetToken'];
+    final expiresAt = response.data?['expiresAt'];
+
+    if (resetToken is! String || expiresAt is! String) {
+      throw const FormatException('Invalid password reset verify response.');
+    }
+
+    return PasswordResetVerification(
+      resetToken: resetToken,
+      expiresAt: DateTime.parse(expiresAt),
+    );
+  }
+
+  Future<void> confirmPasswordReset({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    await _dio.post<void>(
+      '/api/v1/auth/password-reset/confirm',
+      data: {'resetToken': resetToken, 'newPassword': newPassword},
+    );
+  }
 
   Future<MfaSetupResult> setupMfa() async {
     final response = await _dio.post<Map<String, dynamic>>(

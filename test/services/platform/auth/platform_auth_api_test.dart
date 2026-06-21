@@ -7,6 +7,71 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
 
 void main() {
+  test('requestPasswordReset sends email and maps accepted flag', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/auth/password-reset/request');
+        expect(options.data, {'email': 'user@example.com'});
+        return ResponseBody.fromString(
+          jsonEncode({'accepted': true}),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final api = PlatformAuthApi(dio);
+
+    final accepted = await api.requestPasswordReset('user@example.com');
+
+    expect(accepted, isTrue);
+  });
+
+  test('verifyPasswordReset sends code and maps reset token', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/auth/password-reset/verify');
+        expect(options.data, {'email': 'user@example.com', 'code': '123456'});
+        return ResponseBody.fromString(
+          jsonEncode({
+            'resetToken': 'reset-token',
+            'expiresAt': '2026-06-21T09:30:00Z',
+          }),
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final api = PlatformAuthApi(dio);
+
+    final verification = await api.verifyPasswordReset(
+      email: 'user@example.com',
+      code: '123456',
+    );
+
+    expect(verification.resetToken, 'reset-token');
+    expect(verification.expiresAt, DateTime.utc(2026, 6, 21, 9, 30));
+  });
+
+  test('confirmPasswordReset sends reset token and new password', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.path, '/api/v1/auth/password-reset/confirm');
+        expect(options.data, {
+          'resetToken': 'reset-token',
+          'newPassword': 'N3wP@ssword!',
+        });
+        return ResponseBody.fromString('', 204);
+      });
+    final api = PlatformAuthApi(dio);
+
+    await api.confirmPasswordReset(
+      resetToken: 'reset-token',
+      newPassword: 'N3wP@ssword!',
+    );
+  });
+
   test('setupMfa maps otp auth URI and secret', () async {
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8081'))
       ..httpClientAdapter = _FakeAdapter((options) {

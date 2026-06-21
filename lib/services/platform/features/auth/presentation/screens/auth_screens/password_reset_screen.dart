@@ -23,6 +23,9 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
   final _confirmPasswordController = TextEditingController();
 
   bool _obscureNewPassword = true;
+  bool _isSubmitting = false;
+  String? _resetToken;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -33,20 +36,19 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
     super.dispose();
   }
 
-  void _onStepContinue() {
+  Future<void> _onStepContinue() async {
+    if (_isSubmitting) return;
+
     switch (_currentStep) {
       case 0:
         if (!_emailFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/request (이메일로 인증코드 발송)
-        setState(() => _currentStep = 1);
+        await _requestResetCode();
       case 1:
         if (!_codeFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/verify (인증코드 검증)
-        setState(() => _currentStep = 2);
+        await _verifyResetCode();
       case 2:
         if (!_passwordFormKey.currentState!.validate()) return;
-        // TODO: 팀원 구현 — platform-svc POST /auth/password-reset/confirm (새 비밀번호 설정)
-        context.go(AppRoutes.login);
+        await _confirmResetPassword();
     }
   }
 
@@ -55,6 +57,94 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
       setState(() => _currentStep -= 1);
     } else {
       context.go(AppRoutes.login);
+    }
+  }
+
+  Future<void> _requestResetCode() async {
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final accepted = await ref
+          .read(platformAuthApiProvider)
+          .requestPasswordReset(_emailController.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _currentStep = accepted ? 1 : 0;
+        _errorMessage = accepted ? null : '비밀번호 재설정 요청을 접수하지 못했습니다.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = '비밀번호 재설정 요청을 처리하지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _verifyResetCode() async {
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final verification = await ref
+          .read(platformAuthApiProvider)
+          .verifyPasswordReset(
+            email: _emailController.text.trim(),
+            code: _codeController.text.trim(),
+          );
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _currentStep = 2;
+        _resetToken = verification.resetToken;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = '인증 코드를 검증하지 못했습니다.';
+      });
+    }
+  }
+
+  Future<void> _confirmResetPassword() async {
+    final resetToken = _resetToken;
+    if (resetToken == null) {
+      setState(() {
+        _errorMessage = '인증 코드를 먼저 확인해주세요.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref
+          .read(platformAuthApiProvider)
+          .confirmPasswordReset(
+            resetToken: resetToken,
+            newPassword: _newPasswordController.text,
+          );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해주세요.')),
+      );
+      context.go(AppRoutes.login);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _errorMessage = '새 비밀번호를 저장하지 못했습니다.';
+      });
     }
   }
 
@@ -74,6 +164,16 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
               children: [
                 Text('비밀번호 재설정', style: textTheme.headlineSmall),
                 const SizedBox(height: AppSpacing.lg),
+                if (_errorMessage != null) ...[
+                  Text(
+                    _errorMessage!,
+                    key: const Key('password-reset-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                ],
                 Stepper(
                   currentStep: _currentStep,
                   onStepContinue: _onStepContinue,
@@ -84,12 +184,33 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                       child: Row(
                         children: [
                           FilledButton(
-                            onPressed: details.onStepContinue,
-                            child: Text(_currentStep == 2 ? '비밀번호 변경' : '다음'),
+                            key: Key(
+                              'password-reset-continue-button-${details.stepIndex}',
+                            ),
+                            onPressed:
+                                _isSubmitting ||
+                                    details.stepIndex != _currentStep
+                                ? null
+                                : details.onStepContinue,
+                            child: _isSubmitting
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(_currentStep == 2 ? '비밀번호 변경' : '다음'),
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           TextButton(
-                            onPressed: details.onStepCancel,
+                            key: Key(
+                              'password-reset-cancel-button-${details.stepIndex}',
+                            ),
+                            onPressed:
+                                _isSubmitting ||
+                                    details.stepIndex != _currentStep
+                                ? null
+                                : details.onStepCancel,
                             child: Text(_currentStep == 0 ? '취소' : '이전'),
                           ),
                         ],
@@ -106,6 +227,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                       content: Form(
                         key: _emailFormKey,
                         child: TextFormField(
+                          key: const Key('password-reset-email-field'),
                           controller: _emailController,
                           decoration: const InputDecoration(
                             labelText: '이메일',
@@ -135,6 +257,7 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                       content: Form(
                         key: _codeFormKey,
                         child: TextFormField(
+                          key: const Key('password-reset-code-field'),
                           controller: _codeController,
                           decoration: const InputDecoration(
                             labelText: '인증 코드 (6자리)',
@@ -161,6 +284,9 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                         child: Column(
                           children: [
                             TextFormField(
+                              key: const Key(
+                                'password-reset-new-password-field',
+                              ),
                               controller: _newPasswordController,
                               decoration: InputDecoration(
                                 labelText: '새 비밀번호',
@@ -183,11 +309,20 @@ class _PasswordResetScreenState extends ConsumerState<PasswordResetScreen> {
                                 if (v == null || v.length < 8) {
                                   return '비밀번호는 8자 이상이어야 합니다';
                                 }
+                                if (!RegExp(r'\d').hasMatch(v)) {
+                                  return '비밀번호에는 숫자가 포함되어야 합니다';
+                                }
+                                if (!RegExp(r'[^A-Za-z0-9]').hasMatch(v)) {
+                                  return '비밀번호에는 특수문자가 포함되어야 합니다';
+                                }
                                 return null;
                               },
                             ),
                             const SizedBox(height: AppSpacing.md),
                             TextFormField(
+                              key: const Key(
+                                'password-reset-confirm-password-field',
+                              ),
                               controller: _confirmPasswordController,
                               decoration: const InputDecoration(
                                 labelText: '비밀번호 확인',

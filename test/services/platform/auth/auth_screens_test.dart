@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_exception.dart';
 import 'package:synapse_frontend/core/auth/auth_repository_port.dart';
 import 'package:synapse_frontend/core/auth/token_store.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
+import 'package:synapse_frontend/services/platform/features/auth/data/platform_auth_api.dart';
 import 'package:synapse_frontend/services/platform/features/auth/presentation/screens/auth_screens.dart';
 
 void main() {
@@ -222,6 +224,66 @@ void main() {
     expect(find.text('Signup completed. Please log in.'), findsOneWidget);
     expect(find.text('login-target'), findsOneWidget);
   });
+
+  testWidgets('password reset calls platform API and returns to login', (
+    tester,
+  ) async {
+    final api = _FakePlatformAuthApi();
+    final router = GoRouter(
+      initialLocation: AppRoutes.passwordReset,
+      routes: [
+        GoRoute(
+          path: AppRoutes.passwordReset,
+          builder: (context, state) => const PasswordResetScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) =>
+              const Scaffold(body: Text('login-target')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [platformAuthApiProvider.overrideWithValue(api)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('password-reset-email-field')),
+      'user@example.com',
+    );
+    await tester.tap(find.byKey(const Key('password-reset-continue-button-0')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('password-reset-code-field')),
+      '123456',
+    );
+    await tester.tap(find.byKey(const Key('password-reset-continue-button-1')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('password-reset-new-password-field')),
+      'N3wP@ssword!',
+    );
+    await tester.enterText(
+      find.byKey(const Key('password-reset-confirm-password-field')),
+      'N3wP@ssword!',
+    );
+    await tester.tap(find.byKey(const Key('password-reset-continue-button-2')));
+    await tester.pumpAndSettle();
+
+    expect(api.requestedEmail, 'user@example.com');
+    expect(api.verifiedEmail, 'user@example.com');
+    expect(api.verifiedCode, '123456');
+    expect(api.confirmedResetToken, 'reset-token');
+    expect(api.confirmedPassword, 'N3wP@ssword!');
+    expect(find.text('login-target'), findsOneWidget);
+  });
 }
 
 Widget _app({required AuthRepositoryPort repository, required Widget child}) {
@@ -268,4 +330,42 @@ class _FakeAuthRepository implements AuthRepositoryPort {
 
   @override
   Future<void> logout() async {}
+}
+
+class _FakePlatformAuthApi extends PlatformAuthApi {
+  _FakePlatformAuthApi() : super(Dio());
+
+  String? requestedEmail;
+  String? verifiedEmail;
+  String? verifiedCode;
+  String? confirmedResetToken;
+  String? confirmedPassword;
+
+  @override
+  Future<bool> requestPasswordReset(String email) async {
+    requestedEmail = email;
+    return true;
+  }
+
+  @override
+  Future<PasswordResetVerification> verifyPasswordReset({
+    required String email,
+    required String code,
+  }) async {
+    verifiedEmail = email;
+    verifiedCode = code;
+    return PasswordResetVerification(
+      resetToken: 'reset-token',
+      expiresAt: DateTime.utc(2026, 6, 21, 9, 30),
+    );
+  }
+
+  @override
+  Future<void> confirmPasswordReset({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    confirmedResetToken = resetToken;
+    confirmedPassword = newPassword;
+  }
 }

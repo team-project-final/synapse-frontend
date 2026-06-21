@@ -7,7 +7,7 @@ import 'package:synapse_frontend/services/platform/features/billing/data/billing
 import 'package:synapse_frontend/services/platform/features/billing/presentation/screens/billing_screens.dart';
 
 // 결제 화면(플랜/사용량/내역/결제반환) reskin 후 데스크탑/모바일 렌더 검증.
-// BillingPlansScreen은 init에서 구독 조회 API를 호출하므로 fake로 override한다.
+// Billing screens call APIs in init, so render tests use fake billing responses.
 void main() {
   Future<void> pump(
     WidgetTester tester,
@@ -45,14 +45,28 @@ void main() {
   for (final size in [desktop, mobile]) {
     final label = size == desktop ? '데스크탑' : '모바일';
     testWidgets('BillingPlansScreen $label 렌더', (tester) async {
-      await pump(tester, const BillingPlansScreen(), size,
-          overrideBilling: true);
+      await pump(
+        tester,
+        const BillingPlansScreen(),
+        size,
+        overrideBilling: true,
+      );
     });
     testWidgets('BillingUsageScreen $label 렌더', (tester) async {
-      await pump(tester, const BillingUsageScreen(), size);
+      await pump(
+        tester,
+        const BillingUsageScreen(),
+        size,
+        overrideBilling: true,
+      );
     });
     testWidgets('BillingHistoryScreen $label 렌더', (tester) async {
-      await pump(tester, const BillingHistoryScreen(), size);
+      await pump(
+        tester,
+        const BillingHistoryScreen(),
+        size,
+        overrideBilling: true,
+      );
     });
     testWidgets('BillingReturnScreen(성공) $label 렌더', (tester) async {
       await pump(tester, const BillingReturnScreen(success: true), size);
@@ -73,4 +87,31 @@ class _FakeBillingApi extends BillingApi {
     required String cancelUrl,
   }) async =>
       CheckoutSession('https://checkout.test/${planCode.toLowerCase()}');
+
+  @override
+  Future<BillingUsage> getUsage() async {
+    return const BillingUsage(
+      planCode: 'FREE',
+      subscriptionStatus: null,
+      metrics: {
+        'notes': BillingUsageMetric(
+          used: null,
+          limit: 100,
+          remaining: null,
+          source: 'NOT_CONNECTED',
+        ),
+      },
+    );
+  }
+
+  @override
+  Future<BillingPaymentPage> getPayments({int page = 0, int size = 20}) async {
+    return BillingPaymentPage(
+      items: const [],
+      page: page,
+      size: size,
+      totalElements: 0,
+      totalPages: 0,
+    );
+  }
 }

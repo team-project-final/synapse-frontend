@@ -4,7 +4,7 @@
 > **기간**: 2026-05-12 ~ 2026-06-15 (5주 + 발표일, 22 영업일 — 5/25 부처님오신날·6/3 지방선거 제외)  
 > **팀 구성**: 팀장 1명 + 팀원 6명
 > **Phase E Sync**: 중앙 기준은 [2026-06-21 통합 QA 및 문서 마감 실행 리포트](../../../documents/docs/project-management/reports/phase-e-qa-docs-closeout-2026-06-21.md)다. frontend는 dashboard 168/481 상태이므로 production API-backed route, responsive/error/design QA 증거 없이 완료 처리하지 않는다.
-> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)와 [Dashboard / PM 문서 Count Drift 원인 감사](../../../documents/docs/project-management/reports/phase-f-dashboard-drift-audit-2026-06-21.md)다. W5 `컨테이너 이미지 파이프라인 (이슈 #52)` Step 13은 복구됐고, frontend dry-run은 done-guard 적용 기준 168/481로 current JSON과 일치한다. 다만 W1/W2/W3 raw checkbox는 current JSON보다 낮으므로 `FORCE=true` sync는 금지한다.
+> **Phase F Sync**: 중앙 기준은 [2026-06-21 PM Dashboard / 문서 동기화 실행 리포트](../../../documents/docs/project-management/reports/phase-f-pm-dashboard-doc-sync-2026-06-21.md)와 [Dashboard / PM 문서 Count Drift 원인 감사](../../../documents/docs/project-management/reports/phase-f-dashboard-drift-audit-2026-06-21.md)다. W5 `컨테이너 이미지 파이프라인 (이슈 #52)` Step 13 복구와 W1/W2/W3 raw checkbox 정합화를 완료해 frontend dry-run은 raw 기준 168/481, changelog 0으로 current JSON과 일치한다.
 
 ---
 

@@ -85,54 +85,54 @@
 - [x] Duration 산정 확인
 
 ### 5.2 요구사항 분석
-- [ ] 복습 세션 시작 플로우 정의 (세션 생성 API → 카드 큐 로드) — 팀원 구현
+- [x] 복습 세션 시작 플로우 정의 (세션 생성 API → 카드 큐 로드) — ReviewStartScreen + ReviewNotifier.startSession 구현
 - [x] 카드 제시 UI 요건 (앞면 → 탭/클릭 → 뒷면 뒤집기 애니메이션) — FlipCard 위젯 완료
 - [x] 난이도 선택 버튼 요건 (Again, Hard, Good, Easy) — 4버튼 레이아웃 완료
-- [ ] 세션 완료 화면 요건 (복습 결과 요약) — 팀원 구현
+- [x] 세션 완료 화면 요건 (복습 결과 요약) — ReviewResultScreen 구현
 - [x] Instructions 초안 → TASK 문서 반영
 
 ### 5.3 Security 1차 검토
-- [ ] 인증 필요 여부: Yes (인증된 사용자만 접근)
-- [ ] 권한 종류: 로그인 사용자 (본인 카드만)
-- [ ] 공개 API 여부: No
+- [x] 인증 필요 여부: Yes (인증된 사용자만 접근) — router redirect 처리
+- [x] 권한 종류: 로그인 사용자 (본인 카드만) — router redirect 처리
+- [x] 공개 API 여부: No
 - [ ] 결과 → TASK Constraints 반영
 
 ### 5.4 ERD 설계
-- [ ] 프론트엔드 — ERD 해당 없음
-- [ ] 복습 세션 상태 모델 설계 (ReviewSessionState: loading/reviewing/flipped/completed)
-- [ ] 카드 큐 상태 관리 설계 (currentIndex, totalCards, remainingCards)
+- [x] 프론트엔드 — ERD 해당 없음
+- [x] 복습 세션 상태 모델 설계 (ReviewSessionState: loading/reviewing/flipped/completed) — ReviewState(isLoading/isSubmitting/isCompleted) 구현
+- [x] 카드 큐 상태 관리 설계 (currentIndex, totalCards, remainingCards) — ReviewState.currentIndex/total 구현
 - [ ] Duration(final) 갱신
 
 ### 5.5 Security 2차 검토
-- [ ] 세션 데이터 메모리 관리 (세션 종료 시 클리어)
+- [x] 세션 데이터 메모리 관리 (세션 종료 시 클리어) — ReviewNotifier.reset() 구현
 - [ ] 네트워크 에러 시 복습 데이터 유실 방지 (로컬 버퍼)
 - [ ] 결과 → TASK Constraints 반영
 
 ### 5.6 DTO / Entity 설계 (API First)
-- [ ] ReviewSessionState Provider 설계
-- [ ] ReviewCardDisplay 모델 정의 (front, back, isFlipped)
-- [ ] ReviewResult 모델 정의 (totalCards, correctCount, sessionDuration)
+- [x] ReviewSessionState Provider 설계 — ReviewState + ReviewNotifier 구현
+- [x] ReviewCardDisplay 모델 정의 (front, back, isFlipped) — ReviewCard entity 구현
+- [x] ReviewResult 모델 정의 (totalCards, correctCount, sessionDuration) — ReviewSession + ReviewSubmitResult entity 구현
 - [ ] Output Format → TASK 반영
 
 ### 5.7 Repository 구현
-- [ ] ReviewRepository 클래스 작성 (HTTP client + learning-card 런타임 연동)
-- [ ] 세션 시작/카드 큐/rating 제출/세션 완료 API 호출
-- [ ] Riverpod Provider 등록 (ReviewSessionNotifier)
+- [x] ReviewRepository 클래스 작성 (HTTP client + learning-card 런타임 연동) — CardsRepositoryImpl 구현
+- [x] 세션 시작/카드 큐/rating 제출/세션 완료 API 호출 — CardsRemoteDatasource 전체 구현
+- [x] Riverpod Provider 등록 (ReviewSessionNotifier) — reviewNotifierProvider 등록
 
 ### 5.8 Service + Test
-- [ ] ReviewSessionNotifier 구현 (startSession, flipCard, submitRating, nextCard, completeSession)
-- [ ] 카드 큐 관리 로직 (현재 카드 인덱스, 남은 카드 수)
-- [ ] 카드 뒤집기 상태 관리
-- [ ] 세션 완료 시 결과 집계 (정답률, 소요 시간)
+- [x] ReviewSessionNotifier 구현 (startSession, flipCard, submitRating, nextCard, completeSession) — ReviewNotifier 구현
+- [x] 카드 큐 관리 로직 (현재 카드 인덱스, 남은 카드 수) — ReviewState.currentIndex/total 구현
+- [x] 카드 뒤집기 상태 관리 — FlipCard 위젯 내부 상태 관리
+- [x] 세션 완료 시 결과 집계 (정답률, 소요 시간) — ReviewState.accuracy/earnedXp 구현
 - [ ] Unit 테스트 (ReviewSessionNotifier 상태 전이)
 - [ ] 테스트 통과 확인
 
 ### 5.9 Controller + Test
-- [ ] 복습 시작 화면 Widget 구현 (오늘 복습 카드 수 표시 + 시작 버튼) — 팀원 구현
+- [x] 복습 시작 화면 Widget 구현 (오늘 복습 카드 수 표시 + 시작 버튼) — ReviewStartScreen 구현
 - [x] 카드 제시 Widget 구현 (앞면 표시 → 뒤집기 애니메이션) — FlipCard 뼈대 완료
 - [x] 난이도 선택 버튼 Widget 구현 (Again/Hard/Good/Easy 4버튼) — 레이아웃 완료
 - [x] 진행률 표시 Widget 구현 (n/total 프로그레스 바) — LinearProgressIndicator 완료
-- [ ] 세션 완료 화면 Widget 구현 (결과 요약 + 돌아가기 버튼) — 팀원 구현
+- [x] 세션 완료 화면 Widget 구현 (결과 요약 + 돌아가기 버튼) — ReviewResultScreen 구현
 - [ ] Widget 테스트 (뒤집기 → 난이도 선택 → 다음 카드 플로우)
 
 ### 5.10 View + Test

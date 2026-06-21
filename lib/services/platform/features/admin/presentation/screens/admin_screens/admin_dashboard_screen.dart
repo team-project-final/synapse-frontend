@@ -4,90 +4,188 @@ part of '../admin_screens.dart';
 // AdminDashboardScreen (SCR-A-ADMIN-001)
 // ============================================================================
 
-class AdminDashboardScreen extends ConsumerWidget {
+class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-    final isMobile = MediaQuery.sizeOf(context).width < 700;
+  ConsumerState<AdminDashboardScreen> createState() =>
+      _AdminDashboardScreenState();
+}
 
-    // TODO: 팀원 구현 — platform-svc KPI API 연동
-    const kpiCards = [
+class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
+  AdminAnalyticsSummary? _summary;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadSummary());
+  }
+
+  Future<void> _loadSummary() async {
+    try {
+      final summary = await ref.read(adminApiProvider).getAnalyticsSummary();
+      if (!mounted) return;
+      setState(() {
+        _summary = summary;
+        _loading = false;
+        _error = null;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = '관리자 요약 정보를 불러오지 못했습니다.';
+      });
+    }
+  }
+
+  List<_KpiData> _kpiCards(AdminAnalyticsSummary summary) {
+    return [
       _KpiData(
         label: 'DAU',
-        value: '1,240',
+        value: _formatCount(summary.users.dau),
         icon: Icons.person_outline,
         color: AppColors.info,
       ),
       _KpiData(
         label: 'MAU',
-        value: '8,920',
+        value: _formatCount(summary.users.mau),
         icon: Icons.groups_outlined,
         color: AppColors.info,
       ),
       _KpiData(
-        label: 'MRR',
-        value: '\$4,820',
-        icon: Icons.attach_money,
+        label: '활성 테넌트',
+        value: _formatCount(summary.tenants.active),
+        icon: Icons.business_outlined,
         color: AppColors.success,
       ),
       _KpiData(
         label: '신규 가입',
-        value: '67/일',
+        value: '${_formatCount(summary.users.newToday)}/일',
         icon: Icons.person_add_outlined,
         color: AppColors.primary,
       ),
     ];
+  }
 
-    // TODO: 팀원 구현 — platform-svc 시스템 사용량 API 연동
-    const usageGauges = [
-      _UsageGauge(label: 'AI 토큰', value: 0.62, display: '62%'),
-      _UsageGauge(label: '스토리지', value: 0.41, display: '41%'),
-      _UsageGauge(label: 'Kafka lag', value: 0.05, display: '정상'),
-    ];
+  List<_UsageGauge> _usageGauges(AdminAnalyticsSummary summary) {
+    return summary.usage
+        .map(
+          (item) => _UsageGauge(
+            label: item.label.isEmpty ? item.key : item.label,
+            value: _statusProgress(item.status),
+            display: '${_formatCount(item.value)}${item.unit}',
+          ),
+        )
+        .toList(growable: false);
+  }
 
-    const pendingItems = ['신고 8건 (P0: 2건)', 'GDPR 요청 3건', 'AI 할당량 초과 5건'];
+  List<String> _pendingItems(AdminAnalyticsSummary summary) {
+    return summary.pendingItems
+        .map((item) => '${item.label} ${_formatCount(item.count)}건')
+        .toList(growable: false);
+  }
 
-    // TODO: 팀원 구현 — platform-svc 최근 활동 API 연동
-    const recentActivity = [
-      '사용자 user@example.com 가 로그인함 · 방금 전',
-      '새 테넌트 "스터디그룹A" 생성됨 · 5분 전',
-      '사용자 admin@test.com 이 카드 50개를 생성함 · 12분 전',
-      '결제 처리 성공: Pro 플랜 · 1시간 전',
-      '신고 접수: 스팸 콘텐츠 · 2시간 전',
-    ];
+  List<String> _recentActivity(AdminAnalyticsSummary summary) {
+    return summary.recentActivities
+        .map(
+          (activity) =>
+              '${activity.action} · ${_formatDate(activity.createdAt)}',
+        )
+        .toList(growable: false);
+  }
+
+  double _statusProgress(String status) {
+    return switch (status.toUpperCase()) {
+      'CRITICAL' => 0.95,
+      'WARN' || 'WARNING' => 0.7,
+      'OK' || 'NORMAL' => 0.35,
+      _ => 0.15,
+    };
+  }
+
+  String _formatCount(int value) {
+    final text = value.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < text.length; i++) {
+      if (i > 0 && (text.length - i) % 3 == 0) {
+        buffer.write(',');
+      }
+      buffer.write(text[i]);
+    }
+    return buffer.toString();
+  }
+
+  String _formatDate(DateTime? value) {
+    if (value == null) return '시간 미상';
+    final local = value.toLocal();
+    return '${local.month.toString().padLeft(2, '0')}/'
+        '${local.day.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final isMobile = MediaQuery.sizeOf(context).width < 700;
+    final summary = _summary;
+    final kpiCards = summary == null ? const <_KpiData>[] : _kpiCards(summary);
+    final usageGauges = summary == null
+        ? const <_UsageGauge>[]
+        : _usageGauges(summary);
+    final pendingItems = summary == null
+        ? const <String>[]
+        : _pendingItems(summary);
+    final recentActivity = summary == null
+        ? const <String>[]
+        : _recentActivity(summary);
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         Text('관리자 대시보드', style: textTheme.headlineSmall),
+        if (_loading) ...[
+          const SizedBox(height: AppSpacing.md),
+          const LinearProgressIndicator(),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            _error!,
+            style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+          ),
+        ],
         const SizedBox(height: AppSpacing.xl),
 
         // ── KPI Cards ──
-        if (isMobile)
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: AppSpacing.md,
-            mainAxisSpacing: AppSpacing.md,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.4,
-            children: kpiCards.map((k) => _KpiCard(data: k)).toList(),
-          )
-        else
-          Row(
-            children: kpiCards
-                .map(
-                  (k) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: AppSpacing.md),
-                      child: _KpiCard(data: k),
+        if (kpiCards.isNotEmpty) ...[
+          if (isMobile)
+            GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: AppSpacing.md,
+              mainAxisSpacing: AppSpacing.md,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 1.4,
+              children: kpiCards.map((k) => _KpiCard(data: k)).toList(),
+            )
+          else
+            Row(
+              children: kpiCards
+                  .map(
+                    (k) => Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.md),
+                        child: _KpiCard(data: k),
+                      ),
                     ),
-                  ),
-                )
-                .toList(),
-          ),
+                  )
+                  .toList(),
+            ),
+        ],
 
         const SizedBox(height: AppSpacing.xl),
 
@@ -97,43 +195,52 @@ class AdminDashboardScreen extends ConsumerWidget {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: usageGauges.map((g) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        child: Text(g.label, style: textTheme.bodySmall),
-                      ),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: g.value,
-                          backgroundColor: AppColors.border,
-                          color: g.value > 0.8
-                              ? AppColors.error
-                              : g.value > 0.6
-                              ? AppColors.warning
-                              : AppColors.success,
-                          minHeight: 8,
-                          borderRadius: BorderRadius.circular(4),
+            child: usageGauges.isEmpty
+                ? Text(
+                    '표시할 사용량 데이터가 없습니다.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.muted,
+                    ),
+                  )
+                : Column(
+                    children: usageGauges.map((g) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.xs,
                         ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          g.display,
-                          style: textTheme.bodySmall,
-                          textAlign: TextAlign.end,
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 96,
+                              child: Text(g.label, style: textTheme.bodySmall),
+                            ),
+                            Expanded(
+                              child: LinearProgressIndicator(
+                                value: g.value,
+                                backgroundColor: AppColors.border,
+                                color: g.value > 0.8
+                                    ? AppColors.error
+                                    : g.value > 0.6
+                                    ? AppColors.warning
+                                    : AppColors.success,
+                                minHeight: 8,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            SizedBox(
+                              width: 64,
+                              child: Text(
+                                g.display,
+                                style: textTheme.bodySmall,
+                                textAlign: TextAlign.end,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-            ),
           ),
         ),
 
@@ -143,25 +250,30 @@ class AdminDashboardScreen extends ConsumerWidget {
         Text('긴급 처리 항목', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         Card(
-          child: Column(
-            children: pendingItems.indexed.map((entry) {
-              return Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.warning_amber,
-                      size: 20,
-                      color: AppColors.error,
-                    ),
-                    title: Text(entry.$2, style: textTheme.bodySmall),
-                    dense: true,
-                  ),
-                  if (entry.$1 < pendingItems.length - 1)
-                    const Divider(height: 1),
-                ],
-              );
-            }).toList(),
-          ),
+          child: pendingItems.isEmpty
+              ? ListTile(
+                  title: Text('긴급 처리 항목이 없습니다.', style: textTheme.bodySmall),
+                  dense: true,
+                )
+              : Column(
+                  children: pendingItems.indexed.map((entry) {
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(
+                            Icons.warning_amber,
+                            size: 20,
+                            color: AppColors.error,
+                          ),
+                          title: Text(entry.$2, style: textTheme.bodySmall),
+                          dense: true,
+                        ),
+                        if (entry.$1 < pendingItems.length - 1)
+                          const Divider(height: 1),
+                      ],
+                    );
+                  }).toList(),
+                ),
         ),
 
         const SizedBox(height: AppSpacing.xl),
@@ -170,25 +282,30 @@ class AdminDashboardScreen extends ConsumerWidget {
         Text('최근 활동', style: textTheme.titleMedium),
         const SizedBox(height: AppSpacing.sm),
         Card(
-          child: Column(
-            children: recentActivity.indexed.map((entry) {
-              return Column(
-                children: [
-                  ListTile(
-                    leading: const Icon(
-                      Icons.circle,
-                      size: 8,
-                      color: AppColors.muted,
-                    ),
-                    title: Text(entry.$2, style: textTheme.bodySmall),
-                    dense: true,
-                  ),
-                  if (entry.$1 < recentActivity.length - 1)
-                    const Divider(height: 1),
-                ],
-              );
-            }).toList(),
-          ),
+          child: recentActivity.isEmpty
+              ? ListTile(
+                  title: Text('최근 활동이 없습니다.', style: textTheme.bodySmall),
+                  dense: true,
+                )
+              : Column(
+                  children: recentActivity.indexed.map((entry) {
+                    return Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(
+                            Icons.circle,
+                            size: 8,
+                            color: AppColors.muted,
+                          ),
+                          title: Text(entry.$2, style: textTheme.bodySmall),
+                          dense: true,
+                        ),
+                        if (entry.$1 < recentActivity.length - 1)
+                          const Divider(height: 1),
+                      ],
+                    );
+                  }).toList(),
+                ),
         ),
 
         const SizedBox(height: AppSpacing.xl),

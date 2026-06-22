@@ -1,6 +1,6 @@
 # Work History: @frontend
 
-> **담당**: Flutter 앱 / UI·UX  
+> **담당**: Flutter 앱 / UI·UX
 > **관련 문서**: [SCOPE](../scope/SCOPE_frontend.md) | [TASK](../task/TASK_frontend.md) | [WORKFLOW](../workflow/WORKFLOW_frontend_W1.md)
 
 ---

@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dio/dio.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/engagement/providers/engagement_providers.dart';
 import 'package:synapse_frontend/services/platform/features/admin/data/admin_api.dart';
 import 'package:synapse_frontend/services/platform/features/admin/presentation/screens/admin_screens.dart';
+
+import '../engagement/fake_engagement_api.dart';
 
 // 관리자 화면(웹 전용) reskin 후 데스크탑/태블릿 렌더 검증.
 void main() {
@@ -13,7 +16,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [adminApiProvider.overrideWithValue(_FakeAdminApi())],
+        overrides: [
+          adminApiProvider.overrideWithValue(_FakeAdminApi()),
+          engagementApiProvider.overrideWithValue(FakeEngagementApi()),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(

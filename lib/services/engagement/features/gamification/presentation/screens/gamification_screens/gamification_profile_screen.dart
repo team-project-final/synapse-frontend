@@ -5,45 +5,52 @@ part of '../gamification_screens.dart';
 class GamificationProfileScreen extends ConsumerWidget {
   const GamificationProfileScreen({super.key});
 
-  // v1 ⑩: 배지 갤러리 5/8(획득 5, 잠금 3) — 이모지 + 이름.
-  // TODO: 팀원 구현 — engagement-svc 게이미피케이션 프로필 API 연동
-  static const _badges = [
-    _ProfileBadge(emoji: '📝', name: '첫 노트', locked: false),
-    _ProfileBadge(emoji: '🎯', name: '첫 복습', locked: false),
-    _ProfileBadge(emoji: '🔥', name: '연속 7일', locked: false),
-    _ProfileBadge(emoji: '💯', name: '복습 100회', locked: false),
-    _ProfileBadge(emoji: '⭐', name: '레벨 5', locked: false),
-    _ProfileBadge(emoji: '🗓️', name: '연속 30일', locked: true),
-    _ProfileBadge(emoji: '📚', name: '노트 50개', locked: true),
-    _ProfileBadge(emoji: '🏆', name: '레벨 10', locked: true),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profileValue = ref.watch(gamificationProfileProvider);
+
+    return AppAsyncValueWidget<GamificationProfile>(
+      value: profileValue,
+      loading: const AppLoadingWidget(label: '게이미피케이션 프로필을 불러오는 중입니다.'),
+      error: (error, _) => AppErrorWidget(
+        message: '게이미피케이션 프로필을 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(gamificationProfileProvider),
+      ),
+      data: (profile) => _GamificationProfileView(profile: profile),
+    );
+  }
+}
+
+class _GamificationProfileView extends StatelessWidget {
+  const _GamificationProfileView({required this.profile});
+
+  final GamificationProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isWide = MediaQuery.sizeOf(context).width >= 600;
-    final acquired = _badges.where((b) => !b.locked).length;
+    final badges = profile.badges;
 
     return ConceptPage(
       children: [
-        // 헤더: 아바타(orb) + 이름 + 레벨
         Row(
           children: [
-            const SynapseOrb(size: 64, glyph: '🧑‍💻', glyphScale: 0.44),
+            const SynapseOrb(size: 64, glyph: 'XP', glyphScale: 0.38),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '개발자 김시냅스',
+                    '내 학습 레벨',
                     style: textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    '레벨 7 · 지식 탐험가',
+                    '레벨 ${profile.level} · 누적 ${_formatCount(profile.xp)} XP',
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w700,
@@ -55,19 +62,18 @@ class GamificationProfileScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        // XP 바 (Lv 8까지 360 — 90%)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'XP 3,240',
+              'XP ${_formatCount(profile.xp)}',
               style: textTheme.labelMedium?.copyWith(
                 color: AppColors.muted,
                 fontWeight: FontWeight.w700,
               ),
             ),
             Text(
-              'Lv 8까지 360',
+              'Lv ${profile.level + 1}까지 ${_formatCount(profile.remainingXp)}',
               style: textTheme.labelMedium?.copyWith(
                 color: AppColors.muted,
                 fontWeight: FontWeight.w700,
@@ -76,7 +82,6 @@ class GamificationProfileScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
-        // XP progress follows the Warm Amber system from DESIGN.md.
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           child: Container(
@@ -84,7 +89,7 @@ class GamificationProfileScreen extends ConsumerWidget {
             color: AppColors.surface2,
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: 0.90,
+              widthFactor: profile.levelProgress,
               child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -96,7 +101,6 @@ class GamificationProfileScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        // 스트릭 배너 (연속 + 최고)
         Container(
           padding: const EdgeInsets.all(AppSpacing.md - 2),
           decoration: BoxDecoration(
@@ -107,10 +111,14 @@ class GamificationProfileScreen extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('🔥', style: TextStyle(fontSize: 16)),
+              const Icon(
+                Icons.local_fire_department,
+                size: 18,
+                color: AppColors.streak,
+              ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '14일',
+                '${profile.currentStreak}일',
                 style: textTheme.titleMedium?.copyWith(
                   color: AppColors.streak,
                   fontWeight: FontWeight.w800,
@@ -118,7 +126,7 @@ class GamificationProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                '연속 · 최고 21일',
+                '연속 · 최고 ${profile.longestStreak}일',
                 style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -126,43 +134,18 @@ class GamificationProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
-        // 이번 주 통계 statgrid
-        const ConceptSectionLabel('이번 주'),
-        const ConceptStatRow(
+        const ConceptSectionLabel('상태'),
+        ConceptStatRow(
           children: [
-            ConceptStat(value: '152', label: '복습'),
-            ConceptStat(value: '8', label: '새 노트'),
-            ConceptStat(value: '+420', label: 'XP', color: AppColors.primary),
+            ConceptStat(value: '${profile.level}', label: '레벨'),
+            ConceptStat(
+              value: _formatCount(profile.xp),
+              label: '누적 XP',
+              color: AppColors.primary,
+            ),
+            ConceptStat(value: '${badges.length}', label: '획득 배지'),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm + 2),
-        // 정답률 행 (full-width stat)
-        ConceptCard(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md - 3,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '정답률',
-                style: textTheme.labelMedium?.copyWith(
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                '94%',
-                style: textTheme.headlineSmall?.copyWith(
-                  color: AppColors.success,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 배지 갤러리
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.xxs,
@@ -174,7 +157,7 @@ class GamificationProfileScreen extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '배지 $acquired / ${_badges.length}',
+                '획득 배지 ${badges.length}',
                 style: textTheme.labelLarge?.copyWith(
                   color: AppColors.muted,
                   fontWeight: FontWeight.w800,
@@ -193,18 +176,25 @@ class GamificationProfileScreen extends ConsumerWidget {
             ],
           ),
         ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: isWide ? 8 : 4,
-            crossAxisSpacing: AppSpacing.sm + 4,
-            mainAxisSpacing: AppSpacing.sm + 4,
-            childAspectRatio: 0.78,
+        if (badges.isEmpty)
+          const ConceptEmptyState(
+            emoji: '☆',
+            title: '아직 획득한 배지가 없습니다',
+            body: '복습, 노트 작성, 연속 학습을 진행하면 배지가 표시됩니다.',
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isWide ? 8 : 4,
+              crossAxisSpacing: AppSpacing.sm + 4,
+              mainAxisSpacing: AppSpacing.sm + 4,
+              childAspectRatio: 0.78,
+            ),
+            itemCount: badges.length,
+            itemBuilder: (context, i) => _ProfileBadgeTile(badge: badges[i]),
           ),
-          itemCount: _badges.length,
-          itemBuilder: (context, i) => _ProfileBadgeTile(badge: _badges[i]),
-        ),
         const SizedBox(height: AppSpacing.md),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -225,21 +215,9 @@ class GamificationProfileScreen extends ConsumerWidget {
   }
 }
 
-/// 프로필 배지(이모지). v1 `.badge2` — 정사각 라운드 + 잠금 시 그레이/반투명.
-class _ProfileBadge {
-  const _ProfileBadge({
-    required this.emoji,
-    required this.name,
-    required this.locked,
-  });
-  final String emoji;
-  final String name;
-  final bool locked;
-}
-
 class _ProfileBadgeTile extends StatelessWidget {
   const _ProfileBadgeTile({required this.badge});
-  final _ProfileBadge badge;
+  final GamificationBadge badge;
 
   @override
   Widget build(BuildContext context) {
@@ -249,18 +227,16 @@ class _ProfileBadgeTile extends StatelessWidget {
       children: [
         AspectRatio(
           aspectRatio: 1,
-          child: Opacity(
-            opacity: badge.locked ? 0.4 : 1,
-            child: Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: badge.locked
-                    ? AppColors.surface2
-                    : AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Text(badge.emoji, style: const TextStyle(fontSize: 24)),
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Icon(
+              Icons.workspace_premium,
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -280,4 +256,16 @@ class _ProfileBadgeTile extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatCount(int value) {
+  final text = value.toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < text.length; i++) {
+    if (i > 0 && (text.length - i) % 3 == 0) {
+      buffer.write(',');
+    }
+    buffer.write(text[i]);
+  }
+  return buffer.toString();
 }

@@ -11,169 +11,146 @@ class NoteDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final noteValue = ref.watch(noteDetailProvider(noteId));
+    final backlinksValue = ref.watch(noteBacklinksProvider(noteId));
 
-    // v1 ③: 본문 속 인라인 위키링크([[…]])가 탭 가능해야 한다.
-    // TODO: 팀원 구현 — knowledge-svc 노트 상세 API 연동 (noteId: $noteId)
-    void openWiki(String title) {
-      // mock — 위키링크 타깃 노트로 이동(실제 ID는 백엔드 연동 시 해석)
-      context.go(AppRoutes.noteDetailPath('2'));
+    Future<void> openWiki(String title) async {
+      try {
+        final page = await ref
+            .read(knowledgeApiProvider)
+            .searchNotes(query: title, limit: 1);
+        if (!context.mounted || page.results.isEmpty) return;
+        context.go(AppRoutes.noteDetailPath(page.results.first.noteId));
+      } catch (_) {
+        if (context.mounted) context.go(AppRoutes.search);
+      }
     }
 
-    final mainContent = Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        // ListView가 tight 폭을 자식에게 전달하도록 maxWidth를 정의한다.
-        // (Center+loose 제약 + stretch 조합은 자식 폭을 intrinsic으로 잘못
-        // 계산해 오버플로를 유발하므로 Align+고정폭 ListView로 분리)
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AppAsyncValueWidget<KnowledgeNote>(
+      value: noteValue,
+      loading: const AppLoadingWidget(label: '노트를 불러오는 중입니다.'),
+      error: (error, _) => AppErrorWidget(
+        message: '노트를 불러오지 못했습니다.',
+        onRetry: () {
+          ref.invalidate(noteDetailProvider(noteId));
+          ref.invalidate(noteBacklinksProvider(noteId));
+        },
+      ),
+      data: (note) {
+        final mainContent = Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
               children: [
-                if (isMobile)
-                  ConceptBackRow(
-                    label: '라이브러리',
-                    onTap: () => context.go(AppRoutes.notes),
-                  ),
-                // Title + tags
-                Text(
-                  '정규화 기법 (Regularization)',
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                // TODO: 팀원 구현 — 노트 태그 동적 연동
-                const Wrap(
-                  spacing: AppSpacing.xs + 2,
-                  runSpacing: AppSpacing.xs,
-                  children: [ConceptTag('#머신러닝'), ConceptTag('#딥러닝')],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // 본문 — 인라인 위키링크([[…]])가 본문 안에서 탭 가능.
-                _WikiBody(
-                  spans: const [
-                    _Span.text('과적합 방지를 위한 기법들을 정리한다. 대표적으로 '),
-                    _Span.wiki('Lasso'),
-                    _Span.text('(L1)와 '),
-                    _Span.wiki('Ridge'),
-                    _Span.text('(L2) 정규화가 있다.\n\nL1은 '),
-                    _Span.wiki('가중치'),
-                    _Span.text(
-                      '를 0으로 만들어 sparse 솔루션을 유도하고, L2는 가중치를 작게 유지한다. '
-                      '신경망에서는 ',
-                    ),
-                    _Span.wiki('드롭아웃'),
-                    _Span.text('이 정규화 역할을 하며, 이는 '),
-                    _Span.wiki('과적합'),
-                    _Span.text('을 효과적으로 줄인다.'),
-                  ],
-                  onWikiTap: openWiki,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // AI 진입
-                ConceptAiEntry(
-                  title: '✦ AI에게 이 노트 질문하기',
-                  subtitle: '요약·퀴즈·심화 설명을 대화로 받아보세요',
-                  onTap: () => context.go(AppRoutes.qa),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                // Action row
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            context.go(AppRoutes.noteEditorPath(noteId)),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('편집'),
+                    if (isMobile)
+                      ConceptBackRow(
+                        label: '라이브러리',
+                        onTap: () => context.go(AppRoutes.notes),
+                      ),
+                    Text(
+                      note.title,
+                      style: textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () =>
-                            context.go(AppRoutes.noteVersionsPath(noteId)),
-                        icon: const Icon(Icons.history, size: 18),
-                        label: const Text('버전 이력'),
+                    const SizedBox(height: AppSpacing.sm),
+                    Wrap(
+                      spacing: AppSpacing.xs + 2,
+                      runSpacing: AppSpacing.xs,
+                      children: [
+                        for (final tag in note.tags) ConceptTag('#$tag'),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _WikiBody(
+                      spans: _parseWikiSpans(
+                        note.contentMd.isEmpty
+                            ? note.contentPlain
+                            : note.contentMd,
+                      ),
+                      onWikiTap: (title) => unawaited(openWiki(title)),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ConceptAiEntry(
+                      title: '✦ AI에게 이 노트 질문하기',
+                      subtitle: '요약·퀴즈·심화 설명을 대화로 받아보세요',
+                      onTap: () => context.go(AppRoutes.qa),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () =>
+                                context.go(AppRoutes.noteEditorPath(noteId)),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('편집'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () =>
+                                context.go(AppRoutes.noteVersionsPath(noteId)),
+                            icon: const Icon(Icons.history, size: 18),
+                            label: const Text('버전 이력'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    ConceptSectionLabel(
+                      backlinksValue.maybeWhen(
+                        data: (items) => '백링크 ${items.length}',
+                        orElse: () => '백링크',
                       ),
                     ),
+                    _BacklinksList(value: backlinksValue),
                   ],
-                ),
-                // 백링크 — 📄 아이콘 + 제목 + 인용 스니펫 (v1 `.backlinks`).
-                const ConceptSectionLabel('백링크 4'),
-                // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
-                _BacklinkItem(
-                  title: '과적합',
-                  snippet: '"…해결: ML 정규화 기법, 교차검증."',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-                ),
-                _BacklinkItem(
-                  title: '드롭아웃',
-                  snippet: '"…ML 정규화 기법의 한 종류로…"',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-                ),
-                _BacklinkItem(
-                  title: '교차검증',
-                  snippet: '"…ML 정규화 기법과 함께 사용…"',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('4')),
-                ),
-                _BacklinkItem(
-                  title: '경사하강법',
-                  snippet: '"…정규화 항을 손실에 더해…"',
-                  onTap: () => context.go(AppRoutes.noteDetailPath('5')),
                 ),
               ],
             ),
+          ),
+        );
+
+        if (isMobile) {
+          return mainContent;
+        }
+
+        final backlinkPanel = Container(
+          width: 280,
+          decoration: const BoxDecoration(
+            border: Border(left: BorderSide(color: AppColors.border)),
+          ),
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            children: [
+              Text(
+                '백링크',
+                style: textTheme.labelLarge?.copyWith(
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _BacklinksList(value: backlinksValue, compact: true),
+            ],
+          ),
+        );
+
+        return Row(
+          children: [
+            Expanded(child: mainContent),
+            backlinkPanel,
           ],
-        ),
-      ),
-    );
-
-    if (isMobile) {
-      return mainContent;
-    }
-
-    final backlinkPanel = Container(
-      width: 280,
-      decoration: const BoxDecoration(
-        border: Border(left: BorderSide(color: AppColors.border)),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        children: [
-          Text(
-            '백링크',
-            style: textTheme.labelLarge?.copyWith(
-              color: AppColors.muted,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // TODO: 팀원 구현 — knowledge-svc 백링크 API 연동
-          _BacklinkItem(
-            title: '드롭아웃 기법',
-            snippet: '과적합 방지를 위한 기법',
-            onTap: () => context.go(AppRoutes.noteDetailPath('2')),
-          ),
-          _BacklinkItem(
-            title: 'Ridge vs Lasso 비교',
-            snippet: 'L2 정규화 비교 분석',
-            onTap: () => context.go(AppRoutes.noteDetailPath('3')),
-          ),
-        ],
-      ),
-    );
-
-    return Row(
-      children: [
-        Expanded(child: mainContent),
-        backlinkPanel,
-      ],
+        );
+      },
     );
   }
 }
@@ -184,6 +161,24 @@ class _Span {
   const _Span.wiki(this.value) : isWiki = true;
   final String value;
   final bool isWiki;
+}
+
+List<_Span> _parseWikiSpans(String content) {
+  if (content.isEmpty) return const [_Span.text('본문이 비어 있습니다.')];
+  final spans = <_Span>[];
+  final pattern = RegExp(r'\[\[([^\]]+)\]\]');
+  var cursor = 0;
+  for (final match in pattern.allMatches(content)) {
+    if (match.start > cursor) {
+      spans.add(_Span.text(content.substring(cursor, match.start)));
+    }
+    spans.add(_Span.wiki(match.group(1) ?? ''));
+    cursor = match.end;
+  }
+  if (cursor < content.length) {
+    spans.add(_Span.text(content.substring(cursor)));
+  }
+  return spans;
 }
 
 /// 위키링크가 본문 안에 인라인으로 박힌 노트 본문 (v1 `.detail-b` + `.wl`).
@@ -296,6 +291,37 @@ class _BacklinkItem extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _BacklinksList extends StatelessWidget {
+  const _BacklinksList({required this.value, this.compact = false});
+
+  final AsyncValue<List<KnowledgeNote>> value;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppAsyncValueWidget<List<KnowledgeNote>>(
+      value: value,
+      isEmpty: (items) => items.isEmpty,
+      loading: const AppLoadingWidget(label: '백링크를 불러오는 중입니다.'),
+      empty: const AppEmptyState(
+        icon: Icons.link_off_outlined,
+        title: '연결된 백링크가 없습니다.',
+      ),
+      error: (error, _) => const AppErrorWidget(message: '백링크를 불러오지 못했습니다.'),
+      data: (items) => Column(
+        children: [
+          for (final note in items)
+            _BacklinkItem(
+              title: note.title,
+              snippet: note.snippet.isEmpty ? note.updatedLabel : note.snippet,
+              onTap: () => context.go(AppRoutes.noteDetailPath(note.id)),
+            ),
+        ],
       ),
     );
   }

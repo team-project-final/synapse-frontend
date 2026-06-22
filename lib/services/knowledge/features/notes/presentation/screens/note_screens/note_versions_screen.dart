@@ -12,18 +12,13 @@ class NoteVersionsScreen extends ConsumerStatefulWidget {
 }
 
 class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
-  String? _selectedVersion;
-
-  // TODO: 팀원 구현 — knowledge-svc 버전 이력 API 연동
-  final _mockVersions = [
-    {'version': 'v3', 'date': '2026-05-20 14:32', 'desc': 'L2 정규화 설명 추가'},
-    {'version': 'v2', 'date': '2026-05-19 09:15', 'desc': '예시 코드 수정'},
-    {'version': 'v1', 'date': '2026-05-18 20:00', 'desc': '최초 작성'},
-  ];
+  int? _selectedVersionNo;
+  AsyncValue<KnowledgeNoteVersion>? _selectedVersionValue;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final versionsValue = ref.watch(noteVersionsProvider(widget.noteId));
 
     return ConceptPage(
       children: [
@@ -33,21 +28,76 @@ class _NoteVersionsScreenState extends ConsumerState<NoteVersionsScreen> {
           style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
         ),
         const SizedBox(height: AppSpacing.md),
-        ..._mockVersions.map(
-          (v) => _VersionItem(
-            version: v['version']!,
-            date: v['date']!,
-            description: v['desc']!,
-            isSelected: _selectedVersion == v['version'],
-            onTap: () => setState(() => _selectedVersion = v['version']),
+        AppAsyncValueWidget<List<KnowledgeNoteVersion>>(
+          value: versionsValue,
+          isEmpty: (items) => items.isEmpty,
+          loading: const AppLoadingWidget(label: '버전 이력을 불러오는 중입니다.'),
+          empty: const AppEmptyState(
+            icon: Icons.history,
+            title: '아직 저장된 버전이 없습니다.',
+          ),
+          error: (error, _) => AppErrorWidget(
+            message: '버전 이력을 불러오지 못했습니다.',
+            onRetry: () => ref.invalidate(noteVersionsProvider(widget.noteId)),
+          ),
+          data: (versions) => Column(
+            children: [
+              for (final version in versions)
+                _VersionItem(
+                  version: 'v${version.versionNo}',
+                  date: _formatVersionDate(version.createdAt),
+                  description: version.title,
+                  isSelected: _selectedVersionNo == version.versionNo,
+                  onTap: () => _selectVersion(version.versionNo),
+                  onRestore: () =>
+                      unawaited(_restoreVersion(version.versionNo)),
+                ),
+            ],
           ),
         ),
-        if (_selectedVersion != null) ...[
-          ConceptSectionLabel('변경 사항 ($_selectedVersion)'),
-          const _DiffView(),
+        if (_selectedVersionNo != null) ...[
+          ConceptSectionLabel('버전 내용 (v$_selectedVersionNo)'),
+          AppAsyncValueWidget<KnowledgeNoteVersion>(
+            value: _selectedVersionValue ?? const AsyncLoading(),
+            loading: const AppLoadingWidget(label: '버전 내용을 불러오는 중입니다.'),
+            error: (error, _) =>
+                const AppErrorWidget(message: '버전 내용을 불러오지 못했습니다.'),
+            data: (version) =>
+                ConceptCard(child: MarkdownBody(data: version.contentMd ?? '')),
+          ),
         ],
         const SizedBox(height: AppSpacing.xl),
       ],
+    );
+  }
+
+  Future<void> _selectVersion(int versionNo) async {
+    setState(() {
+      _selectedVersionNo = versionNo;
+      _selectedVersionValue = const AsyncLoading();
+    });
+    final value = await AsyncValue.guard(
+      () => ref
+          .read(knowledgeApiProvider)
+          .getVersion(noteId: widget.noteId, versionNo: versionNo),
+    );
+    if (!mounted) return;
+    setState(() => _selectedVersionValue = value);
+  }
+
+  Future<void> _restoreVersion(int versionNo) async {
+    final restored = await AsyncValue.guard(
+      () => ref
+          .read(knowledgeApiProvider)
+          .restoreVersion(noteId: widget.noteId, versionNo: versionNo),
+    );
+    restored.whenOrNull(
+      data: (note) {
+        ref.invalidate(noteDetailProvider(widget.noteId));
+        ref.invalidate(noteVersionsProvider(widget.noteId));
+        ref.invalidate(noteListProvider);
+        if (mounted) context.go(AppRoutes.noteDetailPath(note.id));
+      },
     );
   }
 }
@@ -59,12 +109,14 @@ class _VersionItem extends StatelessWidget {
     required this.description,
     this.isSelected = false,
     this.onTap,
+    this.onRestore,
   });
   final String version;
   final String date;
   final String description;
   final bool isSelected;
   final VoidCallback? onTap;
+  final VoidCallback? onRestore;
 
   @override
   Widget build(BuildContext context) {
@@ -115,9 +167,7 @@ class _VersionItem extends StatelessWidget {
               ),
             ),
             OutlinedButton(
-              onPressed: () {
-                // TODO: 팀원 구현 — 버전 복원 API 연동
-              },
+              onPressed: onRestore,
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.md,
@@ -135,135 +185,11 @@ class _VersionItem extends StatelessWidget {
   }
 }
 
-class _DiffView extends StatelessWidget {
-  const _DiffView();
-
-  static const _oldLines = [
-    _DiffLine('### L1 정규화 (Lasso)', false),
-    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
-    _DiffLine('- 특성 선택 효과가 있음', true),
-    _DiffLine('', false),
-    _DiffLine('### L2 정규화 (Ridge)', false),
-    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
-  ];
-
-  static const _newLines = [
-    _DiffLine('### L1 정규화 (Lasso)', false),
-    _DiffLine('- 가중치의 절댓값 합을 페널티로 추가', false),
-    _DiffLine('- 일부 가중치를 0으로 만들어 희소성 유도', true),
-    _DiffLine('', false),
-    _DiffLine('### L2 정규화 (Ridge)', false),
-    _DiffLine('- 가중치의 제곱합을 페널티로 추가', false),
-    _DiffLine('- 가중치를 작게 유지하되 0으로 만들지 않음', true),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final monoStyle =
-        textTheme.bodySmall?.copyWith(fontFamily: 'monospace') ??
-        const TextStyle(fontFamily: 'monospace', fontSize: 12);
-
-    // 비균일 색 Border + borderRadius 조합으로 인한 렌더 이슈를 피하기 위해
-    // ClipRRect로 모서리를 클립하고 내부를 분리한다.
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.md),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Old (left)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      color: AppColors.surface2,
-                      child: Text(
-                        '이전',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    ..._oldLines.map(
-                      (line) => Container(
-                        width: double.infinity,
-                        color: line.changed ? const Color(0x20DC2626) : null,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        child: Text(
-                          line.changed ? '- ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.error : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(width: 1, color: AppColors.border),
-              // New (right)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      color: AppColors.surface2,
-                      child: Text(
-                        '현재',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                    ),
-                    ..._newLines.map(
-                      (line) => Container(
-                        width: double.infinity,
-                        color: line.changed ? const Color(0x2016A34A) : null,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        child: Text(
-                          line.changed ? '+ ${line.text}' : '  ${line.text}',
-                          style: monoStyle.copyWith(
-                            color: line.changed ? AppColors.success : null,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DiffLine {
-  const _DiffLine(this.text, this.changed);
-  final String text;
-  final bool changed;
+String _formatVersionDate(DateTime? value) {
+  if (value == null) return '시간 미상';
+  final local = value.toLocal();
+  return '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+      '${local.day.toString().padLeft(2, '0')} '
+      '${local.hour.toString().padLeft(2, '0')}:'
+      '${local.minute.toString().padLeft(2, '0')}';
 }

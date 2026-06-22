@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/knowledge/features/notes/presentation/screens/note_screens.dart';
+import 'package:synapse_frontend/services/knowledge/providers/knowledge_providers.dart';
+
+import 'fake_knowledge_api.dart';
 
 // AI Tutor 컨셉 reskin 후 노트 화면들이 데스크탑/모바일에서 RenderFlex 등
 // 레이아웃 예외 없이 렌더링되는지 검증한다. analyze로는 못 잡는 런타임
@@ -15,6 +18,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [knowledgeApiProvider.overrideWithValue(FakeKnowledgeApi())],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(
@@ -59,7 +63,7 @@ void main() {
   // 뜨는지 확인한다. (드롭다운 진입 분기를 실제로 타게 한다)
   testWidgets('NoteEditor [[ 자동완성 드롭다운 렌더', (tester) async {
     await pump(tester, const NoteEditorScreen(noteId: '1'), desktop);
-    await tester.enterText(find.byType(TextField).first, '핵심은 [[어텐');
+    await tester.enterText(find.byType(TextField).at(1), '핵심은 [[어텐');
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);

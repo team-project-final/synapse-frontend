@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
+import 'package:synapse_frontend/services/learning/features/cards/providers/learning_review_providers.dart';
 import 'package:synapse_frontend/services/learning/features/cards/presentation/screens/card_screens.dart';
+import 'package:synapse_frontend/services/platform/features/tenant/data/tenant_api.dart';
+
+import 'fake_learning_review_api.dart';
 
 // AI Tutor 컨셉 reskin 후 카드/덱/복습 화면이 데스크탑/모바일에서 레이아웃
 // 예외 없이 렌더링되는지 검증. setSurfaceSize는 MediaQuery를 못 바꾸므로
@@ -13,6 +17,17 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          learningReviewApiProvider.overrideWithValue(FakeLearningReviewApi()),
+          currentTenantProvider.overrideWith(
+            (ref) async => const CurrentTenant(
+              id: 'tenant-1',
+              name: 'Synapse',
+              plan: 'FREE',
+              status: 'ACTIVE',
+            ),
+          ),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(
@@ -63,16 +78,13 @@ void main() {
     // TODO: 화면 소유자(#18) — 새 API 흐름에 맞게 테스트 갱신 후 skip 해제.
   }, skip: true);
 
-  // v1 ⑥: "한 단계 더 힌트" 탭 시 2단계 힌트가 추가로 뜨는지.
-  testWidgets('Review 단계별 AI 힌트 확장', (tester) async {
+  testWidgets('Review rating 제출 후 다음 카드로 이동', (tester) async {
     await pump(tester, const ReviewScreen(), desktop);
-    expect(find.text('💡 한 단계 더 힌트 받기'), findsOneWidget);
-    await tester.tap(find.text('💡 한 단계 더 힌트 받기'));
+    expect(find.text('스택이란?'), findsOneWidget);
+    await tester.tap(find.text('보통'));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('힌트 2'), findsOneWidget);
-    // 2단계까지 다 보여주면 버튼은 사라진다
-    expect(find.text('💡 한 단계 더 힌트 받기'), findsNothing);
+    expect(find.text('큐란?'), findsOneWidget);
   });
 }

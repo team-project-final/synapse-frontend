@@ -166,7 +166,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.review,
-            builder: (context, state) => const ReviewScreen(),
+            builder: (context, state) =>
+                ReviewScreen(deckId: state.uri.queryParameters['deckId']),
           ),
           GoRoute(
             path: AppRoutes.reviewResult,

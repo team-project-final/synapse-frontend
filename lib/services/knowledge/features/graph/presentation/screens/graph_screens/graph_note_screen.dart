@@ -17,42 +17,6 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
       TransformationController();
   double _depth = 1;
 
-  _MockGraphNode? get _centerNode {
-    return _mockNodes.where((n) => n.id == widget.noteId).firstOrNull;
-  }
-
-  /// Collect neighbors up to [maxHops] hops from the center node.
-  List<_MockGraphNode> _getNeighborNodes(int maxHops) {
-    final Set<String> visited = {widget.noteId};
-    Set<String> frontier = {widget.noteId};
-
-    for (int hop = 0; hop < maxHops; hop++) {
-      final Set<String> nextFrontier = {};
-      for (final nodeId in frontier) {
-        for (final edge in _mockEdges) {
-          if (edge.from == nodeId && !visited.contains(edge.to)) {
-            nextFrontier.add(edge.to);
-            visited.add(edge.to);
-          }
-          if (edge.to == nodeId && !visited.contains(edge.from)) {
-            nextFrontier.add(edge.from);
-            visited.add(edge.from);
-          }
-        }
-      }
-      frontier = nextFrontier;
-    }
-
-    return _mockNodes.where((n) => visited.contains(n.id)).toList();
-  }
-
-  List<_MockGraphEdge> _getRelevantEdges(List<_MockGraphNode> nodes) {
-    final nodeIds = nodes.map((n) => n.id).toSet();
-    return _mockEdges
-        .where((e) => nodeIds.contains(e.from) && nodeIds.contains(e.to))
-        .toList();
-  }
-
   @override
   void dispose() {
     _transformController.dispose();
@@ -61,20 +25,38 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final centerNode = _centerNode;
+    final graphValue = ref.watch(
+      neighborGraphProvider(
+        NeighborGraphQuery(noteId: widget.noteId, depth: _depth.toInt()),
+      ),
+    );
 
-    if (centerNode == null) {
-      return Center(
-        child: Text(
-          '노트를 찾을 수 없습니다 (ID: ${widget.noteId})',
-          style: textTheme.bodyLarge,
+    return AppAsyncValueWidget<KnowledgeGraphData>(
+      value: graphValue,
+      isEmpty: (graph) => graph.isEmpty,
+      loading: const AppLoadingWidget(label: '이웃 그래프를 불러오는 중입니다.'),
+      empty: AppEmptyState(
+        icon: Icons.hub_outlined,
+        title: '노트를 찾을 수 없습니다.',
+        body: 'ID: ${widget.noteId}',
+      ),
+      error: (error, _) => AppErrorWidget(
+        message: '이웃 그래프를 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(
+          neighborGraphProvider(
+            NeighborGraphQuery(noteId: widget.noteId, depth: _depth.toInt()),
+          ),
         ),
-      );
-    }
+      ),
+      data: (graph) => _buildGraph(context, graph),
+    );
+  }
 
-    final neighborNodes = _getNeighborNodes(_depth.toInt());
-    final relevantEdges = _getRelevantEdges(neighborNodes);
+  Widget _buildGraph(BuildContext context, KnowledgeGraphData graph) {
+    final textTheme = Theme.of(context).textTheme;
+    final centerNode =
+        graph.nodes.where((n) => n.id == widget.noteId).firstOrNull ??
+        graph.nodes.first;
 
     return Column(
       children: [
@@ -103,7 +85,7 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
                           ),
                         ),
                         Text(
-                          '이웃 그래프 · ${neighborNodes.length - 1}개 연결 노드',
+                          '이웃 그래프 · ${math.max(0, graph.nodes.length - 1)}개 연결 노드',
                           style: textTheme.bodyMedium?.copyWith(
                             color: AppColors.muted,
                           ),
@@ -152,8 +134,8 @@ class _GraphNoteScreenState extends ConsumerState<GraphNoteScreen> {
             child: SizedBox.expand(
               child: CustomPaint(
                 painter: _GraphPainter(
-                  nodes: neighborNodes,
-                  edges: relevantEdges,
+                  nodes: graph.nodes,
+                  edges: graph.edges,
                   clusterColors: _clusterColors,
                   highlightNodeId: widget.noteId,
                   highlightRadius: 30.0,

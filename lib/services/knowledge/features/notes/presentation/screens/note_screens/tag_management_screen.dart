@@ -16,15 +16,6 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
 
   static const _presetColors = AppColors.tagPalette;
 
-  // TODO: 팀원 구현 — knowledge-svc 태그 목록 API 연동
-  final _mockTags = [
-    {'name': '머신러닝', 'count': 12},
-    {'name': '알고리즘', 'count': 8},
-    {'name': 'AWS', 'count': 5},
-    {'name': '딥러닝', 'count': 7},
-    {'name': '클라우드', 'count': 3},
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -32,7 +23,15 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   }
 
   void _showTagMergeDialog(BuildContext context) {
-    final tagNames = _mockTags.map((t) => t['name'].toString()).toList();
+    final tags = ref
+        .read(popularTagsProvider)
+        .when(
+          data: (items) => items,
+          loading: () => const <KnowledgeTagStat>[],
+          error: (_, _) => const <KnowledgeTagStat>[],
+        );
+    final tagNames = tags.map((t) => t.tag).toList(growable: false);
+    if (tagNames.isEmpty) return;
     String? sourceTag = tagNames.first;
     String? targetTag = tagNames.length > 1 ? tagNames[1] : tagNames.first;
 
@@ -75,8 +74,10 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
             ),
             FilledButton(
               onPressed: () {
-                // TODO: 팀원 구현 — 태그 병합 API 연동
                 Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('태그 병합 API 계약이 필요합니다.')),
+                );
               },
               child: const Text('병합'),
             ),
@@ -89,9 +90,7 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final filtered = _mockTags
-        .where((t) => t['name'].toString().contains(_searchController.text))
-        .toList();
+    final tagsValue = ref.watch(popularTagsProvider);
 
     return Stack(
       children: [
@@ -142,48 +141,78 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
               label: const Text('태그 병합'),
             ),
             const ConceptSectionLabel('모든 태그'),
-            for (final tag in filtered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: ConceptCard(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm + 2,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.tag, size: 18, color: AppColors.primary),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          tag['name'].toString(),
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+            AppAsyncValueWidget<List<KnowledgeTagStat>>(
+              value: tagsValue,
+              isEmpty: (items) => items.isEmpty,
+              loading: const AppLoadingWidget(label: '태그를 불러오는 중입니다.'),
+              empty: const AppEmptyState(
+                icon: Icons.sell_outlined,
+                title: '아직 태그가 없습니다.',
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: '태그를 불러오지 못했습니다.',
+                onRetry: () => ref.invalidate(popularTagsProvider),
+              ),
+              data: (tags) {
+                final filtered = tags
+                    .where((t) => t.tag.contains(_searchController.text))
+                    .toList(growable: false);
+                return Column(
+                  children: [
+                    for (final tag in filtered)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: ConceptCard(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.sm + 2,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.tag,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  tag.tag,
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${tag.count}개 노트',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: AppColors.muted,
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.error,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('태그 삭제 API 계약이 필요합니다.'),
+                                    ),
+                                  );
+                                },
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      Text(
-                        '${tag['count']}개 노트',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: AppColors.muted,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: AppColors.error,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          // TODO: 팀원 구현 — 태그 삭제 API 연동
-                        },
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
           ],
         ),
@@ -192,7 +221,9 @@ class _TagManagementScreenState extends ConsumerState<TagManagementScreen> {
           right: AppSpacing.lg,
           child: FloatingActionButton.extended(
             onPressed: () {
-              // TODO: 팀원 구현 — 태그 추가 다이얼로그
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('태그 생성 API 계약이 필요합니다.')),
+              );
             },
             icon: const Icon(Icons.add),
             label: const Text('태그 추가'),

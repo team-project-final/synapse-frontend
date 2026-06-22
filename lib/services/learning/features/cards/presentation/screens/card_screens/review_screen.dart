@@ -3,35 +3,82 @@ part of '../card_screens.dart';
 // ── ReviewScreen (FlipCard) ──
 
 class ReviewScreen extends ConsumerStatefulWidget {
-  const ReviewScreen({super.key});
+  const ReviewScreen({this.deckId, super.key});
+
+  final String? deckId;
 
   @override
   ConsumerState<ReviewScreen> createState() => _ReviewScreenState();
 }
 
 class _ReviewScreenState extends ConsumerState<ReviewScreen> {
-  // v1 ⑥: 진행 7/18, 단계별 AI 힌트(1→2단계).
-  static const _current = 7;
-  static const _total = 18;
-
-  // 진행바·카드·평점 버튼을 동일 폭으로 중앙 정렬(웹 넓은 폭에서 정렬 흐트러짐 방지).
   static const double _cardMaxWidth = 480;
 
-  // TODO: 팀원 구현 — learning-svc 단계별 AI 힌트 API 연동
-  static const _hints = [
-    '힌트: 모델이 학습 데이터를 "외워버린" 상황을 떠올려 보세요. 새로운 데이터에서는 어떻게 될까요?',
-    '힌트 2: 학습 데이터의 정답률은 매우 높지만, 처음 보는 검증 데이터에서는 정답률이 떨어지는 현상이에요.',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+  }
 
-  int _hintLevel = 1;
+  @override
+  void didUpdateWidget(covariant ReviewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.deckId != widget.deckId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _start());
+    }
+  }
+
+  void _start() {
+    if (!mounted) return;
+    ref.read(reviewNotifierProvider.notifier).start(deckId: widget.deckId);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(reviewNotifierProvider);
+    final card = state.currentCard;
+
+    if (state.isLoading && state.session == null) {
+      return const AppLoadingWidget(label: '복습 세션을 준비하고 있습니다.');
+    }
+
+    if (state.errorMessage != null && state.session == null) {
+      return AppErrorWidget(message: state.errorMessage!, onRetry: _start);
+    }
+
+    if (state.hasNoDecks) {
+      return AppEmptyState(
+        icon: Icons.style_outlined,
+        title: '복습할 덱이 없습니다.',
+        body: '먼저 학습 덱을 만든 뒤 복습을 시작할 수 있습니다.',
+        action: FilledButton.icon(
+          onPressed: () => context.go(AppRoutes.decks),
+          icon: const Icon(Icons.layers_outlined, size: 18),
+          label: const Text('덱으로 이동'),
+        ),
+      );
+    }
+
+    if (state.hasNoDueCards || card == null) {
+      return AppEmptyState(
+        icon: Icons.check_circle_outline,
+        title: '오늘 복습할 카드가 없습니다.',
+        body: '선택한 덱의 복습 큐가 비어 있습니다.',
+        action: OutlinedButton.icon(
+          onPressed: _start,
+          icon: const Icon(Icons.refresh, size: 18),
+          label: const Text('새로고침'),
+        ),
+      );
+    }
+
     final textTheme = Theme.of(context).textTheme;
+    final total = state.totalCards;
+    final current = state.currentIndex + 1;
+    final progress = total == 0 ? 0.0 : current / total;
 
     return Column(
       children: [
-        // Progress row — 카드와 동일 폭(480)으로 중앙 정렬
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(
@@ -46,14 +93,16 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.close, color: AppColors.muted),
-                    onPressed: () => context.go(AppRoutes.decks),
+                    onPressed: state.isSubmitting
+                        ? null
+                        : () => context.go(AppRoutes.decks),
                     tooltip: '종료',
                   ),
                   Expanded(
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      child: const LinearProgressIndicator(
-                        value: _current / _total,
+                      child: LinearProgressIndicator(
+                        value: progress,
                         minHeight: 7,
                         backgroundColor: AppColors.surface2,
                         color: AppColors.primary,
@@ -62,7 +111,7 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
-                    '$_current / $_total',
+                    '$current / $total',
                     style: textTheme.labelLarge?.copyWith(
                       color: AppColors.muted,
                       fontWeight: FontWeight.w700,
@@ -73,8 +122,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             ),
           ),
         ),
-
-        // Card area
         Expanded(
           child: Center(
             child: SingleChildScrollView(
@@ -84,28 +131,49 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(
-                      height: 260,
+                    SizedBox(
+                      height: 270,
                       child: FlipCard(
+                        key: ValueKey(card.id),
                         front: _FlashFace(
-                          label: '과적합이란 무엇인가?',
-                          hint: '👆 탭하여 정답 확인',
+                          label: card.frontContent,
+                          hint: '탭하여 정답 확인',
                         ),
                         back: _FlashFace(
-                          label: '학습 데이터에는 잘 맞지만 새 데이터에 일반화하지 못하는 현상.',
+                          label: card.backContent,
                           highlighted: true,
                         ),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    // 단계별 AI 힌트
-                    for (int i = 0; i < _hintLevel; i++) ...[
-                      if (i > 0) const SizedBox(height: AppSpacing.sm),
-                      ConceptAiComment(text: _hints[i]),
-                    ],
-                    if (_hintLevel < _hints.length) ...[
+                    ConceptCard(
+                      child: Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: [
+                          _ReviewMetaPill(
+                            icon: Icons.layers_outlined,
+                            label: state.selectedDeckName,
+                          ),
+                          _ReviewMetaPill(
+                            icon: Icons.category_outlined,
+                            label: card.typeLabel,
+                          ),
+                          _ReviewMetaPill(
+                            icon: Icons.repeat,
+                            label: '${card.repetitions}회 복습',
+                          ),
+                          _ReviewMetaPill(
+                            icon: Icons.trending_up,
+                            label:
+                                'EF ${card.easinessFactor.toStringAsFixed(2)}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (state.errorMessage != null) ...[
                       const SizedBox(height: AppSpacing.md),
-                      _HintButton(onTap: () => setState(() => _hintLevel++)),
+                      AppErrorWidget(message: state.errorMessage!),
                     ],
                   ],
                 ),
@@ -113,8 +181,6 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
             ),
           ),
         ),
-
-        // Difficulty buttons (SM-2 rating) — 카드와 동일 폭(480)으로 중앙 정렬
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(
@@ -131,32 +197,30 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
                 children: [
                   _RateButton(
                     label: '다시',
-                    sub: '<1분',
+                    sub: '1',
                     color: AppColors.error,
-                    onTap: () {
-                      // TODO: 팀원 구현 — SM-2 rating API 호출
-                    },
+                    onTap: state.isSubmitting ? null : () => _rate(1),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   _RateButton(
                     label: '어려움',
-                    sub: '4일',
+                    sub: '2',
                     color: AppColors.warning,
-                    onTap: () {},
+                    onTap: state.isSubmitting ? null : () => _rate(2),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   _RateButton(
                     label: '보통',
-                    sub: '9일',
+                    sub: '3',
                     color: AppColors.success,
-                    onTap: () {},
+                    onTap: state.isSubmitting ? null : () => _rate(3),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   _RateButton(
                     label: '쉬움',
-                    sub: '21일',
+                    sub: '4',
                     color: AppColors.accent,
-                    onTap: () {},
+                    onTap: state.isSubmitting ? null : () => _rate(4),
                   ),
                 ],
               ),
@@ -165,6 +229,17 @@ class _ReviewScreenState extends ConsumerState<ReviewScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _rate(int rating) async {
+    final startedAt = ref.read(reviewNotifierProvider).cardStartedAt;
+    final completed = await ref
+        .read(reviewNotifierProvider.notifier)
+        .submitRating(rating, timeSpentMs: _timeSpentMs(startedAt));
+    if (!mounted) return;
+    if (completed) {
+      context.go(AppRoutes.reviewResult);
+    }
   }
 }
 
@@ -190,26 +265,62 @@ class _FlashFace extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            // TODO: 팀원 구현 — learning-svc 카드 데이터 연동
-            if (hint != null) ...[
-              const SizedBox(height: AppSpacing.lg),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               Text(
-                hint!,
-                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                label.isEmpty ? '내용 없음' : label,
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+                textAlign: TextAlign.center,
               ),
+              if (hint != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  hint!,
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+class _ReviewMetaPill extends StatelessWidget {
+  const _ReviewMetaPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.muted),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppColors.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -226,13 +337,14 @@ class _RateButton extends StatelessWidget {
   final String label;
   final String sub;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return Expanded(
       child: Material(
-        color: color,
+        color: enabled ? color : color.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(AppRadius.sm),
         child: InkWell(
           onTap: onTap,
@@ -267,86 +379,7 @@ class _RateButton extends StatelessWidget {
   }
 }
 
-/// "💡 한 단계 더 힌트 받기" 버튼. v1 목업 `.hintbtn` — surface2 배경 +
-/// primary 점선 보더 + primary 텍스트.
-class _HintButton extends StatelessWidget {
-  const _HintButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface2,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        child: DottedBorderBox(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm + 3),
-            child: Center(
-              child: Text(
-                '💡 한 단계 더 힌트 받기',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// primary 점선 테두리 박스 (CustomPaint). Flutter 기본 Border는 점선을
-/// 지원하지 않으므로 직접 그린다.
-class DottedBorderBox extends StatelessWidget {
-  const DottedBorderBox({required this.child, super.key});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DashedBorderPainter(
-        color: AppColors.primary,
-        radius: AppRadius.sm,
-      ),
-      child: child,
-    );
-  }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-    const dash = 5.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      double dist = 0;
-      while (dist < metric.length) {
-        final next = (dist + dash).clamp(0.0, metric.length);
-        canvas.drawPath(metric.extractPath(dist, next), paint);
-        dist = next + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
-      oldDelegate.color != color || oldDelegate.radius != radius;
+int _timeSpentMs(DateTime? startedAt) {
+  if (startedAt == null) return 0;
+  return DateTime.now().difference(startedAt).inMilliseconds;
 }

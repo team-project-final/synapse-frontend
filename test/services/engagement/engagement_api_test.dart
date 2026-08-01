@@ -159,6 +159,82 @@ void main() {
     expect(reports.single.targetLabel, '공유 덱 #11');
     expect(moderated.statusLabel, '승인');
   });
+
+  test('community groups use group list/detail/member contracts', () async {
+    final calls = <String>[];
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        calls.add('${options.method} ${options.path}');
+        if (options.path == '/api/v1/community/groups') {
+          expect(options.method, 'GET');
+          expect(options.queryParameters['page'], 0);
+          expect(options.queryParameters['size'], 10);
+          return _json([
+            {
+              'id': 1,
+              'name': 'AWS 자격증 스터디',
+              'description': '클라우드 자격증 준비',
+              'isPublic': false,
+              'ownerId': 100,
+              'createdAt': '2026-06-21T05:00:00Z',
+            },
+          ]);
+        }
+        if (options.path == '/api/v1/community/groups/1') {
+          expect(options.method, 'GET');
+          return _json({
+            'id': 1,
+            'name': 'AWS 자격증 스터디',
+            'description': '클라우드 자격증 준비',
+            'isPublic': false,
+            'ownerId': 100,
+            'createdAt': '2026-06-21T05:00:00Z',
+          });
+        }
+        if (options.path == '/api/v1/community/groups/1/members') {
+          expect(options.method, 'GET');
+          return _json([
+            {
+              'id': 500,
+              'groupId': 1,
+              'userId': 100,
+              'role': 'OWNER',
+              'status': 'ACTIVE',
+              'joinedAt': '2026-06-21T05:00:00Z',
+            },
+          ]);
+        }
+        if (options.path == '/api/v1/community/groups/1/members/join') {
+          expect(options.method, 'POST');
+          return _json({
+            'id': 501,
+            'groupId': 1,
+            'userId': 101,
+            'role': 'MEMBER',
+            'status': 'PENDING',
+            'joinedAt': '2026-06-22T04:00:00Z',
+          });
+        }
+        fail('Unexpected request: ${options.method} ${options.path}');
+      });
+
+    final api = EngagementApi(dio);
+    final groups = await api.getGroups(size: 10);
+    final group = await api.getGroup(groups.single.id);
+    final members = await api.getGroupMembers(group.id);
+    final joined = await api.joinGroup(group.id);
+
+    expect(group.name, 'AWS 자격증 스터디');
+    expect(group.visibilityLabel, '비공개');
+    expect(members.single.roleLabel, '소유자');
+    expect(joined.statusLabel, '대기');
+    expect(calls, [
+      'GET /api/v1/community/groups',
+      'GET /api/v1/community/groups/1',
+      'GET /api/v1/community/groups/1/members',
+      'POST /api/v1/community/groups/1/members/join',
+    ]);
+  });
 }
 
 ResponseBody _json(Object data) {

@@ -71,6 +71,28 @@ final adminReportsProvider = FutureProvider.autoDispose
       return ref.watch(engagementApiProvider).getReports(status: status);
     });
 
+final communityGroupsProvider =
+    FutureProvider.autoDispose<List<CommunityGroup>>((ref) {
+      return ref.watch(engagementApiProvider).getGroups();
+    });
+
+final communityGroupDetailProvider = FutureProvider.autoDispose
+    .family<CommunityGroupDetail, String>((ref, groupId) async {
+      final api = ref.watch(engagementApiProvider);
+      final group = await api.getGroup(groupId);
+      final members = await api.getGroupMembers(groupId);
+      return CommunityGroupDetail(group: group, members: members);
+    });
+
+class CommunityGroupDetail {
+  const CommunityGroupDetail({required this.group, required this.members});
+
+  final CommunityGroup group;
+  final List<CommunityGroupMember> members;
+
+  int get activeMemberCount => members.where((member) => member.active).length;
+}
+
 class LeaderboardQuery {
   const LeaderboardQuery({this.period = 'all', this.limit = 20});
 

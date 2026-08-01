@@ -12,7 +12,6 @@ import 'package:synapse_frontend/shared/widgets/report_dialog.dart';
 import 'package:synapse_frontend/shared/widgets/study_board_kit.dart';
 import 'package:synapse_frontend/shared/widgets/toast.dart';
 
-part 'community_screens/_mock.dart';
 part 'community_screens/group_list_screen.dart';
 part 'community_screens/group_detail_screen.dart';
 part 'community_screens/group_editor_screen.dart';

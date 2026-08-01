@@ -298,6 +298,94 @@ class EngagementReport {
   String get createdLabel => _relativeDate(createdAt);
 }
 
+class CommunityGroup {
+  const CommunityGroup({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.isPublic,
+    required this.ownerId,
+    this.createdAt,
+  });
+
+  factory CommunityGroup.fromJson(Map<String, dynamic> json) {
+    return CommunityGroup(
+      id: _stringId(json['id']),
+      name: (json['name'] as String?) ?? '이름 없는 그룹',
+      description: (json['description'] as String?) ?? '',
+      isPublic: (json['isPublic'] as bool?) ?? false,
+      ownerId: _stringId(json['ownerId']),
+      createdAt: _dateTimeValue(json['createdAt']),
+    );
+  }
+
+  final String id;
+  final String name;
+  final String description;
+  final bool isPublic;
+  final String ownerId;
+  final DateTime? createdAt;
+
+  String get visibilityLabel => isPublic ? '공개' : '비공개';
+  String get ownerLabel => ownerId.isEmpty ? '소유자 미상' : '소유자 #$ownerId';
+  String get createdLabel => _relativeDate(createdAt);
+}
+
+class CommunityGroupMember {
+  const CommunityGroupMember({
+    required this.id,
+    required this.groupId,
+    required this.userId,
+    required this.role,
+    required this.status,
+    this.joinedAt,
+  });
+
+  factory CommunityGroupMember.fromJson(Map<String, dynamic> json) {
+    return CommunityGroupMember(
+      id: _stringId(json['id']),
+      groupId: _stringId(json['groupId']),
+      userId: _stringId(json['userId']),
+      role: (json['role'] as String?) ?? 'MEMBER',
+      status: (json['status'] as String?) ?? 'ACTIVE',
+      joinedAt: _dateTimeValue(json['joinedAt']),
+    );
+  }
+
+  final String id;
+  final String groupId;
+  final String userId;
+  final String role;
+  final String status;
+  final DateTime? joinedAt;
+
+  bool get active => status == 'ACTIVE';
+
+  String get displayName => userId.isEmpty ? '사용자' : '사용자 #$userId';
+
+  String get roleLabel {
+    return switch (role) {
+      'OWNER' => '소유자',
+      'ADMIN' => '관리자',
+      _ => '멤버',
+    };
+  }
+
+  String get statusLabel {
+    return switch (status) {
+      'ACTIVE' => '활성',
+      'PENDING' => '대기',
+      'INVITED' => '초대됨',
+      'DECLINED' => '거절',
+      'REJECTED' => '반려',
+      'KICKED' => '제외',
+      _ => status,
+    };
+  }
+
+  String get joinedLabel => _relativeDate(joinedAt);
+}
+
 class EngagementApi {
   const EngagementApi(this._dio);
 
@@ -453,6 +541,41 @@ class EngagementApi {
       },
     );
     return EngagementReport.fromJson(_unwrapMap(response.data));
+  }
+
+  Future<List<CommunityGroup>> getGroups({int page = 0, int size = 20}) async {
+    final response = await _dio.get<dynamic>(
+      '/api/v1/community/groups',
+      queryParameters: {'page': page, 'size': size},
+    );
+    return _unwrapList(response.data)
+        .whereType<Map<String, dynamic>>()
+        .map(CommunityGroup.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<CommunityGroup> getGroup(String groupId) async {
+    final response = await _dio.get<dynamic>(
+      '/api/v1/community/groups/$groupId',
+    );
+    return CommunityGroup.fromJson(_unwrapMap(response.data));
+  }
+
+  Future<List<CommunityGroupMember>> getGroupMembers(String groupId) async {
+    final response = await _dio.get<dynamic>(
+      '/api/v1/community/groups/$groupId/members',
+    );
+    return _unwrapList(response.data)
+        .whereType<Map<String, dynamic>>()
+        .map(CommunityGroupMember.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<CommunityGroupMember> joinGroup(String groupId) async {
+    final response = await _dio.post<dynamic>(
+      '/api/v1/community/groups/$groupId/members/join',
+    );
+    return CommunityGroupMember.fromJson(_unwrapMap(response.data));
   }
 }
 

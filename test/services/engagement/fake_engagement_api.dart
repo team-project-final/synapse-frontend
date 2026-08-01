@@ -149,6 +149,77 @@ class FakeEngagementApi extends EngagementApi {
   }
 
   @override
+  Future<List<CommunityGroup>> getGroups({int page = 0, int size = 20}) async {
+    return [
+      CommunityGroup(
+        id: '1',
+        name: 'AWS 자격증 스터디',
+        description: '클라우드 자격증 준비를 위한 그룹입니다.',
+        isPublic: false,
+        ownerId: '100',
+        createdAt: DateTime.utc(2026, 6, 21, 5),
+      ),
+      CommunityGroup(
+        id: '2',
+        name: '알고리즘 마스터즈',
+        description: '자료구조와 알고리즘 문제 풀이 그룹입니다.',
+        isPublic: true,
+        ownerId: '101',
+        createdAt: DateTime.utc(2026, 6, 20, 5),
+      ),
+    ];
+  }
+
+  @override
+  Future<CommunityGroup> getGroup(String groupId) async {
+    return (await getGroups()).firstWhere(
+      (group) => group.id == groupId,
+      orElse: () => CommunityGroup(
+        id: groupId,
+        name: '테스트 그룹',
+        description: '테스트 그룹 설명',
+        isPublic: true,
+        ownerId: '100',
+        createdAt: DateTime.utc(2026, 6, 21, 5),
+      ),
+    );
+  }
+
+  @override
+  Future<List<CommunityGroupMember>> getGroupMembers(String groupId) async {
+    return [
+      CommunityGroupMember(
+        id: '500',
+        groupId: groupId,
+        userId: '100',
+        role: 'OWNER',
+        status: 'ACTIVE',
+        joinedAt: DateTime.utc(2026, 6, 21, 5),
+      ),
+      CommunityGroupMember(
+        id: '501',
+        groupId: groupId,
+        userId: '102',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        joinedAt: DateTime.utc(2026, 6, 22, 2),
+      ),
+    ];
+  }
+
+  @override
+  Future<CommunityGroupMember> joinGroup(String groupId) async {
+    return CommunityGroupMember(
+      id: '502',
+      groupId: groupId,
+      userId: '103',
+      role: 'MEMBER',
+      status: groupId == '1' ? 'PENDING' : 'ACTIVE',
+      joinedAt: DateTime.utc(2026, 6, 22, 4),
+    );
+  }
+
+  @override
   Future<SharedContent> getSharedContent(String token) async {
     if (token.contains('note')) {
       return SharedContent(

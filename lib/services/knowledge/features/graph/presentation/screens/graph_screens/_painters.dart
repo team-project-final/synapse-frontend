@@ -2,6 +2,13 @@ part of '../graph_screens.dart';
 
 // ── Shared Graph Painter ──
 
+const List<Color> _clusterColors = [
+  AppColors.primary,
+  AppColors.accent,
+  AppColors.info,
+  AppColors.success,
+];
+
 class _GraphPainter extends CustomPainter {
   _GraphPainter({
     required this.nodes,
@@ -14,8 +21,8 @@ class _GraphPainter extends CustomPainter {
     this.offset = Offset.zero,
   });
 
-  final List<_MockGraphNode> nodes;
-  final List<_MockGraphEdge> edges;
+  final List<KnowledgeGraphNode> nodes;
+  final List<KnowledgeGraphEdge> edges;
   final List<Color> clusterColors;
   final String? selectedNodeId;
   final Set<int> dimmedClusters;
@@ -31,7 +38,7 @@ class _GraphPainter extends CustomPainter {
   static const double _maxRadius = 30.0;
 
   /// PageRank(0~1 가정)를 반지름으로 선형 매핑. 데이터가 없으면 기본값.
-  double _radiusFor(_MockGraphNode node) {
+  double _radiusFor(KnowledgeGraphNode node) {
     if (node.pageRank <= 0) return _defaultNodeRadius;
     final r =
         _minRadius + (_maxRadius - _minRadius) * node.pageRank.clamp(0.0, 1.0);
@@ -43,7 +50,7 @@ class _GraphPainter extends CustomPainter {
     // 노드 좌표는 고정값이라, 전체를 오프셋만큼 옮겨 영역 중앙에 맞춘다.
     canvas.translate(offset.dx, offset.dy);
 
-    final Map<String, _MockGraphNode> nodeMap = {
+    final Map<String, KnowledgeGraphNode> nodeMap = {
       for (final n in nodes) n.id: n,
     };
 
@@ -140,8 +147,8 @@ class _GraphPainter extends CustomPainter {
 
 // ── Helper: hit-test node ──
 
-_MockGraphNode? _hitTestNode(
-  List<_MockGraphNode> nodes,
+KnowledgeGraphNode? _hitTestNode(
+  List<KnowledgeGraphNode> nodes,
   Offset position, {
   double threshold = 25.0,
 }) {

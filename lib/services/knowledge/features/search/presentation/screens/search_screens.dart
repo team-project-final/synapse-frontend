@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:synapse_frontend/core/constants/app_routes.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/knowledge/data/knowledge_api.dart';
+import 'package:synapse_frontend/services/knowledge/providers/knowledge_providers.dart';
 import 'package:synapse_frontend/services/learning/features/ai/providers/ai_providers.dart';
+import 'package:synapse_frontend/shared/widgets/app_state_widgets.dart';
 import 'package:synapse_frontend/shared/widgets/concept.dart';
 import 'package:synapse_frontend/shared/widgets/synapse_orb.dart';
 
@@ -23,31 +26,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   bool _hasQuery = false;
   bool _semantic = true;
-
-  // TODO: 팀원 구현 — knowledge-svc / learning-svc 통합 검색 API 연동
-  final _mockResults = [
-    {
-      'title': '정규화 기법 (Regularization)',
-      'snippet': 'L1/L2 정규화는 과적합을 방지하기 위한 기법입니다.',
-      'tags': ['머신러닝', '딥러닝'],
-      'time': '2시간 전',
-      'id': '1',
-    },
-    {
-      'title': '동적 프로그래밍 기초',
-      'snippet': '메모이제이션과 타뷸레이션을 사용하여 중복 계산을 피합니다.',
-      'tags': ['알고리즘'],
-      'time': '어제',
-      'id': '2',
-    },
-    {
-      'title': 'Ridge vs Lasso 비교',
-      'snippet': 'L2 정규화(Ridge)와 L1 정규화(Lasso)의 차이를 분석합니다.',
-      'tags': ['머신러닝', '정규화'],
-      'time': '3일 전',
-      'id': '3',
-    },
-  ];
+  String _query = '';
 
   @override
   void dispose() {
@@ -93,6 +72,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final searchValue = ref.watch(
+      knowledgeSearchProvider(
+        KnowledgeSearchQuery(query: _query, semantic: _semantic),
+      ),
+    );
 
     return ConceptPage(
       children: [
@@ -119,7 +103,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     border: InputBorder.none,
                     isCollapsed: true,
                   ),
-                  onChanged: (v) => setState(() => _hasQuery = v.isNotEmpty),
+                  onChanged: (v) => setState(() {
+                    _query = v.trim();
+                    _hasQuery = _query.isNotEmpty;
+                  }),
                 ),
               ),
               if (_hasQuery)
@@ -129,7 +116,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   visualDensity: VisualDensity.compact,
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _hasQuery = false);
+                    setState(() {
+                      _query = '';
+                      _hasQuery = false;
+                    });
                   },
                 ),
             ],
@@ -166,111 +156,131 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             body: '노트, 카드, 태그를 한번에 검색할 수 있습니다',
           )
         else ...[
-          // 의미 검색일 때 AI 답변 카드
           if (_semantic) ...[
-            const ConceptSectionLabel('AI 답변'),
-            ConceptGradientCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const SynapseOrb(size: 26, glyphScale: 0.5),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        'AI 답변',
-                        style: textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '정규화는 과적합을 막기 위한 기법입니다. L1(Lasso)은 일부 가중치를 0으로 만들어 feature selection 효과를 주고, L2(Ridge)는 가중치를 작게 유지합니다. 신경망에서는 드롭아웃도 정규화 역할을 합니다.',
-                    style: textTheme.bodyMedium?.copyWith(height: 1.6),
-                  ),
-                  const SizedBox(height: AppSpacing.sm + 2),
-                  const Wrap(
-                    spacing: AppSpacing.xs + 2,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      _SourceChip('ML 정규화 기법'),
-                      _SourceChip('Lasso'),
-                      _SourceChip('Ridge'),
-                      _SourceChip('과적합'),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-          const ConceptSectionLabel('관련 결과'),
-          for (final result in _mockResults)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: ConceptCard(
-                onTap: () => context.go(
-                  AppRoutes.noteDetailPath(result['id'] as String),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            const ConceptSectionLabel('검색 상태'),
+            searchValue.maybeWhen(
+              data: (page) => ConceptGradientCard(
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: RichText(
-                            text: TextSpan(
-                              children: _highlightText(
-                                result['title'] as String,
-                                _searchController.text,
-                                textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Text(
-                          result['time'] as String,
-                          style: textTheme.labelSmall?.copyWith(
-                            color: AppColors.muted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    RichText(
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      text: TextSpan(
-                        children: _highlightText(
-                          result['snippet'] as String,
-                          _searchController.text,
-                          textTheme.bodySmall?.copyWith(
-                            color: AppColors.muted,
-                            height: 1.5,
-                          ),
-                        ),
+                    const SynapseOrb(size: 26, glyphScale: 0.5),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        page.semanticFallback
+                            ? '의미 검색 fallback: 키워드 결과를 우선 표시합니다.'
+                            : '하이브리드 검색 ${page.totalCount}건'
+                                  '${page.searchTimeMs == null ? '' : ' · ${page.searchTimeMs}ms'}',
+                        style: textTheme.bodyMedium?.copyWith(height: 1.5),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Wrap(
-                      spacing: AppSpacing.xs + 2,
-                      runSpacing: AppSpacing.xs,
-                      children: [
-                        for (final tag in result['tags'] as List<String>)
-                          ConceptTag('#$tag'),
-                      ],
                     ),
                   ],
                 ),
               ),
+              orElse: () => const SizedBox.shrink(),
             ),
+          ],
+          const ConceptSectionLabel('관련 결과'),
+          AppAsyncValueWidget<KnowledgeSearchPage>(
+            value: searchValue,
+            isEmpty: (page) => page.isEmpty,
+            loading: const AppLoadingWidget(label: '검색 중입니다.'),
+            empty: const ConceptEmptyState(
+              emoji: '∅',
+              title: '검색 결과가 없습니다',
+              body: '다른 키워드나 태그로 다시 검색해보세요',
+            ),
+            error: (error, _) => AppErrorWidget(
+              message: '검색 결과를 불러오지 못했습니다.',
+              onRetry: () => ref.invalidate(
+                knowledgeSearchProvider(
+                  KnowledgeSearchQuery(query: _query, semantic: _semantic),
+                ),
+              ),
+            ),
+            data: (page) => Column(
+              children: [
+                for (final result in page.results)
+                  _SearchResultCard(
+                    result: result,
+                    query: _searchController.text,
+                    highlightText: _highlightText,
+                  ),
+              ],
+            ),
+          ),
         ],
         const SizedBox(height: AppSpacing.xl),
       ],
+    );
+  }
+}
+
+class _SearchResultCard extends StatelessWidget {
+  const _SearchResultCard({
+    required this.result,
+    required this.query,
+    required this.highlightText,
+  });
+
+  final KnowledgeSearchResult result;
+  final String query;
+  final List<TextSpan> Function(String, String, TextStyle?) highlightText;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final snippet = result.snippet.isEmpty
+        ? (result.highlights.isEmpty
+              ? '본문 미리보기가 없습니다.'
+              : result.highlights.first)
+        : result.snippet;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: ConceptCard(
+        onTap: () => context.go(AppRoutes.noteDetailPath(result.noteId)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: RichText(
+                    text: TextSpan(
+                      children: highlightText(
+                        result.title,
+                        query,
+                        textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  result.score.toStringAsFixed(2),
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            RichText(
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                children: highlightText(
+                  snippet,
+                  query,
+                  textTheme.bodySmall?.copyWith(
+                    color: AppColors.muted,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -346,12 +356,14 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
 
     // QaMessage → _ChatMessage 변환 (기존 _ChatBubble 재사용)
     final messages = qaState.messages
-        .map((m) => _ChatMessage(
-              isUser: m.isUser,
-              text: m.text,
-              time: '',
-              sources: const [],
-            ))
+        .map(
+          (m) => _ChatMessage(
+            isUser: m.isUser,
+            text: m.text,
+            time: '',
+            sources: const [],
+          ),
+        )
         .toList();
 
     return Column(
@@ -375,8 +387,9 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                 children: [
                   Text(
                     'AI 튜터',
-                    style: textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                    style: textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   Text(
                     qaState.isStreaming ? '● 답변 중' : '● 대기 중',
@@ -403,8 +416,9 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                   ? Center(
                       child: Text(
                         '노트 내용에 대해 무엇이든 질문해보세요',
-                        style: textTheme.bodyMedium
-                            ?.copyWith(color: AppColors.muted),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.muted,
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -438,8 +452,7 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   '생성 중…',
-                  style:
-                      textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
               ],
             ),
@@ -462,13 +475,11 @@ class _AiQaScreenState extends ConsumerState<AiQaScreen> {
                     hintText: '노트 내용에 대해 질문하세요…',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      borderSide:
-                          const BorderSide(color: AppColors.border),
+                      borderSide: const BorderSide(color: AppColors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.pill),
-                      borderSide:
-                          const BorderSide(color: AppColors.border),
+                      borderSide: const BorderSide(color: AppColors.border),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,

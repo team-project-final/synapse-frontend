@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/knowledge/features/graph/presentation/screens/graph_screens.dart';
+import 'package:synapse_frontend/services/knowledge/providers/knowledge_providers.dart';
+
+import 'fake_knowledge_api.dart';
 
 // 그래프 뷰/노트 그래프/클러스터 화면 reskin 후 데스크탑/모바일 렌더 검증.
 void main() {
@@ -11,6 +14,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [knowledgeApiProvider.overrideWithValue(FakeKnowledgeApi())],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(
@@ -46,6 +50,6 @@ void main() {
     await pump(tester, const GraphViewScreen(), desktop);
     expect(find.text('머신러닝'), findsWidgets);
     expect(find.text('알고리즘'), findsWidgets);
-    expect(find.textContaining('PageRank 1위'), findsOneWidget);
+    expect(find.textContaining('PageRank'), findsOneWidget);
   });
 }

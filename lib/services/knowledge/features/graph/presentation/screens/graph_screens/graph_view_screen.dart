@@ -23,8 +23,8 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
 
   static const List<String> _filterTags = ['전체', '머신러닝', '딥러닝', '통계'];
 
-  List<_MockGraphNode> get _filteredNodes {
-    return _mockNodes.where((n) => n.linkCount >= _minLinks).toList();
+  List<KnowledgeGraphNode> _filteredNodes(KnowledgeGraphData graph) {
+    return graph.nodes.where((n) => n.linkCount >= _minLinks).toList();
   }
 
   @override
@@ -33,7 +33,7 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails details) {
+  void _onTapDown(TapDownDetails details, List<KnowledgeGraphNode> nodes) {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
@@ -43,7 +43,7 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
       details.localPosition,
     );
 
-    final hit = _hitTestNode(_filteredNodes, localPosition - _graphOffset);
+    final hit = _hitTestNode(nodes, localPosition - _graphOffset);
     setState(() {
       _selectedNodeId = hit?.id;
     });
@@ -54,8 +54,8 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
   }
 
   /// 노드 묶음의 중심을 그래프 영역 중앙에 맞추는 오프셋(좌측 쏠림 방지).
-  Offset _centerOffset(Size size) {
-    final ns = _filteredNodes;
+  Offset _centerOffset(Size size, List<KnowledgeGraphNode> nodes) {
+    final ns = nodes;
     if (ns.isEmpty) return Offset.zero;
     var minX = double.infinity, maxX = -double.infinity;
     var minY = double.infinity, maxY = -double.infinity;
@@ -73,9 +73,29 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final graphValue = ref.watch(knowledgeGraphProvider);
+    return AppAsyncValueWidget<KnowledgeGraphData>(
+      value: graphValue,
+      isEmpty: (graph) => graph.isEmpty,
+      loading: const AppLoadingWidget(label: '그래프를 불러오는 중입니다.'),
+      empty: const AppEmptyState(
+        icon: Icons.hub_outlined,
+        title: '표시할 그래프가 없습니다.',
+        body: '노트에 위키링크를 추가하면 그래프가 만들어집니다.',
+      ),
+      error: (error, _) => AppErrorWidget(
+        message: '그래프를 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(knowledgeGraphProvider),
+      ),
+      data: (graph) => _buildGraph(context, graph),
+    );
+  }
+
+  Widget _buildGraph(BuildContext context, KnowledgeGraphData graph) {
     final textTheme = Theme.of(context).textTheme;
+    final filteredNodes = _filteredNodes(graph);
     final selectedNode = _selectedNodeId != null
-        ? _filteredNodes.where((n) => n.id == _selectedNodeId).firstOrNull
+        ? filteredNodes.where((n) => n.id == _selectedNodeId).firstOrNull
         : null;
 
     return Stack(
@@ -158,19 +178,23 @@ class _GraphViewScreenState extends ConsumerState<GraphViewScreen> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  _graphOffset = _centerOffset(constraints.biggest);
+                  _graphOffset = _centerOffset(
+                    constraints.biggest,
+                    filteredNodes,
+                  );
                   return InteractiveViewer(
                     transformationController: _transformController,
                     minScale: 0.5,
                     maxScale: 3.0,
                     boundaryMargin: const EdgeInsets.all(100),
                     child: GestureDetector(
-                      onTapDown: _onTapDown,
+                      onTapDown: (details) =>
+                          _onTapDown(details, filteredNodes),
                       child: SizedBox.expand(
                         child: CustomPaint(
                           painter: _GraphPainter(
-                            nodes: _filteredNodes,
-                            edges: _mockEdges,
+                            nodes: filteredNodes,
+                            edges: graph.edges,
                             clusterColors: _clusterColors,
                             selectedNodeId: _selectedNodeId,
                             offset: _graphOffset,

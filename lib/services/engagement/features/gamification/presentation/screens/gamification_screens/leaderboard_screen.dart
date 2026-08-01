@@ -13,10 +13,16 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
 
+  static const _tabs = [
+    (label: '전체', period: 'all'),
+    (label: '주간', period: 'weekly'),
+    (label: '월간', period: 'monthly'),
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: _tabs.length, vsync: this);
   }
 
   @override
@@ -27,45 +33,21 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // TODO: 팀원 구현 — engagement-svc 리더보드 API 연동
-    const mockEntries = [
-      _LeaderboardEntry(rank: 1, name: '박탑원', xp: 12450, isMe: false),
-      _LeaderboardEntry(rank: 2, name: '이세컨', xp: 11200, isMe: false),
-      _LeaderboardEntry(rank: 3, name: '최써드', xp: 9870, isMe: false),
-      _LeaderboardEntry(rank: 4, name: '정포스', xp: 8540, isMe: false),
-      _LeaderboardEntry(rank: 5, name: '강피프', xp: 7320, isMe: false),
-      _LeaderboardEntry(rank: 6, name: '홍식스', xp: 6100, isMe: false),
-      _LeaderboardEntry(rank: 7, name: '김시냅스', xp: 3240, isMe: true),
-      _LeaderboardEntry(rank: 8, name: '윤에잇', xp: 2980, isMe: false),
-      _LeaderboardEntry(rank: 9, name: '임나인', xp: 2150, isMe: false),
-      _LeaderboardEntry(rank: 10, name: '서텐', xp: 1890, isMe: false),
-    ];
-
     return Column(
       children: [
         TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: '전체'),
-            Tab(text: '내 그룹'),
-            Tab(text: '주간'),
-            Tab(text: '월간'),
-          ],
+          tabs: [for (final tab in _tabs) Tab(text: tab.label)],
         ),
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: List.generate(
-              4,
-              (_) => ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: mockEntries.length,
-                itemBuilder: (context, i) {
-                  final entry = mockEntries[i];
-                  return _LeaderboardRow(entry: entry);
-                },
-              ),
-            ),
+            children: [
+              for (final tab in _tabs)
+                _LeaderboardList(
+                  query: LeaderboardQuery(period: tab.period, limit: 20),
+                ),
+            ],
           ),
         ),
       ],
@@ -73,22 +55,39 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen>
   }
 }
 
-class _LeaderboardEntry {
-  const _LeaderboardEntry({
-    required this.rank,
-    required this.name,
-    required this.xp,
-    required this.isMe,
-  });
-  final int rank;
-  final String name;
-  final int xp;
-  final bool isMe;
+class _LeaderboardList extends ConsumerWidget {
+  const _LeaderboardList({required this.query});
+
+  final LeaderboardQuery query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entriesValue = ref.watch(leaderboardProvider(query));
+
+    return AppAsyncValueWidget<List<LeaderboardEntry>>(
+      value: entriesValue,
+      loading: const AppLoadingWidget(label: '리더보드를 불러오는 중입니다.'),
+      error: (error, _) => AppErrorWidget(
+        message: '리더보드를 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(leaderboardProvider(query)),
+      ),
+      isEmpty: (entries) => entries.isEmpty,
+      empty: const AppEmptyState(
+        icon: Icons.leaderboard_outlined,
+        title: '리더보드 항목이 없습니다.',
+      ),
+      data: (entries) => ListView.builder(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        itemCount: entries.length,
+        itemBuilder: (context, i) => _LeaderboardRow(entry: entries[i]),
+      ),
+    );
+  }
 }
 
 class _LeaderboardRow extends StatelessWidget {
   const _LeaderboardRow({required this.entry});
-  final _LeaderboardEntry entry;
+  final LeaderboardEntry entry;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +98,7 @@ class _LeaderboardRow extends StatelessWidget {
         : entry.rank == 2
         ? AppColors.muted
         : entry.rank == 3
-        ? const Color(0xFFCD7F32) // bronze
+        ? const Color(0xFFCD7F32)
         : null;
 
     return Container(
@@ -109,17 +108,11 @@ class _LeaderboardRow extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: entry.isMe
-            ? AppColors.primary.withValues(alpha: 0.10) // highlight my row
-            : null,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: entry.isMe
-            ? Border.all(color: AppColors.primary.withValues(alpha: 0.5))
-            : null,
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          // Rank
           SizedBox(
             width: 32,
             child: entry.rank <= 3
@@ -128,41 +121,53 @@ class _LeaderboardRow extends StatelessWidget {
                     '${entry.rank}',
                     style: textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: entry.isMe ? AppColors.primary : AppColors.muted,
+                      color: AppColors.muted,
                     ),
                     textAlign: TextAlign.center,
                   ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Avatar
           CircleAvatar(
             radius: 16,
-            backgroundColor: entry.isMe
-                ? AppColors.primary.withValues(alpha: 0.2)
-                : AppColors.surface2,
+            backgroundColor: AppColors.surface2,
             child: Text(
-              entry.name.substring(0, 1),
-              style: textTheme.labelSmall?.copyWith(
-                color: entry.isMe ? AppColors.primary : AppColors.muted,
-              ),
+              entry.nickname.isEmpty ? '?' : entry.nickname.substring(0, 1),
+              style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Name
           Expanded(
-            child: Text(
-              entry.name,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: entry.isMe ? FontWeight.bold : null,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.nickname,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Lv ${entry.level}',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
-          // XP
-          Text(
-            '${entry.xp} XP',
-            style: textTheme.bodyMedium?.copyWith(
-              color: entry.isMe ? AppColors.primary : AppColors.muted,
-              fontWeight: entry.isMe ? FontWeight.bold : null,
+          Flexible(
+            fit: FlexFit.loose,
+            child: Text(
+              '${_formatCount(entry.xp)} XP',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.muted,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

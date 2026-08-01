@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:synapse_frontend/core/theme/app_theme.dart';
 import 'package:synapse_frontend/services/knowledge/features/search/presentation/screens/search_screens.dart';
+import 'package:synapse_frontend/services/knowledge/providers/knowledge_providers.dart';
+
+import 'fake_knowledge_api.dart';
 
 // 검색 / AI Q&A 화면 reskin 후 데스크탑/모바일 렌더 검증.
 // AiQaScreen은 무한 타이핑 타이머/진행 인디케이터가 있어 pumpAndSettle 금지,
@@ -13,6 +16,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [knowledgeApiProvider.overrideWithValue(FakeKnowledgeApi())],
         child: MaterialApp(
           theme: AppTheme.light(),
           home: MediaQuery(

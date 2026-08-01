@@ -17,15 +17,28 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isWide = MediaQuery.sizeOf(context).width >= 600;
-    final filters = ['전체', '머신러닝', '딥러닝', '알고리즘', 'AWS'];
+    final tagsValue = ref.watch(popularTagsProvider);
+    final filters = tagsValue.maybeWhen(
+      data: (tags) => ['전체', for (final tag in tags.take(8)) tag.tag],
+      orElse: () => const ['전체'],
+    );
+    final query = NoteListQuery(
+      tag: _selectedFilter == '전체' ? null : _selectedFilter,
+      sortOrder: _sortOrder,
+    );
+    final notesValue = ref.watch(noteListProvider(query));
 
     return Stack(
       children: [
         ConceptPage(
           children: [
-            const ConceptViewHead(title: '라이브러리', meta: '노트 24'),
-            // Search bar (탭하면 검색 화면) — 데모용
-            // TODO: 팀원 구현 — knowledge-svc 검색 API 연동
+            ConceptViewHead(
+              title: '라이브러리',
+              meta: notesValue.maybeWhen(
+                data: (page) => '노트 ${page.totalElements}',
+                orElse: () => '노트',
+              ),
+            ),
             ConceptSearchBar(
               hint: '노트 검색…',
               onTap: () => context.go(AppRoutes.search),
@@ -80,11 +93,32 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
               ],
             ),
             const ConceptSectionLabel('최근 노트', topGap: AppSpacing.md),
-            // Note list
-            // TODO: 팀원 구현 — knowledge-svc 노트 목록 API 연동
-            ConceptResponsiveGrid(
-              isWide: isWide,
-              children: [for (final note in _mockNotes) _NoteCard(note: note)],
+            AppAsyncValueWidget<KnowledgeNotePage>(
+              value: notesValue,
+              isEmpty: (page) => page.isEmpty,
+              loading: const AppLoadingWidget(label: '노트를 불러오는 중입니다.'),
+              empty: AppEmptyState(
+                icon: Icons.article_outlined,
+                title: _selectedFilter == '전체'
+                    ? '아직 작성한 노트가 없습니다.'
+                    : '#$_selectedFilter 노트가 없습니다.',
+                body: '새 노트를 작성하면 라이브러리에 표시됩니다.',
+                action: FilledButton.icon(
+                  onPressed: () => context.go(AppRoutes.noteEditorPath('new')),
+                  icon: const Icon(Icons.add),
+                  label: const Text('새 노트'),
+                ),
+              ),
+              error: (error, _) => AppErrorWidget(
+                message: '노트 목록을 불러오지 못했습니다.',
+                onRetry: () => ref.invalidate(noteListProvider(query)),
+              ),
+              data: (page) => ConceptResponsiveGrid(
+                isWide: isWide,
+                children: [
+                  for (final note in page.items) _NoteCard(note: note),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.xxl + AppSpacing.xxl),
           ],
@@ -105,7 +139,7 @@ class _NoteListScreenState extends ConsumerState<NoteListScreen> {
 
 class _NoteCard extends StatelessWidget {
   const _NoteCard({required this.note});
-  final _MockNote note;
+  final KnowledgeNote note;
 
   @override
   Widget build(BuildContext context) {
@@ -149,9 +183,7 @@ class _NoteCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  note.backlinks != null
-                      ? '백링크 ${note.backlinks}'
-                      : note.timeAgo,
+                  note.updatedLabel,
                   style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
                 ),
               ],

@@ -1,6 +1,6 @@
 part of '../community_screens.dart';
 
-// ── Group Detail (tab: members / shared content) ──
+// -- Group Detail (API-backed) --
 
 class CommunityGroupDetailScreen extends ConsumerWidget {
   const CommunityGroupDetailScreen({required this.groupId, super.key});
@@ -9,317 +9,232 @@ class CommunityGroupDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final detailValue = ref.watch(communityGroupDetailProvider(groupId));
 
-    // TODO: 팀원 구현 — engagement-svc 그룹 상세 API 연동
-    final mockMembers = [
-      {'name': '김시냅스', 'role': '소유자'},
-      {'name': '이러닝', 'role': '멤버'},
-      {'name': '박지식', 'role': '멤버'},
-      {'name': '최코딩', 'role': '멤버'},
-    ];
-
-    final mockActivities = [
-      {'icon': Icons.person_add, 'text': '이러닝 님이 그룹에 참여했습니다', 'time': '2시간 전'},
-      {
-        'icon': Icons.style_outlined,
-        'text': '김시냅스 님이 새 덱을 공유했습니다',
-        'time': '3시간 전',
-      },
-      {
-        'icon': Icons.chat_outlined,
-        'text': '박지식 님이 댓글을 남겼습니다',
-        'time': '5시간 전',
-      },
-      {
-        'icon': Icons.edit_outlined,
-        'text': '최코딩 님이 노트를 수정했습니다',
-        'time': '1일 전',
-      },
-      {
-        'icon': Icons.star_outlined,
-        'text': '이러닝 님이 덱에 별점을 남겼습니다',
-        'time': '2일 전',
-      },
-    ];
-
-    // v1 ⑫ 공유 덱 / 주간 랭킹
-    const sharedDecks = [
-      (name: 'SAA 핵심 개념', sharer: '민지 공유', count: '120장'),
-      (name: 'VPC & 네트워킹', sharer: '준호 공유', count: '64장'),
-      (name: '기출 오답 모음', sharer: '서연 공유', count: '38장'),
-    ];
-    const rankings = [
-      (pos: 1, name: '민지', xp: '+980', top: true),
-      (pos: 2, name: '준호', xp: '+760', top: true),
-      (pos: 3, name: '나 (김시냅스)', xp: '+420', top: false),
-      (pos: 4, name: '서연', xp: '+310', top: false),
-    ];
-
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // gico 헤더 (v1 ⑫)
-                Row(
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Color.alphaBlend(
-                          AppColors.primary.withValues(alpha: 0.14),
-                          AppColors.surface,
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text('📜', style: TextStyle(fontSize: 24)),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'AWS 자격증 스터디',
-                            style: textTheme.headlineSmall,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '승인제 · 8/20명 · 가입됨',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: AppColors.stone500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Row(
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () {
-                        // TODO: 팀원 구현 — 초대 다이얼로그
-                      },
-                      icon: const Icon(Icons.person_add_outlined, size: 18),
-                      label: const Text('초대'),
-                      style: FilledButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        // TODO: 팀원 구현 — 강퇴 기능
-                      },
-                      icon: const Icon(Icons.person_remove_outlined, size: 18),
-                      label: const Text('강퇴'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    TextButton.icon(
-                      onPressed: () => ReportDialog.show(
-                        context,
-                        targetTitle: 'AWS 자격증 스터디',
-                      ),
-                      icon: const Icon(Icons.flag_outlined, size: 18),
-                      label: const Text('신고'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const TabBar(
-            tabs: [
-              Tab(text: '멤버'),
-              Tab(text: '공유 콘텐츠'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
-              children: [
-                // Members tab
-                ListView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    ...mockMembers.map(
-                      (member) => ListTile(
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: colorScheme.primaryContainer,
-                          child: Text(
-                            (member['name'] as String).substring(0, 1),
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          member['name'] as String,
-                          style: textTheme.bodyMedium,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Chip(
-                              label: Text(
-                                member['role'] as String,
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: member['role'] == '소유자'
-                                      ? AppColors.primaryAmber
-                                      : AppColors.stone500,
-                                ),
-                              ),
-                              backgroundColor: member['role'] == '소유자'
-                                  ? AppColors.primaryAmber.withValues(
-                                      alpha: 0.1,
-                                    )
-                                  : AppColors.stone100,
-                              side: BorderSide.none,
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.flag_outlined, size: 18),
-                              color: AppColors.muted,
-                              tooltip: '사용자 신고',
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => ReportDialog.show(
-                                context,
-                                targetTitle: member['name'] as String,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    // 이번 주 랭킹 (v1 ⑫ .rank)
-                    const SectionLabel('이번 주 랭킹'),
-                    const SizedBox(height: AppSpacing.sm),
-                    StudyCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < rankings.length; i++)
-                            _RankRow(
-                              pos: rankings[i].pos,
-                              name: rankings[i].name,
-                              xp: rankings[i].xp,
-                              top: rankings[i].top,
-                              showDivider: i < rankings.length - 1,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    // Activity log
-                    const SectionLabel('활동 로그'),
-                    const SizedBox(height: AppSpacing.sm),
-                    ...mockActivities.map(
-                      (activity) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: Row(
-                          children: [
-                            Icon(
-                              activity['icon'] as IconData,
-                              size: 18,
-                              color: AppColors.stone400,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                activity['text'] as String,
-                                style: textTheme.bodySmall,
-                              ),
-                            ),
-                            Text(
-                              activity['time'] as String,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: AppColors.stone400,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                // Shared content tab — 공유 덱
-                ListView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  children: [
-                    SectionLabel('공유 덱 ${sharedDecks.length}'),
-                    const SizedBox(height: AppSpacing.sm),
-                    StudyCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.xs,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < sharedDecks.length; i++)
-                            _SharedDeckRow(
-                              name: sharedDecks[i].name,
-                              sharer: sharedDecks[i].sharer,
-                              count: sharedDecks[i].count,
-                              showDivider: i < sharedDecks.length - 1,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                // TODO: 팀원 구현 — engagement-svc 멤버/콘텐츠 API 연동
-              ],
-            ),
-          ),
-        ],
+    return AppAsyncValueWidget<CommunityGroupDetail>(
+      value: detailValue,
+      loading: const AppLoadingWidget(label: '그룹 상세를 불러오는 중입니다.'),
+      error: (error, _) => AppErrorWidget(
+        message: '그룹 상세를 불러오지 못했습니다.',
+        onRetry: () => ref.invalidate(communityGroupDetailProvider(groupId)),
       ),
+      data: (detail) => _CommunityGroupDetailView(detail: detail),
     );
   }
 }
 
-/// 목업 `.sharedeck` — 공유 덱 한 줄(이모지 + 이름/공유자 + 카드 수).
-class _SharedDeckRow extends StatelessWidget {
-  const _SharedDeckRow({
-    required this.name,
-    required this.sharer,
-    required this.count,
-    required this.showDivider,
-  });
-  final String name;
-  final String sharer;
-  final String count;
+class _CommunityGroupDetailView extends ConsumerStatefulWidget {
+  const _CommunityGroupDetailView({required this.detail});
+
+  final CommunityGroupDetail detail;
+
+  @override
+  ConsumerState<_CommunityGroupDetailView> createState() =>
+      _CommunityGroupDetailViewState();
+}
+
+class _CommunityGroupDetailViewState
+    extends ConsumerState<_CommunityGroupDetailView> {
+  bool _joining = false;
+  bool _reporting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = widget.detail;
+    final group = detail.group;
+    final members = detail.members;
+    final textTheme = Theme.of(context).textTheme;
+
+    return ConceptPage(
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Color.alphaBlend(
+                  AppColors.primary.withValues(alpha: 0.14),
+                  AppColors.surface,
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.groups_outlined,
+                color: AppColors.primary,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    group.name,
+                    style: textTheme.headlineSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${group.visibilityLabel} · 멤버 ${detail.activeMemberCount}명 · ${group.ownerLabel}',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: AppColors.stone500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (group.description.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          ConceptCard(
+            child: Text(
+              group.description,
+              style: textTheme.bodyMedium?.copyWith(height: 1.6),
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _joining ? null : _joinGroup,
+                icon: _joining
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.person_add_outlined, size: 18),
+                label: Text(group.isPublic ? '가입' : '가입 신청'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            TextButton.icon(
+              onPressed: _reporting ? null : _reportGroup,
+              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+              icon: const Icon(Icons.flag_outlined, size: 18),
+              label: const Text('신고'),
+            ),
+          ],
+        ),
+        const ConceptSectionLabel('멤버'),
+        if (members.isEmpty)
+          const AppEmptyState(
+            icon: Icons.people_outline,
+            title: '표시할 멤버가 없습니다.',
+          )
+        else
+          ConceptCard(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < members.length; i++)
+                  _MemberRow(
+                    member: members[i],
+                    showDivider: i < members.length - 1,
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: AppSpacing.lg),
+        const ConceptSectionLabel('그룹 정보'),
+        ConceptCard(
+          child: Column(
+            children: [
+              _InfoRow(label: '그룹 ID', value: group.id),
+              _InfoRow(label: '공개 상태', value: group.visibilityLabel),
+              _InfoRow(label: '소유자', value: group.ownerLabel),
+              _InfoRow(label: '생성일', value: group.createdLabel),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
+  }
+
+  Future<void> _joinGroup() async {
+    final group = widget.detail.group;
+    setState(() => _joining = true);
+    try {
+      final member = await ref.read(engagementApiProvider).joinGroup(group.id);
+      ref.invalidate(communityGroupDetailProvider(group.id));
+      if (mounted) {
+        final message = member.active ? '그룹에 가입했습니다' : '가입 신청이 접수되었습니다';
+        AppToast.show(context, message: message, type: ToastType.success);
+      }
+    } catch (_) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '그룹 가입 요청을 처리하지 못했습니다',
+          type: ToastType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
+  }
+
+  Future<void> _reportGroup() async {
+    final group = widget.detail.group;
+    final result = await ReportDialog.show(context, targetTitle: group.name);
+    if (result == null) return;
+    setState(() => _reporting = true);
+    final detail = result['detail']?.trim();
+    final reason = [
+      result['reason'] ?? '',
+      if (detail != null && detail.isNotEmpty) detail,
+    ].where((part) => part.isNotEmpty).join(' · ');
+    try {
+      await ref
+          .read(engagementApiProvider)
+          .createReport(
+            targetType: 'STUDY_GROUP',
+            targetId: group.id,
+            reason: reason,
+          );
+      if (mounted) {
+        AppToast.show(context, message: '신고가 접수되었습니다', type: ToastType.success);
+      }
+    } catch (_) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: '신고를 접수하지 못했습니다',
+          type: ToastType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _reporting = false);
+    }
+  }
+}
+
+class _MemberRow extends StatelessWidget {
+  const _MemberRow({required this.member, required this.showDivider});
+
+  final CommunityGroupMember member;
   final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final roleColor = member.role == 'OWNER'
+        ? AppColors.primaryAmber
+        : member.role == 'ADMIN'
+        ? AppColors.primary
+        : AppColors.stone500;
+
     return Container(
       decoration: showDivider
           ? const BoxDecoration(
@@ -329,114 +244,47 @@ class _SharedDeckRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
-          const Text('📦', style: TextStyle(fontSize: 16)),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.primaryLight,
+            child: Text(
+              member.userId.isEmpty ? '?' : member.userId.substring(0, 1),
+              style: textTheme.labelMedium?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  member.displayName,
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 Text(
-                  sharer,
-                  style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+                  member.joinedAt == null
+                      ? member.statusLabel
+                      : '${member.statusLabel} · ${member.joinedLabel}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.stone500,
+                  ),
                 ),
               ],
             ),
           ),
-          Text(
-            count,
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.muted,
-              fontWeight: FontWeight.w600,
+          Chip(
+            label: Text(
+              member.roleLabel,
+              style: textTheme.labelSmall?.copyWith(color: roleColor),
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          OutlinedButton(
-            onPressed: () {
-              AppToast.show(
-                context,
-                message: '\'$name\' 덱을 내 라이브러리에 추가했습니다',
-                type: ToastType.success,
-              );
-              // TODO: 팀원 구현 — 공유 덱 받기(복사) API 연동
-            },
-            style: OutlinedButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            ),
-            child: const Text('공유받기'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 목업 `.rank` — 주간 랭킹 한 줄(순위 핀 + 이름 + XP).
-class _RankRow extends StatelessWidget {
-  const _RankRow({
-    required this.pos,
-    required this.name,
-    required this.xp,
-    required this.top,
-    required this.showDivider,
-  });
-  final int pos;
-  final String name;
-  final String xp;
-  final bool top;
-  final bool showDivider;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      decoration: showDivider
-          ? const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            )
-          : null,
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              color: top ? AppColors.streak : AppColors.surface2,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$pos',
-              style: textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: top ? Colors.white : AppColors.muted,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              name,
-              style: textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            xp,
-            style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.success,
-              fontWeight: FontWeight.w800,
-            ),
+            backgroundColor: roleColor.withValues(alpha: 0.1),
+            side: BorderSide.none,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),

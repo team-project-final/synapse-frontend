@@ -13,25 +13,24 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with SingleTickerProviderStateMixin {
+  final _titleController = TextEditingController();
   final _controller = TextEditingController();
   late final TabController _tabController;
   String _markdown = '';
-
-  /// `[[` 위키링크 자동완성 후보 (mock — v1 목업의 autocomplete 드롭다운).
-  /// TODO: 팀원 구현 — knowledge-svc 노트 제목 검색으로 후보 동적 로드
-  static const _wikiCandidates = [
-    ('어텐션 메커니즘', '#딥러닝'),
-    ('어텐션 스코어', '새 노트'),
-    ('인코더-디코더', '#딥러닝'),
-  ];
+  KnowledgeNote? _loadedNote;
+  Timer? _autosaveTimer;
+  bool _isSaving = false;
+  bool _isAutosaving = false;
+  bool _suppressChanges = false;
+  String? _saveError;
+  DateTime? _lastSavedAt;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _controller.addListener(() {
-      setState(() => _markdown = _controller.text);
-    });
+    _titleController.addListener(_onEditorChanged);
+    _controller.addListener(_onEditorChanged);
   }
 
   /// 커서 앞 텍스트가 닫히지 않은 `[[…` 패턴이면 자동완성 쿼리를 돌려준다.
@@ -68,9 +67,42 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
+    _titleController.dispose();
     _controller.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onEditorChanged() {
+    if (_suppressChanges) return;
+    setState(() {
+      _markdown = _controller.text;
+      _saveError = null;
+    });
+
+    if (widget.noteId == 'new') return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(
+      const Duration(seconds: 2),
+      () => unawaited(_saveNote(autosave: true)),
+    );
+  }
+
+  void _scheduleHydrate(KnowledgeNote note) {
+    if (_loadedNote?.id == note.id) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _loadedNote?.id == note.id) return;
+      _suppressChanges = true;
+      _titleController.text = note.title;
+      _controller.text = note.contentMd;
+      _suppressChanges = false;
+      setState(() {
+        _loadedNote = note;
+        _markdown = note.contentMd;
+        _lastSavedAt = note.updatedAt;
+      });
+    });
   }
 
   void _insertMarkdown(String syntax) {
@@ -87,8 +119,37 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.noteId != 'new') {
+      final noteValue = ref.watch(noteDetailProvider(widget.noteId));
+      return AppAsyncValueWidget<KnowledgeNote>(
+        value: noteValue,
+        loading: const AppLoadingWidget(label: '편집할 노트를 불러오는 중입니다.'),
+        error: (error, _) => AppErrorWidget(
+          message: '편집할 노트를 불러오지 못했습니다.',
+          onRetry: () => ref.invalidate(noteDetailProvider(widget.noteId)),
+        ),
+        data: (note) {
+          _scheduleHydrate(note);
+          return _buildEditorScaffold(context);
+        },
+      );
+    }
+    return _buildEditorScaffold(context);
+  }
+
+  Widget _buildEditorScaffold(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final statusLabel = _isSaving
+        ? '저장 중'
+        : _isAutosaving
+        ? '자동저장 중'
+        : _lastSavedAt == null
+        ? '저장 대기'
+        : '저장됨';
+    final statusColor = _saveError != null
+        ? AppColors.error
+        : AppColors.success;
 
     return Column(
       children: [
@@ -145,24 +206,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                 ),
               ),
               // 자동저장 인디케이터
-              const Icon(Icons.circle, size: 8, color: AppColors.success),
+              Icon(Icons.circle, size: 8, color: statusColor),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                '저장됨',
+                statusLabel,
                 style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
               ),
-              // TODO: 팀원 구현 — 자동저장 상태 연동
               const SizedBox(width: AppSpacing.md),
               FilledButton(
-                onPressed: () {
-                  if (widget.noteId == 'new') {
-                    // TODO: 팀원 구현 — knowledge-svc POST /notes API 호출 후 생성된 noteId 상세로 이동
-                    context.go(AppRoutes.notes);
-                  } else {
-                    // TODO: 팀원 구현 — knowledge-svc PUT /notes/:noteId API 호출
-                    context.go(AppRoutes.noteDetailPath(widget.noteId));
-                  }
-                },
+                onPressed: _isSaving ? null : () => unawaited(_saveNote()),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.md,
@@ -178,9 +230,31 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         ),
         // Content
         Expanded(
-          child: isMobile
-              ? _buildMobileTabView(textTheme)
-              : _buildDesktopSplitView(textTheme),
+          child: Column(
+            children: [
+              if (_saveError != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
+                  ),
+                  color: AppColors.error.withValues(alpha: 0.08),
+                  child: Text(
+                    _saveError!,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: isMobile
+                    ? _buildMobileTabView(textTheme)
+                    : _buildDesktopSplitView(textTheme),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -190,6 +264,13 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   /// v1 목업 ④의 핵심 디테일을 데스크탑/모바일 양쪽에서 재사용한다.
   Widget _buildEditorPane(TextTheme textTheme, {required bool expandField}) {
     final query = _wikiQuery;
+    final autocompleteValue = query == null
+        ? null
+        : ref.watch(
+            knowledgeSearchProvider(
+              KnowledgeSearchQuery(query: query, semantic: false, limit: 5),
+            ),
+          );
     final field = TextField(
       controller: _controller,
       maxLines: expandField ? null : 6,
@@ -201,18 +282,27 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         hintText: '마크다운으로 작성하세요…  [[ 로 위키링크',
         border: InputBorder.none,
       ),
-      // TODO: 팀원 구현 — knowledge-svc API 연동, 위키링크 파싱
     );
 
     final extras = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (query != null)
-          _WikiAutocomplete(
-            query: query,
-            candidates: _wikiCandidates,
-            onSelect: _acceptWiki,
+        if (query != null && autocompleteValue != null)
+          autocompleteValue.when(
+            data: (page) => _WikiAutocomplete(
+              query: query,
+              candidates: [
+                for (final result in page.results)
+                  (result.title, '연관도 ${result.score.toStringAsFixed(2)}'),
+              ],
+              onSelect: _acceptWiki,
+            ),
+            loading: () => const Padding(
+              padding: EdgeInsets.only(top: AppSpacing.sm),
+              child: LinearProgressIndicator(),
+            ),
+            error: (_, _) => const SizedBox.shrink(),
           ),
         const SizedBox(height: AppSpacing.md),
         ConceptGradientCard(
@@ -272,6 +362,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(child: field),
+            const SizedBox(height: AppSpacing.md),
             extras,
           ],
         ),
@@ -286,7 +377,18 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Widget _buildDesktopSplitView(TextTheme textTheme) {
     return Row(
       children: [
-        Expanded(child: _buildEditorPane(textTheme, expandField: true)),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              children: [
+                _buildTitlePane(textTheme),
+                const Divider(height: AppSpacing.lg),
+                Expanded(child: _buildEditorPane(textTheme, expandField: true)),
+              ],
+            ),
+          ),
+        ),
         const VerticalDivider(width: 1, color: AppColors.border),
         Expanded(
           child: Padding(
@@ -310,6 +412,15 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Widget _buildMobileTabView(TextTheme textTheme) {
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
+          child: _buildTitlePane(textTheme),
+        ),
         TabBar(
           controller: _tabController,
           tabs: const [
@@ -342,6 +453,98 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         ),
       ],
     );
+  }
+
+  Widget _buildTitlePane(TextTheme textTheme) {
+    return TextField(
+      controller: _titleController,
+      style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+      decoration: const InputDecoration(
+        hintText: '노트 제목',
+        border: InputBorder.none,
+        isDense: true,
+      ),
+    );
+  }
+
+  Future<void> _saveNote({bool autosave = false}) async {
+    final title = _titleController.text.trim();
+    final content = _controller.text.trim();
+    if (title.isEmpty || content.isEmpty) {
+      if (!autosave) {
+        setState(() => _saveError = '제목과 본문을 입력하세요.');
+      }
+      return;
+    }
+
+    setState(() {
+      if (autosave) {
+        _isAutosaving = true;
+      } else {
+        _isSaving = true;
+      }
+      _saveError = null;
+    });
+
+    try {
+      final tenant = await ref.read(currentTenantProvider.future);
+      final api = ref.read(knowledgeApiProvider);
+      final saved = widget.noteId == 'new'
+          ? await api.createNote(
+              tenantId: tenant.id,
+              title: title,
+              contentMd: content,
+              tags: _extractTags(content),
+            )
+          : await api.updateNote(
+              noteId: widget.noteId,
+              tenantId: tenant.id,
+              title: title,
+              contentMd: content,
+              tags: _extractTags(content),
+              deckId: _loadedNote?.deckId,
+            );
+      ref.invalidate(noteListProvider);
+      ref.invalidate(popularTagsProvider);
+      ref.invalidate(knowledgeGraphProvider);
+      ref.invalidate(noteDetailProvider(saved.id));
+      if (widget.noteId != 'new') {
+        ref.invalidate(noteDetailProvider(widget.noteId));
+      }
+      if (!mounted) return;
+      setState(() {
+        _loadedNote = saved;
+        _lastSavedAt = saved.updatedAt ?? DateTime.now();
+      });
+      if (!autosave) {
+        context.go(AppRoutes.noteDetailPath(saved.id));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _saveError = autosave ? '자동저장에 실패했습니다. 다시 시도해 주세요.' : '노트를 저장하지 못했습니다.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          if (autosave) {
+            _isAutosaving = false;
+          } else {
+            _isSaving = false;
+          }
+        });
+      }
+    }
+  }
+
+  List<String> _extractTags(String content) {
+    final matches = RegExp(r'(^|\s)#([^\s#]{1,30})').allMatches(content);
+    return matches
+        .map((match) => match.group(2) ?? '')
+        .where((tag) => tag.isNotEmpty)
+        .take(10)
+        .toSet()
+        .toList(growable: false);
   }
 }
 

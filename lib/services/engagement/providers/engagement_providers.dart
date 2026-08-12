@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/network/dio_client.dart';
 import 'package:synapse_frontend/services/engagement/data/engagement_api.dart';
@@ -65,6 +66,21 @@ final sharedContentDetailProvider = FutureProvider.autoDispose
     .family<SharedContent, String>((ref, token) {
       return ref.watch(engagementApiProvider).getSharedContent(token);
     });
+
+/// 비멤버 접근은 403으로 확정된 결과이므로 재시도해도 같은 응답이다.
+/// Riverpod 3의 기본 재시도(최대 10회·지수 백오프)를 그대로 두면 그동안 상태가
+/// `AsyncLoading`이라 사용자에게는 안내 문구 대신 무한 스피너가 보인다.
+Duration? _skipRetryOnClientError(int retryCount, Object error) {
+  final status = error is DioException ? error.response?.statusCode : null;
+  if (status != null && status >= 400 && status < 500) return null;
+  if (retryCount >= 3) return null;
+  return Duration(milliseconds: 200 * (retryCount + 1));
+}
+
+final groupSharedContentProvider = FutureProvider.autoDispose
+    .family<List<SharedContent>, String>((ref, groupId) {
+      return ref.watch(engagementApiProvider).getGroupSharedContent(groupId);
+    }, retry: _skipRetryOnClientError);
 
 final adminReportsProvider = FutureProvider.autoDispose
     .family<List<EngagementReport>, String>((ref, status) {

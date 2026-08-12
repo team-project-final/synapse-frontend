@@ -192,6 +192,7 @@ class SharedContent {
     required this.downloadCount,
     this.sourceShareId,
     this.createdAt,
+    this.groupId,
   });
 
   factory SharedContent.fromJson(Map<String, dynamic> json) {
@@ -209,6 +210,7 @@ class SharedContent {
           ? null
           : _stringId(json['sourceShareId']),
       createdAt: _dateTimeValue(json['createdAt']),
+      groupId: json['groupId'] == null ? null : _stringId(json['groupId']),
     );
   }
 
@@ -223,6 +225,9 @@ class SharedContent {
   final int downloadCount;
   final String? sourceShareId;
   final DateTime? createdAt;
+  final String? groupId;
+
+  bool get isGroupScoped => groupId != null && groupId!.isNotEmpty;
 
   String get ownerLabel => ownerId.isEmpty ? '소유자 미상' : '사용자 #$ownerId';
   String get createdLabel => _relativeDate(createdAt);
@@ -452,6 +457,7 @@ class EngagementApi {
     required String title,
     required String description,
     List<String> tags = const [],
+    String? groupId,
   }) async {
     final response = await _dio.post<dynamic>(
       '/api/v1/community/share',
@@ -461,6 +467,8 @@ class EngagementApi {
         'title': title,
         'description': description,
         'tags': tags,
+        if (groupId != null && groupId.isNotEmpty)
+          'groupId': int.tryParse(groupId) ?? groupId,
       },
     );
     return ShareToken.fromJson(_unwrapMap(response.data));
@@ -479,6 +487,25 @@ class EngagementApi {
       '/api/v1/community/search',
       queryParameters: {
         if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (contentType != null && contentType.isNotEmpty)
+          'contentType': contentType,
+      },
+    );
+    return _unwrapList(response.data)
+        .whereType<Map<String, dynamic>>()
+        .map(SharedContent.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<List<SharedContent>> getGroupSharedContent(
+    String groupId, {
+    String? keyword,
+    String? contentType,
+  }) async {
+    final response = await _dio.get<dynamic>(
+      '/api/v1/community/groups/$groupId/shared-content',
+      queryParameters: {
+        if (keyword != null && keyword.trim().isNotEmpty) 'q': keyword.trim(),
         if (contentType != null && contentType.isNotEmpty)
           'contentType': contentType,
       },

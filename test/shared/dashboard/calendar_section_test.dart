@@ -52,4 +52,41 @@ void main() {
 
     expect(find.textContaining('밀린'), findsNothing);
   });
+
+  testWidgets('실적 조회 구간이 주간 스트립이 그리는 이번 주 월요일을 포함한다', (
+    tester,
+  ) async {
+    // 월 그리드는 일요일 시작, 주간 스트립은 월요일 시작(ISO)이라 관례가
+    // 다르다. 1일이 일요일인 달의 1일 당일에는 이번 주 월요일이 월 그리드
+    // 시작일보다 앞서므로, 실적(daily) 조회 구간이 gridStart부터만 잡히면
+    // weekStart~1일 전날 구간이 어느 provider 구간에도 포함되지 않아 주간
+    // 스트립이 그 날짜들을 항상 0으로 그린다. 오늘 날짜와 무관하게 항상
+    // 성립해야 하는 불변조건이므로 실제 DateTime.now()로 검증한다.
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    final weekStart = startOfToday.subtract(
+      Duration(days: startOfToday.weekday - DateTime.monday),
+    );
+
+    StatsDateRange? capturedDailyRange;
+    await pump(tester, [
+      reviewForecastProvider.overrideWith(
+        (ref, range) async => const ReviewForecast(overdueCount: 0, days: []),
+      ),
+      dailyReviewStatsProvider.overrideWith((ref, range) async {
+        capturedDailyRange = range;
+        return const <DailyReviewStat>[];
+      }),
+    ]);
+
+    expect(capturedDailyRange, isNotNull);
+    expect(
+      capturedDailyRange!.from.isAfter(weekStart),
+      isFalse,
+      reason:
+          '주간 스트립이 그리는 이번 주 월요일(${weekStart.toIso8601String()})이 '
+          '실적 조회 구간 시작(${capturedDailyRange!.from.toIso8601String()})보다 '
+          '앞서면 그 날짜는 실적 데이터가 없어 항상 0으로 그려진다.',
+    );
+  });
 }

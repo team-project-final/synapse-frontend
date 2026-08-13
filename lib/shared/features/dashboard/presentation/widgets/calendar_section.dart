@@ -48,8 +48,17 @@ class CalendarSection extends ConsumerWidget {
     final today = _startOfToday();
     final gridStart = _monthGridStartOf(today);
     final gridEnd = gridStart.add(const Duration(days: 41));
+    // 월 그리드는 일요일 시작, 주간 스트립은 월요일 시작(ISO)이라 관례가
+    // 다르다. 1일이 일요일인 달의 1일 당일에는 weekStart(전달 마지막 주
+    // 월요일)가 gridStart(1일)보다 앞선다 — 두 시작점 중 이른 쪽부터
+    // 실적을 조회해야 주간 스트립이 그리는 날짜가 항상 조회 구간에
+    // 포함된다(92일 상한 안에서 충분히 여유 있음).
+    final weekStart = _weekStartOf(today);
+    final dailyRangeStart = gridStart.isBefore(weekStart)
+        ? gridStart
+        : weekStart;
     final forecastRange = StatsDateRange(from: today, to: gridEnd);
-    final dailyRange = StatsDateRange(from: gridStart, to: today);
+    final dailyRange = StatsDateRange(from: dailyRangeStart, to: today);
 
     final forecastAsync = ref.watch(reviewForecastProvider(forecastRange));
     final dailyAsync = ref.watch(dailyReviewStatsProvider(dailyRange));

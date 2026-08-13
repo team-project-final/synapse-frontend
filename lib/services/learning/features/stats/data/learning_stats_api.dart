@@ -98,6 +98,29 @@ class DailyReviewStat {
   final double correctRate;
 }
 
+class ReviewOverview {
+  const ReviewOverview({
+    required this.totalReviews,
+    required this.overallCorrectRate,
+    required this.currentStreak,
+    required this.longestStreak,
+  });
+
+  factory ReviewOverview.fromJson(Map<String, dynamic> json) {
+    return ReviewOverview(
+      totalReviews: _intValue(json['totalReviews']) ?? 0,
+      overallCorrectRate: _doubleValue(json['overallCorrectRate']) ?? 0,
+      currentStreak: _intValue(json['currentStreak']) ?? 0,
+      longestStreak: _intValue(json['longestStreak']) ?? 0,
+    );
+  }
+
+  final int totalReviews;
+  final double overallCorrectRate;
+  final int currentStreak;
+  final int longestStreak;
+}
+
 class LearningStatsApi {
   const LearningStatsApi(this._dio);
 
@@ -145,6 +168,14 @@ class LearningStatsApi {
         .whereType<Map<String, dynamic>>()
         .map(DailyReviewStat.fromJson)
         .toList(growable: false);
+  }
+
+  Future<ReviewOverview> getOverview({required String tenantId}) async {
+    final response = await _dio.get<dynamic>(
+      '/stats/overview',
+      options: _tenantOptions(tenantId),
+    );
+    return ReviewOverview.fromJson(_unwrapMap(response.data));
   }
 }
 

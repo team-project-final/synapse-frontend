@@ -17,14 +17,17 @@ class PlannerSection extends StatefulWidget {
 }
 
 class _PlannerSectionState extends State<PlannerSection> {
-  // 기본 선택 = 오늘(디자인 mock 기준 2026-05-29).
-  // TODO: 팀원 구현 — 실제로는 DateTime.now() 기준으로 초기화한다.
-  DateTime _selected = DateTime(2026, 5, 29);
+  DateTime _selected = _today();
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   final GlobalKey _boardKey = GlobalKey();
 
   void _onDateSelected(DateTime date) {
-    setState(() => _selected = date);
+    setState(() => _selected = DateTime(date.year, date.month, date.day));
     // 선택한 날짜의 보드가 보이도록 보드 위치로 스크롤.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final BuildContext? ctx = _boardKey.currentContext;

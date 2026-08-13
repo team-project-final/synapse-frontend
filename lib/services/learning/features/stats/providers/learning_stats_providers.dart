@@ -41,6 +41,13 @@ final dailyReviewStatsProvider = FutureProvider.autoDispose
           .getDailyStats(tenantId: tenant.id, from: range.from, to: range.to);
     }, retry: _skipRetryOnClientError);
 
+final reviewOverviewProvider = FutureProvider.autoDispose<ReviewOverview>((
+  ref,
+) async {
+  final tenant = await ref.watch(currentTenantProvider.future);
+  return ref.watch(learningStatsApiProvider).getOverview(tenantId: tenant.id);
+}, retry: _skipRetryOnClientError);
+
 /// family 키로 쓰이므로 값 동등성이 필요하다.
 class StatsDateRange {
   const StatsDateRange({required this.from, required this.to});

@@ -1,25 +1,13 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:synapse_frontend/core/theme/app_colors.dart';
 import 'package:synapse_frontend/core/theme/app_spacing.dart';
+import 'package:synapse_frontend/services/learning/features/stats/data/learning_stats_api.dart';
+import 'package:synapse_frontend/services/learning/features/stats/providers/heatmap_provider.dart';
+import 'package:synapse_frontend/services/learning/features/stats/providers/learning_stats_providers.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/home_board_section.dart';
 import 'package:synapse_frontend/shared/features/dashboard/presentation/widgets/planner_section.dart';
-
-// ── Mock data ──────────────────────────────────────────────────────────────
-
-List<int> _generateHeatmapData(int days) {
-  final rng = math.Random(42);
-  return List.generate(days, (_) {
-    final roll = rng.nextDouble();
-    if (roll < 0.3) return 0;
-    if (roll < 0.55) return rng.nextInt(2) + 1;
-    if (roll < 0.8) return rng.nextInt(3) + 3;
-    if (roll < 0.95) return rng.nextInt(4) + 6;
-    return rng.nextInt(6) + 10;
-  });
-}
+import 'package:synapse_frontend/shared/widgets/app_state_widgets.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // DASH-001  DashboardScreen
@@ -69,15 +57,7 @@ class _DashboardHeatmapScreenState
   static const double _cellSize = 14;
   static const double _gap = 3;
 
-  late final List<int> _data;
   String? _selectedInfo;
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO: 팀원 구현 — learning-svc 학습 히트맵 데이터 연동
-    _data = _generateHeatmapData(_cols * _rows);
-  }
 
   Color _colorForCount(int count) {
     // 컨셉 보라 스케일 (적음→많음)
@@ -88,12 +68,12 @@ class _DashboardHeatmapScreenState
     return AppColors.primary;
   }
 
-  int? _hitTest(Offset local) {
+  int? _hitTest(Offset local, int dataLength) {
     final col = local.dx ~/ (_cellSize + _gap);
     final row = local.dy ~/ (_cellSize + _gap);
     if (col < 0 || col >= _cols || row < 0 || row >= _rows) return null;
     final index = col * _rows + row;
-    if (index >= _data.length) return null;
+    if (index >= dataLength) return null;
     return index;
   }
 
@@ -110,6 +90,7 @@ class _DashboardHeatmapScreenState
     final textTheme = Theme.of(context).textTheme;
     const gridWidth = _cols * (_cellSize + _gap) - _gap;
     const gridHeight = _rows * (_cellSize + _gap) - _gap;
+    final statsAsync = ref.watch(heatmapDailyStatsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('학습 히트맵')),
@@ -130,24 +111,30 @@ class _DashboardHeatmapScreenState
             ),
             const SizedBox(height: AppSpacing.md),
           ],
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: GestureDetector(
-              onTapDown: (details) {
-                final index = _hitTest(details.localPosition);
-                if (index != null) {
-                  setState(() {
-                    final date = _dateForIndex(index);
-                    final count = _data[index];
-                    _selectedInfo = '$date — $count회 학습';
-                  });
-                }
-              },
-              child: CustomPaint(
-                size: const Size(gridWidth, gridHeight),
-                painter: _HeatmapFullPainter(data: _data),
-              ),
-            ),
+          AppAsyncValueWidget<List<DailyReviewStat>>(
+            value: statsAsync,
+            data: (stats) {
+              final data = stats.map((s) => s.reviewCount).toList();
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: GestureDetector(
+                  onTapDown: (details) {
+                    final index = _hitTest(details.localPosition, data.length);
+                    if (index != null) {
+                      setState(() {
+                        final date = _dateForIndex(index);
+                        final count = data[index];
+                        _selectedInfo = '$date — $count회 학습';
+                      });
+                    }
+                  },
+                  child: CustomPaint(
+                    size: const Size(gridWidth, gridHeight),
+                    painter: _HeatmapFullPainter(data: data),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: AppSpacing.lg),
 
@@ -243,7 +230,6 @@ class DashboardStatsScreen extends ConsumerStatefulWidget {
 class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   String _period = '주간';
 
-  // TODO: 팀원 구현 — learning-svc 학습 통계 데이터 연동
   static const _kRetentionData = [0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
   static const _kAccuracyByDay = [0.80, 0.75, 0.90, 0.85, 0.70, 0.88, 0.82];
   static const _kStudyTimeHours = [1.5, 2.0, 1.0, 2.5, 1.8, 3.0, 2.2];
@@ -252,6 +238,7 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final overviewAsync = ref.watch(reviewOverviewProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('학습 통계 상세')),
@@ -270,6 +257,37 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
               onSelectionChanged: (selected) {
                 setState(() => _period = selected.first);
               },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          // ── Summary overview(총 복습 수 · 정답률 · 현재 연속일) ──
+          AppAsyncValueWidget<ReviewOverview>(
+            value: overviewAsync,
+            data: (overview) => Row(
+              children: [
+                Expanded(
+                  child: _StatTile(
+                    label: '총 복습 수',
+                    value: '${overview.totalReviews}회',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _StatTile(
+                    label: '정답률',
+                    value:
+                        '${overview.overallCorrectRate.toStringAsFixed(0)}%',
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _StatTile(
+                    label: '현재 연속일',
+                    value: '${overview.currentStreak}일',
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -504,4 +522,43 @@ class _BarChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _BarChartPainter oldDelegate) =>
       oldDelegate.values != values || oldDelegate.color != color;
+}
+
+// ── Summary stat tile — 총 복습 수 · 정답률 · 현재 연속일 ───────────────────
+
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md,
+          horizontal: AppSpacing.sm,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxs),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: textTheme.labelSmall?.copyWith(color: AppColors.muted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

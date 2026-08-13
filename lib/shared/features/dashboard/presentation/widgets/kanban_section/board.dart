@@ -1,6 +1,6 @@
 part of '../kanban_section.dart';
 
-class KanbanSection extends StatelessWidget {
+class KanbanSection extends ConsumerWidget {
   const KanbanSection({this.scrollable = true, this.date, super.key});
 
   // false면 외부(세로) ListView가 자체 스크롤하지 않고 외부 스크롤 뷰가
@@ -8,12 +8,15 @@ class KanbanSection extends StatelessWidget {
   final bool scrollable;
 
   // 플래너에서 선택된 날짜. 지정되면 보드 헤더에 해당 날짜를 표시한다.
-  // TODO: 팀원 구현 — learning-svc 연동 시 이 날짜의 카드만 로드한다.
   final DateTime? date;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bool isMobile = MediaQuery.sizeOf(context).width < 600;
+    final DateTime targetDate = date ?? DateTime.now();
+    final AsyncValue<List<DeckSummary>> decksAsync = ref.watch(
+      deckSummariesProvider(targetDate),
+    );
 
     return ListView(
       padding: EdgeInsets.fromLTRB(
@@ -51,10 +54,25 @@ class KanbanSection extends StatelessWidget {
         const SizedBox(height: AppSpacing.md),
 
         // ── 칸반 보드 ──
-        if (isMobile)
-          const _MobileBoard(columns: _kBoardColumns)
-        else
-          const _DesktopBoard(columns: _kBoardColumns),
+        AppAsyncValueWidget<List<DeckSummary>>(
+          value: decksAsync,
+          data: (List<DeckSummary> decks) {
+            if (decks.isEmpty) {
+              return const AppEmptyState(
+                icon: Icons.style_outlined,
+                title: '아직 덱이 없습니다.',
+              );
+            }
+            final List<_KanbanColumn> columns = _buildColumns(decks);
+            return isMobile
+                ? _MobileBoard(columns: columns)
+                : _DesktopBoard(columns: columns);
+          },
+          error: (Object error, StackTrace stackTrace) => AppErrorWidget(
+            message: '보드를 불러오지 못했습니다.',
+            onRetry: () => ref.invalidate(deckSummariesProvider(targetDate)),
+          ),
+        ),
         const SizedBox(height: AppSpacing.lg),
       ],
     );
@@ -86,7 +104,7 @@ class _BoardHeader extends StatelessWidget {
         ),
         _IconCircleButton(
           icon: Icons.add,
-          onTap: () => context.go(_kComposeRoute),
+          onTap: () => context.go(AppRoutes.noteEditorPath('new')),
         ),
       ],
     );
@@ -126,7 +144,7 @@ class _DateBoardHeader extends StatelessWidget {
         ),
         _IconCircleButton(
           icon: Icons.add,
-          onTap: () => context.go(_kComposeRoute),
+          onTap: () => context.go(AppRoutes.noteEditorPath('new')),
         ),
       ],
     );

@@ -30,4 +30,4 @@ final heatmapDailyStatsProvider =
         from = to.add(const Duration(days: 1));
       }
       return result;
-    });
+    }, retry: skipRetryOnClientError);

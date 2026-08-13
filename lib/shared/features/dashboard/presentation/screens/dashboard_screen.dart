@@ -77,12 +77,33 @@ class _DashboardHeatmapScreenState
     return index;
   }
 
-  String _dateForIndex(int index) {
+  /// 그리드 칸 인덱스가 나타내는 날짜(시각 성분 없음). 인덱스 0이 가장 오래된
+  /// 날, 마지막 인덱스가 오늘이다.
+  DateTime _dateTimeForIndex(int index) {
     final today = DateTime.now();
     const totalDays = _cols * _rows;
     final daysAgo = totalDays - 1 - index;
     final date = today.subtract(Duration(days: daysAgo));
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// [stats]를 인덱스가 아니라 **날짜**로 그리드에 매핑한다. 응답이 364개
+  /// 미만이거나 순서가 요청 구간과 다르더라도(예: 백엔드가 향후 빈 날을
+  /// 생략하도록 바뀌는 경우) 칸이 조용히 어긋나지 않도록 날짜 키로 조회한다.
+  List<int> _gridCountsFrom(List<DailyReviewStat> stats) {
+    final byDate = <DateTime, int>{
+      for (final stat in stats)
+        DateTime(stat.date.year, stat.date.month, stat.date.day):
+            stat.reviewCount,
+    };
+    return [
+      for (int i = 0; i < _cols * _rows; i++)
+        byDate[_dateTimeForIndex(i)] ?? 0,
+    ];
   }
 
   @override
@@ -114,7 +135,7 @@ class _DashboardHeatmapScreenState
           AppAsyncValueWidget<List<DailyReviewStat>>(
             value: statsAsync,
             data: (stats) {
-              final data = stats.map((s) => s.reviewCount).toList();
+              final data = _gridCountsFrom(stats);
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: GestureDetector(
@@ -122,9 +143,9 @@ class _DashboardHeatmapScreenState
                     final index = _hitTest(details.localPosition, data.length);
                     if (index != null) {
                       setState(() {
-                        final date = _dateForIndex(index);
+                        final date = _dateTimeForIndex(index);
                         final count = data[index];
-                        _selectedInfo = '$date — $count회 학습';
+                        _selectedInfo = '${_formatDate(date)} — $count회 학습';
                       });
                     }
                   },

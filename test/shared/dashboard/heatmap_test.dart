@@ -62,5 +62,38 @@ void main() {
     await container.read(heatmapDailyStatsProvider.future);
 
     expect(api.ranges.length, 4);
+
+    // 캡처한 "from~to" 구간들을 파싱해 청크 경계를 검증한다: 각 구간이
+    // 92일(백엔드 상한) 이하인지, 인접 구간 사이에 중복·공백이 없는지,
+    // 전체 합집합이 정확히 364일인지.
+    final parsed = api.ranges.map((range) {
+      final parts = range.split('~');
+      return (
+        from: DateTime.parse(parts[0]),
+        to: DateTime.parse(parts[1]),
+      );
+    }).toList();
+
+    var totalDays = 0;
+    for (var i = 0; i < parsed.length; i++) {
+      final (from: from, to: to) = parsed[i];
+      final spanDays = to.difference(from).inDays + 1;
+      expect(
+        spanDays,
+        lessThanOrEqualTo(92),
+        reason: '구간 $i(${parsed[i]})이 92일 상한을 넘음',
+      );
+      totalDays += spanDays;
+
+      if (i > 0) {
+        final previousTo = parsed[i - 1].to;
+        expect(
+          from.difference(previousTo).inDays,
+          1,
+          reason: '구간 ${i - 1}과 $i 사이에 중복 또는 공백이 있음',
+        );
+      }
+    }
+    expect(totalDays, heatmapDays);
   });
 }

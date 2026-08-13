@@ -6,7 +6,10 @@ import 'package:synapse_frontend/services/platform/features/tenant/data/tenant_a
 
 /// 4xx는 재시도해도 같은 결과다. Riverpod 3의 기본 재시도(최대 10회·지수 백오프)를
 /// 그대로 두면 그동안 상태가 `AsyncLoading`이라 사용자에게 무한 스피너가 보인다.
-Duration? _skipRetryOnClientError(int retryCount, Object error) {
+///
+/// public — `heatmap_provider.dart`도 동일 정책을 공유한다. 재시도 정책이
+/// 두 곳에 갈라지지 않도록 이 파일이 유일한 정의처다.
+Duration? skipRetryOnClientError(int retryCount, Object error) {
   final status = error is DioException ? error.response?.statusCode : null;
   if (status != null && status >= 400 && status < 500) return null;
   if (retryCount >= 3) return null;
@@ -23,7 +26,7 @@ final reviewForecastProvider = FutureProvider.autoDispose
       return ref
           .watch(learningStatsApiProvider)
           .getForecast(tenantId: tenant.id, from: range.from, to: range.to);
-    }, retry: _skipRetryOnClientError);
+    }, retry: skipRetryOnClientError);
 
 final deckSummariesProvider = FutureProvider.autoDispose
     .family<List<DeckSummary>, DateTime>((ref, date) async {
@@ -31,7 +34,7 @@ final deckSummariesProvider = FutureProvider.autoDispose
       return ref
           .watch(learningStatsApiProvider)
           .getDeckSummaries(tenantId: tenant.id, date: date);
-    }, retry: _skipRetryOnClientError);
+    }, retry: skipRetryOnClientError);
 
 final dailyReviewStatsProvider = FutureProvider.autoDispose
     .family<List<DailyReviewStat>, StatsDateRange>((ref, range) async {
@@ -39,14 +42,14 @@ final dailyReviewStatsProvider = FutureProvider.autoDispose
       return ref
           .watch(learningStatsApiProvider)
           .getDailyStats(tenantId: tenant.id, from: range.from, to: range.to);
-    }, retry: _skipRetryOnClientError);
+    }, retry: skipRetryOnClientError);
 
 final reviewOverviewProvider = FutureProvider.autoDispose<ReviewOverview>((
   ref,
 ) async {
   final tenant = await ref.watch(currentTenantProvider.future);
   return ref.watch(learningStatsApiProvider).getOverview(tenantId: tenant.id);
-}, retry: _skipRetryOnClientError);
+}, retry: skipRetryOnClientError);
 
 /// family 키로 쓰이므로 값 동등성이 필요하다.
 class StatsDateRange {

@@ -17,12 +17,14 @@ void main() {
         expect(options.queryParameters['to'], '2026-08-15');
         expect(options.headers['X-Tenant-Id'], _tenantId);
         return _json({
-          'overdueCount': 7,
-          'days': [
-            {'date': '2026-08-13', 'dueCount': 12},
-            {'date': '2026-08-14', 'dueCount': 0},
-            {'date': '2026-08-15', 'dueCount': 3},
-          ],
+          'data': {
+            'overdueCount': 7,
+            'days': [
+              {'date': '2026-08-13', 'dueCount': 12},
+              {'date': '2026-08-14', 'dueCount': 0},
+              {'date': '2026-08-15', 'dueCount': 3},
+            ],
+          },
         });
       });
 
@@ -45,16 +47,18 @@ void main() {
         expect(options.path, '/stats/decks');
         expect(options.queryParameters['date'], '2026-08-13');
         return _json({
-          'decks': [
-            {
-              'deckId': '00000000-0000-0000-0000-0000000000aa',
-              'name': 'AWS SAA',
-              'totalCards': 40,
-              'unreviewedCards': 5,
-              'dueCount': 5,
-              'reviewedCount': 0,
-            },
-          ],
+          'data': {
+            'decks': [
+              {
+                'deckId': '00000000-0000-0000-0000-0000000000aa',
+                'name': 'AWS SAA',
+                'totalCards': 40,
+                'unreviewedCards': 5,
+                'dueCount': 5,
+                'reviewedCount': 0,
+              },
+            ],
+          },
         });
       });
 
@@ -76,6 +80,8 @@ void main() {
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
       ..httpClientAdapter = _FakeAdapter((options) {
         expect(options.queryParameters.containsKey('date'), isFalse);
+        // 의도적으로 data 봉투 없이 응답한다 — _unwrapData가 비래핑 응답도
+        // 견딘다는 사실을 이 케이스 하나로 계속 커버한다.
         return _json({'decks': <dynamic>[]});
       });
 
@@ -89,9 +95,11 @@ void main() {
       ..httpClientAdapter = _FakeAdapter((options) {
         expect(options.path, '/stats/daily');
         return _json({
-          'days': [
-            {'date': '2026-08-12', 'reviewCount': 23, 'correctRate': 87.0},
-          ],
+          'data': {
+            'days': [
+              {'date': '2026-08-12', 'reviewCount': 23, 'correctRate': 87.0},
+            ],
+          },
         });
       });
 

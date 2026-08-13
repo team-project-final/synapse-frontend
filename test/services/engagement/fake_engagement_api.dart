@@ -8,6 +8,12 @@ class FakeEngagementApi extends EngagementApi {
   final createdReports = <String>[];
   final moderatedReports = <String>[];
 
+  /// 그룹 공유 콘텐츠 응답. 기본값은 빈 목록이고, 테스트가 직접 주입한다.
+  List<SharedContent> groupSharedContent = const [];
+
+  /// 설정하면 [getGroupSharedContent]가 해당 예외를 던진다(403 안내 문구 검증용).
+  Object? groupSharedContentError;
+
   @override
   Future<GamificationProfile> getGamificationProfile() async {
     return GamificationProfile(
@@ -146,6 +152,17 @@ class FakeEngagementApi extends EngagementApi {
     return items
         .where((item) => item.title.contains(keyword))
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<SharedContent>> getGroupSharedContent(
+    String groupId, {
+    String? keyword,
+    String? contentType,
+  }) async {
+    final error = groupSharedContentError;
+    if (error != null) throw error;
+    return groupSharedContent;
   }
 
   @override

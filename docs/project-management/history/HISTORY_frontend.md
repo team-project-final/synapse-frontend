@@ -185,12 +185,19 @@
 - **이슈**: release build는 sandbox에서 Flutter SDK/AppData 캐시 접근 권한 때문에 escalated 실행으로 PASS. build warning: CupertinoIcons font asset 미포함 경고는 기존 dependency/assets 상태로 보이며 이번 slice blocker 아님. FE-05 group-specific shared content contract, group pagination UX, FE-02 dashboard study-board/calendar/planner summary API, FE-01 OAuth consent allow/deny endpoint, Phase E full staging demo는 계약/환경 증거가 없어 완료 처리하지 않는다.
 - **다음**: dashboard/OAuth consent 계약 확인, group-specific shared content contract 정리, staging seed path 확정, signup -> note -> graph/search -> AI cards -> review -> gamification -> notification/admin full staging demo evidence 실행.
 
+#### 2026-08-13 (목)
+- **완료**: FE-05 그룹 전용 공유 콘텐츠 프론트 연동. `EngagementApi.getGroupSharedContent(groupId, {keyword, contentType})`로 engagement-svc `GET /api/v1/community/groups/{groupId}/shared-content` 계약 연결, `SharedContent.groupId` 파싱 및 `isGroupScoped` 추가, `shareContent`에 선택적 `groupId` 전달. `groupSharedContentProvider` family 추가 후 그룹 상세 화면에 "그룹 공유 콘텐츠" 섹션(목록/빈 상태/403 가입 안내) 노출.
+- **검증**: `flutter analyze` No issues found. `flutter test` 218 tests PASS (기존 212 + 신규 6, 1 skipped).
+- **이슈**: Riverpod 3의 provider 자동 재시도(기본 최대 10회·지수 백오프)가 403을 `AsyncLoading(error:)`로 유지해 안내 문구 대신 무한 스피너가 노출되는 문제를 발견. 해당 provider에 `retry`를 지정해 4xx는 즉시 확정하도록 처리했으나, 같은 문제가 앱 전역의 다른 provider에도 적용되므로 `ProviderScope` 차원의 공통 정책은 후속 과제로 남는다.
+- **다음**: FE-02 dashboard(study-board/calendar/planner) 계약, FE-01 OAuth 인가 서버 spec 사이클.
+
 ---
 
 ## 변경 이력
 
 | 날짜 | 변경 사항 |
 |------|-----------|
+| 2026-08-13 | FE-05 그룹 전용 공유 콘텐츠 프론트 연동(API·provider·그룹 상세 섹션·테스트 6종), 4xx 재시도 정책 추가 |
 | 2026-06-22 | P0 FE-03/04/05/06/08/09/11/14 API-backed slices, FE-05 group list/detail/member API 전환, FE-01 consent blocker 처리, analyze/test/build gate 통과 기록 |
 | 2026-06-11 | (main) deploy.yml을 shared-caller(SHA) → semver 자체-deploy로 통일. gitops `apps/frontend` 1.0.0 semver 핀과 정합(ImagePullBackOff 근본 해소). Dockerfile/nginx.conf 보존. 이슈 #52. 상세 [REPORT.md](../../REPORT.md) |
 | 2026-05-11 | W2/W3/W4 대시보드 및 로그 템플릿 추가 |

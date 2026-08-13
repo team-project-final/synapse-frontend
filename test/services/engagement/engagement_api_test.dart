@@ -94,6 +94,85 @@ void main() {
     ]);
   });
 
+  test('getGroupSharedContent가 그룹 공유 목록을 반환한다', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.method, 'GET');
+        expect(options.path, '/api/v1/community/groups/7/shared-content');
+        expect(options.queryParameters['q'], '알고리즘');
+        expect(options.queryParameters['contentType'], 'DECK');
+        return _json([
+          {
+            'id': 1,
+            'shareToken': 'tok',
+            'contentType': 'DECK',
+            'contentId': 9,
+            'ownerId': 3,
+            'title': 'Group Deck',
+            'description': null,
+            'tags': <String>[],
+            'downloadCount': 0,
+            'sourceShareId': null,
+            'createdAt': '2026-08-01T00:00:00Z',
+            'groupId': 7,
+          },
+        ]);
+      });
+
+    final result = await EngagementApi(
+      dio,
+    ).getGroupSharedContent('7', keyword: '알고리즘', contentType: 'DECK');
+
+    expect(result, hasLength(1));
+    expect(result.first.title, 'Group Deck');
+    expect(result.first.groupId, '7');
+  });
+
+  test('shareContent가 groupId를 요청 본문에 싣는다', () async {
+    late Map<String, dynamic> body;
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        expect(options.method, 'POST');
+        expect(options.path, '/api/v1/community/share');
+        body = options.data as Map<String, dynamic>;
+        return _json({
+          'shareToken': 'tok',
+          'shareUrl': 'https://synapse.local/share/tok',
+        });
+      });
+
+    await EngagementApi(dio).shareContent(
+      contentType: 'DECK',
+      contentId: '101',
+      title: '그룹 전용 덱',
+      description: '스터디 그룹 내부 공유',
+      groupId: '7',
+    );
+
+    expect(body['groupId'], 7);
+  });
+
+  test('shareContent가 groupId 없으면 본문에서 생략한다', () async {
+    late Map<String, dynamic> body;
+    final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
+      ..httpClientAdapter = _FakeAdapter((options) {
+        body = options.data as Map<String, dynamic>;
+        return _json({
+          'shareToken': 'tok',
+          'shareUrl': 'https://synapse.local/share/tok',
+        });
+      });
+
+    await EngagementApi(dio).shareContent(
+      contentType: 'DECK',
+      contentId: '101',
+      title: '공개 덱',
+      description: '누구나 열람',
+    );
+
+    expect(body.containsKey('groupId'), isFalse);
+  });
+
   test('reports use create/list/moderate endpoints', () async {
     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8080'))
       ..httpClientAdapter = _FakeAdapter((options) {

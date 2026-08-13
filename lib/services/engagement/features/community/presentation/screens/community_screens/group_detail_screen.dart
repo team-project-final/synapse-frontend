@@ -44,6 +44,7 @@ class _CommunityGroupDetailViewState
     final group = detail.group;
     final members = detail.members;
     final textTheme = Theme.of(context).textTheme;
+    final sharedValue = ref.watch(groupSharedContentProvider(group.id));
 
     return ConceptPage(
       children: [
@@ -145,6 +146,58 @@ class _CommunityGroupDetailViewState
               ],
             ),
           ),
+        const SizedBox(height: AppSpacing.lg),
+        const ConceptSectionLabel('그룹 공유 콘텐츠'),
+        AppAsyncValueWidget<List<SharedContent>>(
+          value: sharedValue,
+          loading: const AppLoadingWidget(label: '공유 콘텐츠를 불러오는 중입니다.'),
+          error: (error, _) {
+            // 그룹 비멤버는 403 — 오류가 아니라 가입 유도 안내로 처리한다.
+            final isForbidden =
+                error is DioException && error.response?.statusCode == 403;
+            if (isForbidden) {
+              return Text(
+                '가입 후 열람할 수 있습니다.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.stone500,
+                ),
+              );
+            }
+            return AppErrorWidget(
+              message: '공유 콘텐츠를 불러오지 못했습니다.',
+              onRetry: () =>
+                  ref.invalidate(groupSharedContentProvider(group.id)),
+            );
+          },
+          data: (items) {
+            if (items.isEmpty) {
+              return Text(
+                '아직 공유된 콘텐츠가 없습니다.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: AppColors.stone500,
+                ),
+              );
+            }
+            return ConceptCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xs,
+              ),
+              child: Column(
+                children: [
+                  for (final item in items)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(item.title),
+                      subtitle: item.description.isEmpty
+                          ? null
+                          : Text(item.description),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
         const SizedBox(height: AppSpacing.lg),
         const ConceptSectionLabel('그룹 정보'),
         ConceptCard(

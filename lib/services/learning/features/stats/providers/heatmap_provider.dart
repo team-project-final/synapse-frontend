@@ -19,15 +19,21 @@ final heatmapDailyStatsProvider =
       final today = DateTime(now.year, now.month, now.day);
       final start = today.subtract(const Duration(days: heatmapDays - 1));
 
-      final result = <DailyReviewStat>[];
+      // 구간 경계만 먼저 계산한다(91일씩, 마지막 구간은 오늘까지) — 이
+      // 로직 자체는 그대로 두고, 실제 호출만 순차 대신 병렬로 보낸다.
+      final ranges = <({DateTime from, DateTime to})>[];
       var from = start;
       while (!from.isAfter(today)) {
         final candidate = from.add(const Duration(days: _chunkDays - 1));
         final to = candidate.isAfter(today) ? today : candidate;
-        result.addAll(
-          await api.getDailyStats(tenantId: tenant.id, from: from, to: to),
-        );
+        ranges.add((from: from, to: to));
         from = to.add(const Duration(days: 1));
       }
-      return result;
+
+      final chunks = await Future.wait(
+        ranges.map(
+          (r) => api.getDailyStats(tenantId: tenant.id, from: r.from, to: r.to),
+        ),
+      );
+      return [for (final chunk in chunks) ...chunk];
     }, retry: skipRetryOnClientError);

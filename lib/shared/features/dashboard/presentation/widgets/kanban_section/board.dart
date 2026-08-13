@@ -1,21 +1,23 @@
 part of '../kanban_section.dart';
 
 class KanbanSection extends ConsumerWidget {
-  const KanbanSection({this.scrollable = true, this.date, super.key});
+  const KanbanSection({this.scrollable = true, required this.date, super.key});
 
   // false면 외부(세로) ListView가 자체 스크롤하지 않고 외부 스크롤 뷰가
   // 담당한다(임베드 모드). 내부 _MobileBoard 가로 스크롤은 영향받지 않는다.
   final bool scrollable;
 
-  // 플래너에서 선택된 날짜. 지정되면 보드 헤더에 해당 날짜를 표시한다.
-  final DateTime? date;
+  // 플래너에서 선택된 날짜. 보드 헤더에 해당 날짜를 표시하고 그 날짜의 덱
+  // 요약을 조회하는 데 쓰인다. 호출처(PlannerSection)가 항상 넘겨준다 —
+  // DateTime.now() 폴백을 두면 매 rebuild마다 새 family 키가 되어
+  // /stats/decks 요청이 반복될 수 있다.
+  final DateTime date;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bool isMobile = MediaQuery.sizeOf(context).width < 600;
-    final DateTime targetDate = date ?? DateTime.now();
     final AsyncValue<List<DeckSummary>> decksAsync = ref.watch(
-      deckSummariesProvider(targetDate),
+      deckSummariesProvider(date),
     );
 
     return ListView(
@@ -30,82 +32,52 @@ class KanbanSection extends ConsumerWidget {
       shrinkWrap: !scrollable,
       physics: scrollable ? null : const NeverScrollableScrollPhysics(),
       children: <Widget>[
-        // ── 헤더 ──
-        // 날짜 지정(플래너) 시 날짜 헤더, 아니면 모바일 전용 기본 헤더.
-        if (date != null) ...<Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: isMobile ? AppSpacing.lg : 0),
-            child: _DateBoardHeader(date: date!),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ] else if (isMobile) ...<Widget>[
-          const Padding(
-            padding: EdgeInsets.only(right: AppSpacing.lg),
-            child: _BoardHeader(),
-          ),
-          const SizedBox(height: AppSpacing.md),
-        ],
-
-        // ── 오늘 진행 요약 바 ──
-        Padding(
-          padding: EdgeInsets.only(right: isMobile ? AppSpacing.lg : 0),
-          child: const _ProgressLine(),
-        ),
-        const SizedBox(height: AppSpacing.md),
-
-        // ── 칸반 보드 ──
+        // 헤더·진행 요약 바·보드 모두 덱 요약(decksAsync)에서 계산한 실제
+        // 값을 쓰므로, 로딩/에러 상태와 어긋나지 않도록 전부 이 안에서
+        // 함께 렌더한다.
         AppAsyncValueWidget<List<DeckSummary>>(
           value: decksAsync,
           data: (List<DeckSummary> decks) {
-            if (decks.isEmpty) {
-              return const AppEmptyState(
-                icon: Icons.style_outlined,
-                title: '아직 덱이 없습니다.',
-              );
-            }
-            final List<_KanbanColumn> columns = _buildColumns(decks);
-            return isMobile
-                ? _MobileBoard(columns: columns)
-                : _DesktopBoard(columns: columns);
+            final int dueTotal = decks.fold<int>(
+              0,
+              (int sum, DeckSummary d) => sum + d.dueCount,
+            );
+            final List<Widget> children = <Widget>[
+              Padding(
+                padding: EdgeInsets.only(
+                  right: isMobile ? AppSpacing.lg : 0,
+                ),
+                child: _DateBoardHeader(date: date, dueCount: dueTotal),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Padding(
+                padding: EdgeInsets.only(
+                  right: isMobile ? AppSpacing.lg : 0,
+                ),
+                child: _ProgressLine(decks: decks),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              if (decks.isEmpty)
+                const AppEmptyState(
+                  icon: Icons.style_outlined,
+                  title: '아직 덱이 없습니다.',
+                )
+              else
+                (isMobile
+                    ? _MobileBoard(columns: _buildColumns(decks))
+                    : _DesktopBoard(columns: _buildColumns(decks))),
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: children,
+            );
           },
           error: (Object error, StackTrace stackTrace) => AppErrorWidget(
             message: '보드를 불러오지 못했습니다.',
-            onRetry: () => ref.invalidate(deckSummariesProvider(targetDate)),
+            onRetry: () => ref.invalidate(deckSummariesProvider(date)),
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-      ],
-    );
-  }
-}
-
-// ── 모바일 헤더 ──────────────────────────────────────────────────────────────
-
-class _BoardHeader extends StatelessWidget {
-  const _BoardHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text('내 학습 보드', style: textTheme.headlineSmall),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                '화요일 · 오늘 복습 18장 대기',
-                style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
-              ),
-            ],
-          ),
-        ),
-        _IconCircleButton(
-          icon: Icons.add,
-          onTap: () => context.go(AppRoutes.noteEditorPath('new')),
-        ),
       ],
     );
   }
@@ -117,9 +89,10 @@ String _weekdayKo(DateTime d) =>
 
 /// 플래너에서 선택한 날짜의 보드 헤더(날짜 + 추가 버튼).
 class _DateBoardHeader extends StatelessWidget {
-  const _DateBoardHeader({required this.date});
+  const _DateBoardHeader({required this.date, required this.dueCount});
 
   final DateTime date;
+  final int dueCount;
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +109,7 @@ class _DateBoardHeader extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xxs),
               Text(
-                '선택한 날짜의 학습 보드 · 복습 18장 대기',
+                '선택한 날짜의 학습 보드 · 복습 $dueCount장 대기',
                 style: textTheme.bodySmall?.copyWith(color: AppColors.muted),
               ),
             ],
@@ -178,11 +151,41 @@ class _IconCircleButton extends StatelessWidget {
 // ── 진행 요약 바 (progline) ──────────────────────────────────────────────────
 
 class _ProgressLine extends StatelessWidget {
-  const _ProgressLine();
+  const _ProgressLine({required this.decks});
+
+  final List<DeckSummary> decks;
 
   @override
   Widget build(BuildContext context) {
     final TextTheme textTheme = Theme.of(context).textTheme;
+    // dueCount(복습 대기)와 reviewedCount(완료)만 실데이터로 신뢰할 수 있는
+    // 수량이라 이 둘로만 계산한다. 원래 있던 "학습"(신규) 구간은 이 계산식이
+    // 다루지 않는 값이라 표시하지 않는다.
+    final int dueTotal = decks.fold<int>(
+      0,
+      (int sum, DeckSummary d) => sum + d.dueCount,
+    );
+    final int reviewedTotal = decks.fold<int>(
+      0,
+      (int sum, DeckSummary d) => sum + d.reviewedCount,
+    );
+    final int total = dueTotal + reviewedTotal;
+    final List<Widget> segments = <Widget>[
+      if (reviewedTotal > 0)
+        Expanded(
+          flex: reviewedTotal,
+          child: const ColoredBox(color: AppColors.success),
+        ),
+      if (dueTotal > 0)
+        Expanded(
+          flex: dueTotal,
+          child: const ColoredBox(color: AppColors.streak),
+        ),
+    ];
+    if (segments.isEmpty) {
+      segments.add(const Expanded(child: ColoredBox(color: AppColors.surface2)));
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -203,44 +206,21 @@ class _ProgressLine extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                Text('38장 중 12 완료', style: textTheme.titleSmall),
+                Text('$total장 중 $reviewedTotal 완료', style: textTheme.titleSmall),
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            // 세그먼트 진행 바: 학습/복습/완료
+            // 세그먼트 진행 바: 완료/복습 대기 (dueCount·reviewedCount 실데이터)
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.pill),
-              child: const SizedBox(
-                height: 10,
-                child: Row(
-                  children: <Widget>[
-                    Expanded(
-                      flex: 18,
-                      child: ColoredBox(color: AppColors.primary),
-                    ),
-                    Expanded(
-                      flex: 30,
-                      child: ColoredBox(color: AppColors.streak),
-                    ),
-                    Expanded(
-                      flex: 32,
-                      child: ColoredBox(color: AppColors.success),
-                    ),
-                    Expanded(
-                      flex: 20,
-                      child: ColoredBox(color: AppColors.surface2),
-                    ),
-                  ],
-                ),
-              ),
+              child: SizedBox(height: 10, child: Row(children: segments)),
             ),
             const SizedBox(height: AppSpacing.sm),
             const Wrap(
               spacing: AppSpacing.md,
               children: <Widget>[
-                _Legend(color: AppColors.primary, label: '학습'),
-                _Legend(color: AppColors.streak, label: '복습'),
                 _Legend(color: AppColors.success, label: '완료'),
+                _Legend(color: AppColors.streak, label: '복습 대기'),
               ],
             ),
           ],

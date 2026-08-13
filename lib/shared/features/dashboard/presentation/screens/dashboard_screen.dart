@@ -156,6 +156,10 @@ class _DashboardHeatmapScreenState
                 ),
               );
             },
+            error: (Object error, StackTrace stackTrace) => AppErrorWidget(
+              message: '히트맵을 불러오지 못했습니다.',
+              onRetry: () => ref.invalidate(heatmapDailyStatsProvider),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
 
@@ -251,8 +255,11 @@ class DashboardStatsScreen extends ConsumerStatefulWidget {
 class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
   String _period = '주간';
 
+  // TODO: 팀원 구현 — learning-svc 연동(mock)
   static const _kRetentionData = [0.95, 0.88, 0.82, 0.78, 0.75, 0.73, 0.71];
+  // TODO: 팀원 구현 — learning-svc 연동(mock)
   static const _kAccuracyByDay = [0.80, 0.75, 0.90, 0.85, 0.70, 0.88, 0.82];
+  // TODO: 팀원 구현 — learning-svc 연동(mock)
   static const _kStudyTimeHours = [1.5, 2.0, 1.0, 2.5, 1.8, 3.0, 2.2];
   static const _kDayLabels = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -309,6 +316,10 @@ class _DashboardStatsScreenState extends ConsumerState<DashboardStatsScreen> {
                   ),
                 ),
               ],
+            ),
+            error: (Object error, StackTrace stackTrace) => AppErrorWidget(
+              message: '통계를 불러오지 못했습니다.',
+              onRetry: () => ref.invalidate(reviewOverviewProvider),
             ),
           ),
           const SizedBox(height: AppSpacing.xl),

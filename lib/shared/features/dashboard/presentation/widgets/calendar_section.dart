@@ -91,6 +91,13 @@ class CalendarSection extends ConsumerWidget {
                       selectedDate: selectedDate,
                       onDateSelected: onDateSelected,
                     ),
+              error: (Object error, StackTrace stackTrace) => AppErrorWidget(
+                message: '캘린더를 불러오지 못했습니다.',
+                onRetry: () {
+                  ref.invalidate(reviewForecastProvider(forecastRange));
+                  ref.invalidate(dailyReviewStatsProvider(dailyRange));
+                },
+              ),
             ),
           ],
         );
